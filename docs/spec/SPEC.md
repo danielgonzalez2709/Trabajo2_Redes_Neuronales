@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.4** — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.5** — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -293,7 +293,7 @@ con activación `"identidad"`.
 `app/public/model/casos_paridad.json`: 1 000 filas de test con entradas crudas, `pd` y `score` calculados en Python.
 **Prueba de paridad** en CI: |PD_TS − PD_Py| < 1e-6 y |score_TS − score_Py| < 1e-3 en las 1 000.
 
-### 5.6 Datos sintéticos (produce: E el jueves 22 · consumen: B, C, D, E)
+### 5.6 Datos sintéticos — **ya no hacen falta** (v0.5): los datos reales están en `data/processed/` desde el vie 23, 9 a. m.
 
 `python -m src.datos.sintetico` escribe `data/sintetico/loans_pd.parquet`, `loans_lgd.parquet` y `features.yaml` con **las
 mismas columnas y tipos** de §5.1, una relación simple entre variables y objetivo (para que los modelos aprendan algo), los tres

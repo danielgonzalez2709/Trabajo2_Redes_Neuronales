@@ -1,0 +1,109 @@
+{
+  "archivo_crudo": "data/raw/credit-risk-dataset/loan/loan.csv",
+  "url": "https://www.kaggle.com/datasets/ranadeep/credit-risk-dataset",
+  "sha256": "f01652b585e7f355d8749d0814b40068030241d201c6a31e6c9a3cb736eecccb",
+  "fecha_descarga": "2026-10-23",
+  "n_registros_crudo": 887379,
+  "n_variables_crudo": 74,
+  "periodo": {
+    "min": "2007-06",
+    "max": "2015-12"
+  },
+  "conteo_por_loan_status": {
+    "Current": 601779,
+    "Fully Paid": 207723,
+    "Charged Off": 45248,
+    "Late (31-120 days)": 11591,
+    "Issued": 8460,
+    "In Grace Period": 6253,
+    "Late (16-30 days)": 2357,
+    "Does not meet the credit policy. Status:Fully Paid": 1988,
+    "Default": 1219,
+    "Does not meet the credit policy. Status:Charged Off": 761
+  },
+  "n_objetivo_na": 618849,
+  "n_resueltos_posteriores_a_test": 30835,
+  "particion": {
+    "train_hasta": "2012-12-31",
+    "val_hasta": "2013-12-31",
+    "test_hasta": "2014-12-31"
+  },
+  "n_modelado": 237695,
+  "n_por_split": {
+    "train": 90347,
+    "val": 73194,
+    "test": 74154
+  },
+  "tasa_malos_por_split": {
+    "train": 0.16302699591574707,
+    "val": 0.22949968576659288,
+    "test": 0.26217061790328233
+  },
+  "tasa_malos_por_anio": {
+    "2007": 0.2620232172470978,
+    "2008": 0.20727120768909318,
+    "2009": 0.1369058890361674,
+    "2010": 0.14040549169859515,
+    "2011": 0.16518830148512342,
+    "2012": 0.1673057234055367,
+    "2013": 0.22949968576659288,
+    "2014": 0.26217061790328233,
+    "2015": 0.2546132641478839
+  },
+  "fraccion_na_por_anio": {
+    "2007": 0.0,
+    "2008": 0.0,
+    "2009": 0.0,
+    "2010": 0.000717875089734421,
+    "2011": 0.09170848487638694,
+    "2012": 0.06659546161485563,
+    "2013": 0.4568364810211124,
+    "2014": 0.6852920705518868,
+    "2015": 0.9267740694476767
+  },
+  "n_por_anio": {
+    "2007": 603,
+    "2008": 2393,
+    "2009": 5281,
+    "2010": 12537,
+    "2011": 21721,
+    "2012": 53367,
+    "2013": 134755,
+    "2014": 235628,
+    "2015": 421094
+  },
+  "variables": [
+    "loan_amnt",
+    "term",
+    "emp_length",
+    "home_ownership",
+    "annual_inc",
+    "purpose",
+    "dti",
+    "delinq_2yrs",
+    "antiguedad_credito_anios",
+    "inq_last_6mths",
+    "open_acc",
+    "pub_rec",
+    "revol_bal",
+    "revol_util",
+    "total_acc"
+  ],
+  "faltantes_por_variable_train": {
+    "loan_amnt": 0.0,
+    "term": 0.0,
+    "emp_length": 0.03206525949948532,
+    "home_ownership": 0.0,
+    "annual_inc": 4.427374456263075e-05,
+    "purpose": 0.0,
+    "dti": 0.0,
+    "delinq_2yrs": 0.0003209846480790729,
+    "antiguedad_credito_anios": 0.0003209846480790729,
+    "inq_last_6mths": 0.0003209846480790729,
+    "open_acc": 0.0003209846480790729,
+    "pub_rec": 0.0003209846480790729,
+    "revol_bal": 0.0,
+    "revol_util": 0.0014942388789887877,
+    "total_acc": 0.0003209846480790729
+  }
+}

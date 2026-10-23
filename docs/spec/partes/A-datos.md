@@ -61,8 +61,20 @@ NA silencioso. Verificar los textos exactos del CSV (espacios, mayúsculas, punt
 - Meta: **12–18 variables** que una persona pueda llenar en un formulario (`en_app: true`), con `etiqueta_es` y `ayuda_es`.
 
 ### 3.5 Partición temporal [decisión vie 23, mediodía]
-- Propuesta inicial: train = originados ≤ 2013, val = 2014, test = 2015 (fuera de tiempo) [VERIFICAR que el periodo real lo
-  permita].
+- ~~Propuesta inicial: train ≤ 2013, val = 2014, test = 2015.~~ Descartada con los datos (23-oct): en 2015 el 93 % de los
+  créditos sigue sin resolverse (`Current`, etc.); los 30 835 resueltos son una muestra muy sesgada para un test.
+- **[PROPUESTO por A, 23-oct; lo confirma Daniel] train = originados ≤ 2012, val = 2013, test = 2014; los resueltos de 2015
+  quedan fuera** (y se cuentan en `resumen_datos.json`). Tamaños: 90 347 / 73 194 / 74 154; tasa de malos 16,3 % / 23,0 % /
+  26,2 %. Los cortes están en `configs/datos.yaml` (`particion.*`) y se cambian sin tocar código.
+
+  | Año | Créditos | Resueltos | Sin resolver | Tasa de malos (resueltos) |
+  |---|---|---|---|---|
+  | 2007–2010 | 20 814 | 20 805 | ~0 % | 13,7–26,2 % |
+  | 2011 | 21 721 | 19 729 | 9 % | 16,5 % |
+  | 2012 | 53 367 | 49 813 | 7 % | 16,7 % |
+  | 2013 | 134 755 | 73 194 | 46 % | 23,0 % |
+  | 2014 | 235 628 | 74 154 | 69 % | 26,2 % |
+  | 2015 | 421 094 | 30 835 | 93 % | 25,5 % |
 - **Trampa a cuantificar antes de decidir:** en los años recientes, los créditos que ya están resueltos tienden a ser los que
   incumplieron pronto (los demás siguen en `Current` → NA). Medir la tasa de malos y la fracción de NA por año
   (`resumen_datos.json` + figura) y decidir los cortes con esa figura; la discusión va al blog.

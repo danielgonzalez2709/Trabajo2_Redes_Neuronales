@@ -11,10 +11,10 @@
 ## 📍 Estado actual
 | | |
 |---|---|
-| Última actualización | 2026-10-22 |
-| Fase | **E0 — Infraestructura** (puente). Spec v0.3: núcleo + 5 specs de parte + enunciado en el Anexo, en revisión de Daniel |
-| Próxima tarea | Parejas: repartir sus tareas (columna "Quién"). Todos: aprobar los [PROPUESTO] del núcleo §3. Daniel: E0 (primer push, ruleset, sintéticos) y A1 descarga |
-| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 5) |
+| Última actualización | 2026-10-23 |
+| Fase | **Datos reales listos** (Parte A, PR desde `dev/daniel`). Spec v0.5 |
+| Próxima tarea | Daniel: confirmar variables (A3) y cortes (A4), fusionar el PR de A. B, C y D: trabajar con `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json` |
+| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 4) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
 ## 👥 Equipo
@@ -47,15 +47,18 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
-1. Reparto de tareas dentro de cada pareja (hoy).
-2. Variables del modelo y de la app (vie 23, 10 a. m.).
-3. Cortes de la partición temporal (vie 23, mediodía).
+1. Reparto de tareas dentro de cada pareja.
+2. Visto bueno a las 15 variables de `configs/features.yaml` (A3).
+3. Visto bueno a la partición ≤ 2012 / 2013 / 2014 sin 2015 (A §3.5).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 0 · Candidatos: 0 · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-23** — Parte A: crudo de Kaggle descargado (887 379 × 74, 2007-06 a 2015-12, SHA-256 en `data/fuentes.md`);
+  objetivo, 15 variables de originación, partición ≤ 2012 / 2013 / 2014 (2015 tiene 93 % sin resolver), preprocesador y
+  `loans_pd.parquet` (237 695 créditos). Entorno `.venv` 3.12 + `requirements.txt` fijado + CI. Los sintéticos ya no hacen falta.
 - **2026-10-22** — Spec v0.4: notebooks de demostración en `notebooks/` como capa delgada sobre `src/` (consejo del profesor
   en el Trabajo 1; núcleo §5.8); análisis descriptivo después del preprocesamiento (A §3.8, tarea A6b) y de la LGD (D §3.2b, D1b).
 - **2026-10-22** — Spec v0.3: equipo asignado (A Daniel; B y C Andrés y Juan José; D Camila y José; E Daniel y Camila); el
