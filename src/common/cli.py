@@ -63,6 +63,15 @@ def _eda(cfg: dict | None) -> int:
     return manejador(cfg)
 
 
+def _figures(cfg: dict | None) -> int:
+    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A."""
+    from src.viz import figs_datos
+
+    for ruta in figs_datos.generar():
+        print(ruta.as_posix())
+    return 0
+
+
 # Registro único nombre -> (ayuda, usa_config, manejador). Cada parte conecta el suyo.
 SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
@@ -73,7 +82,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
     "el": Subcomando("Parte E: pérdida esperada", True, _pendiente("el", "E5")),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
-    "figures": Subcomando("Regenera todas las figuras desde results/", False, _pendiente("figures", "E8")),
+    "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
     "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _pendiente("notebooks", "E10")),
 }
 

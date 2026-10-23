@@ -30,8 +30,15 @@ def tasa_por_grupo(x: pd.Series, y: pd.Series, tipo: str, n_bins: int = 10) -> p
     """Tasa media de `y` por decil de `x` (num) o por categoría (cat). Los vacíos van en su propio grupo."""
     if tipo == "num":
         bins = pd.qcut(x, q=n_bins, duplicates="drop")
-        grupo = bins.astype("string").fillna("vacío")
-        orden = {str(c): i for i, c in enumerate(bins.cat.categories)} | {"vacío": len(bins.cat.categories)}
+        if len(bins.cat.categories) >= 3:
+            grupo = bins.astype("string").fillna("vacío")
+            orden = {str(c): i for i, c in enumerate(bins.cat.categories)} | {"vacío": len(bins.cat.categories)}
+        else:  # conteo con muchos ceros (pub_rec, delinq_2yrs): valor exacto y la cola desde el p99 junta
+            tope = float(x.quantile(0.99))
+            valores = sorted(x.dropna().clip(upper=tope).unique())
+            etiqueta = {v: (f"≥{v:g}" if v >= tope and v > valores[0] else f"{v:g}") for v in valores}
+            grupo = x.clip(upper=tope).map(etiqueta).astype("string").fillna("vacío")
+            orden = {etiqueta[v]: i for i, v in enumerate(valores)} | {"vacío": len(valores)}
     else:
         grupo = x.astype("string").str.strip().fillna("vacío")
         orden = None
