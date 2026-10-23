@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.5** — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.6** — 2026-10-23 (regla de push en §7.2: nunca push directo a main, todo por PR; Claude y los subagentes solo hacen commits locales sin autorización; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -363,7 +363,11 @@ Reglas:
 | Notebooks | `python run.py notebooks` los ejecuta todos sin error, cada uno en < 2 min en CPU |
 | Historial real | Commits frecuentes de las 5 cuentas |
 
-### 7.2 Git y PR [DECIDIDO, Daniel, 19-oct]
+### 7.2 Git y PR [DECIDIDO, Daniel, 19-oct; regla de push 23-oct]
+- **Nunca se hace push directo a `main`. Todo cambio entra por PR**, que Daniel autoriza y fusiona. Vale para todas las
+  partes y para todo el contenido (código, datos, Spec, blog).
+- **Las sesiones de Claude y los subagentes trabajan con commits locales y no hacen push** (ni a `main` ni a la rama
+  personal) sin que el integrante lo autorice en ese momento. Al autorizarlo, se sube la rama `dev/<nombre>` y se abre el PR.
 - Ruleset en `main`: PR obligatorio, 1 aprobación, *Require review from Code Owners*, sin force push ni borrado.
   `.github/CODEOWNERS`: `* @danielgonzalez2709`.
 - Cada quien trabaja en su rama personal (`dev/<nombre>`, §1.1); después de cada merge, actualiza su rama desde `main`.
