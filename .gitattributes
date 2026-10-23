@@ -1,0 +1,13 @@
+# Código y configs con LF en todos los sistemas (Git para Windows convierte a CRLF por defecto)
+*.py text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+# Datos procesados y evidencias byte a byte (su SHA-256 se registra)
+data/processed/** -text
+alucinaciones/evidencias/** -text
+*.parquet binary
+*.pt binary
+*.joblib binary

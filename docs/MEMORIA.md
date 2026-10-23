@@ -1,0 +1,66 @@
+# 🧠 Memoria del proyecto (contexto vivo)
+
+> **Para qué:** que cualquier integrante (o sesión de Claude / subagente) sepa en 2 minutos **dónde estamos, qué se decidió
+> y qué sigue**. Se carga automáticamente en cada sesión de Claude Code (vía `CLAUDE.md`).
+>
+> **Reglas:** (1) actualizar al cerrar una tarea, fusionar un PR o tomar una decisión; (2) ≤ 150 líneas: aquí va el *estado*,
+> el detalle vive en el Spec y el PLAN; (3) bitácora de lo más nuevo a lo más viejo; (4) toda decisión se copia al Spec.
+
+---
+
+## 📍 Estado actual
+| | |
+|---|---|
+| Última actualización | 2026-10-22 |
+| Fase | **E0 — Infraestructura** (puente). Spec v0.3: núcleo + 5 specs de parte + enunciado en el Anexo, en revisión de Daniel |
+| Próxima tarea | Parejas: repartir sus tareas (columna "Quién"). Todos: aprobar los [PROPUESTO] del núcleo §3. Daniel: E0 (primer push, ruleset, sintéticos) y A1 descarga |
+| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 5) |
+| Sustentación | Posterior al 27-oct, por confirmar |
+
+## 👥 Equipo
+| Parte | Spec | Quién |
+|---|---|---|
+| A — Datos y caso de uso | `docs/spec/partes/A-datos.md` | Daniel |
+| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés y Juan José |
+| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Andrés y Juan José |
+| D — LGD | `docs/spec/partes/D-lgd.md` | Camila y José |
+| E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel y Camila (Camila: frontend de la app) |
+
+Ramas personales: `dev/daniel`, `dev/camila`, `dev/andres`, `dev/juanjose`, `dev/jose`.
+
+Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Daniel Gonzalez Henao, Jose Miguel Pulgarin Agudelo,
+Juan José González Morales.
+
+## ✅ Decisiones vigentes
+- Git: rama por parte, PR obligatorio, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
+- Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
+- Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
+- Para no bloquearse: contratos congelados el jue 22 + datos sintéticos con el mismo esquema (núcleo §5.6).
+- [PROPUESTO] Notebooks por parte (`notebooks/NN_*.py` en formato percent → `.ipynb` ejecutado con `run.py notebooks`):
+  celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
+- [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
+  Trabajo 1; app Next.js estática en Vercel con inferencia en el navegador; video con Remotion; Design System `apple-design`.
+
+## ⏳ Hitos (núcleo §11)
+jue 22 E0 · vie 23 2 p. m. datos reales · vie 23 noche búsquedas · sáb 24 mediodía PD final · sáb 24 tarde grabación ·
+sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de cada parte · lun 26 clon limpio y blog publicado ·
+mar 27 6 p. m. entrega.
+
+## ⏳ Pendientes (decisiones)
+1. Reparto de tareas dentro de cada pareja (hoy).
+2. Variables del modelo y de la app (vie 23, 10 a. m.).
+3. Cortes de la partición temporal (vie 23, mediodía).
+4. Modelo que va a la app (sáb 24).
+
+## 🎯 Cacería (resumen)
+Confirmados: 0 · Candidatos: 0 · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+
+## 📓 Bitácora
+- **2026-10-22** — Spec v0.4: notebooks de demostración en `notebooks/` como capa delgada sobre `src/` (consejo del profesor
+  en el Trabajo 1; núcleo §5.8); análisis descriptivo después del preprocesamiento (A §3.8, tarea A6b) y de la LGD (D §3.2b, D1b).
+- **2026-10-22** — Spec v0.3: equipo asignado (A Daniel; B y C Andrés y Juan José; D Camila y José; E Daniel y Camila); el
+  enunciado literal pasa al Anexo del núcleo (se elimina `docs/enunciado.md`); cualquier integrante puede cambiar el Spec por PR.
+- **2026-10-22** — Spec v0.2: el núcleo conserva reglas, decisiones y contratos; cada parte tiene su spec con "consumo /
+  entrego", tareas con fecha, pruebas, puntos calientes de alucinación y definición de terminado. Cronograma comprimido al 27.
+- **2026-10-19** — Spec v0.1, PLAN, agentes y plantillas creados por el puente con Claude a partir del enunciado y de la
+  estructura del Trabajo 1. Repo de GitHub creado (vacío).

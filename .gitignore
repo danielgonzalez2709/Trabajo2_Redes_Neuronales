@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Datos crudos de Kaggle (pesados; URL, fecha y SHA-256 en data/fuentes.md). Los procesados SÍ se versionan.
+data/raw/
+
+# Salidas de las demos (se regeneran en < 2 min)
+results/data/*_demo/
+results/tables/*_demo/
+models/*_demo*
+
+# Optuna (bases temporales)
+*.db
+
+# Blog (salida de mkdocs build)
+blog/site/
+
+# Node (app y video)
+node_modules/
+app/.next/
+app/out/
+video/out/
+.vercel/
+
+# Enunciado en PDF (la transcripción vive en docs/enunciado.md)
+*.pdf
+
+# Claude Code: configuración local de cada integrante (los agentes en .claude/agents/ SÍ se versionan)
+.claude/settings.local.json
+
+# Escrituras atómicas interrumpidas
+*.tmp
+
+# Sistema
+.DS_Store
+Thumbs.db
