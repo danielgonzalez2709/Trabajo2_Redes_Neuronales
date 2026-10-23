@@ -45,7 +45,7 @@ def _config_impresa(salida: str) -> dict:
 def test_registro_de_subcomandos_del_nucleo():
     usa_config = {nombre: sub.usa_config for nombre, sub in cli.SUBCOMANDOS.items()}
     assert usa_config == {
-        "pd": True, "pd-hpo": True, "lgd": True, "lgd-hpo": True, "scorecard": True, "el": True,
+        "eda": True, "pd": True, "pd-hpo": True, "lgd": True, "lgd-hpo": True, "scorecard": True, "el": True,
         "export": False, "figures": False, "notebooks": False,
     }
 

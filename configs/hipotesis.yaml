@@ -1,0 +1,52 @@
+# Hipótesis explícitas sobre qué hace más riesgosa a una persona (enunciado P1.2; Parte A §3.7).
+# Se formulan ANTES de modelar, a partir del caso de uso y de la intuición de negocio; el EDA (train) da la primera
+# evidencia y la Parte C las cierra con SHAP (C §3.4). direccion: "+" = a mayor valor, más riesgo; "-" = menos riesgo.
+# Para categóricas: `mas_riesgosa` debe tener mayor tasa de malos que `referencia`.
+hipotesis:
+  - id: H1
+    enunciado: Los créditos a 60 meses son más riesgosos que los de 36.
+    variable: term
+    mas_riesgosa: "60 months"
+    referencia: "36 months"
+  - id: H2
+    enunciado: A mayor razón deuda/ingreso (dti), mayor riesgo.
+    variable: dti
+    direccion: "+"
+  - id: H3
+    enunciado: A mayor ingreso anual, menor riesgo.
+    variable: annual_inc
+    direccion: "-"
+  - id: H4
+    enunciado: Más consultas de crédito en los últimos 6 meses indican más riesgo.
+    variable: inq_last_6mths
+    direccion: "+"
+  - id: H5
+    enunciado: A mayor uso de los cupos rotativos, mayor riesgo.
+    variable: revol_util
+    direccion: "+"
+  - id: H6
+    enunciado: Un historial crediticio más largo reduce el riesgo.
+    variable: antiguedad_credito_anios
+    direccion: "-"
+  - id: H7
+    enunciado: Quien arrienda es más riesgoso que quien paga hipoteca.
+    variable: home_ownership
+    mas_riesgosa: RENT
+    referencia: MORTGAGE
+  - id: H8
+    enunciado: Los créditos para pequeña empresa son más riesgosos que los de consolidación de deudas.
+    variable: purpose
+    mas_riesgosa: small_business
+    referencia: debt_consolidation
+  - id: H9
+    enunciado: Tener registros públicos negativos aumenta el riesgo.
+    variable: pub_rec
+    direccion: "+"
+  - id: H10
+    enunciado: A mayor monto solicitado, mayor riesgo.
+    variable: loan_amnt
+    direccion: "+"
+  - id: H11
+    enunciado: Haber tenido moras de 30+ días en los últimos 2 años aumenta el riesgo.
+    variable: delinq_2yrs
+    direccion: "+"

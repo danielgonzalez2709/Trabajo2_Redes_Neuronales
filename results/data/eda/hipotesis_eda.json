@@ -1,0 +1,226 @@
+[
+  {
+    "id": "H1",
+    "enunciado": "Los créditos a 60 meses son más riesgosos que los de 36.",
+    "variable": "term",
+    "mas_riesgosa": "60 months",
+    "referencia": "36 months",
+    "evidencia_eda": {
+      "tasa_mas_riesgosa": 0.3194697166623343,
+      "tasa_referencia": 0.13091156498886058
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H2",
+    "enunciado": "A mayor razón deuda/ingreso (dti), mayor riesgo.",
+    "variable": "dti",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 0.9999999999999999,
+      "tasa_grupo_bajo": 0.13135218736190898,
+      "tasa_grupo_alto": 0.20442722744881017,
+      "n_grupos": 10,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.13135218736190898,
+        0.13331117021276595,
+        0.14298342541436465,
+        0.15021078322609274,
+        0.1595674244096226,
+        0.16186891054030114,
+        0.1753067315132088,
+        0.18326869806094181,
+        0.18809682433932934,
+        0.20442722744881017
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H3",
+    "enunciado": "A mayor ingreso anual, menor riesgo.",
+    "variable": "annual_inc",
+    "direccion": "-",
+    "evidencia_eda": {
+      "spearman_grupos": -0.9757575757575757,
+      "tasa_grupo_bajo": 0.1912952281069743,
+      "tasa_grupo_alto": 0.12501416751671768,
+      "n_grupos": 10,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.1912952281069743,
+        0.18827338961489534,
+        0.18402101985208252,
+        0.17439100562148657,
+        0.17485019973368843,
+        0.15948497854077254,
+        0.1562192320315064,
+        0.1467189653344641,
+        0.12092108308261977,
+        0.12501416751671768
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H4",
+    "enunciado": "Más consultas de crédito en los últimos 6 meses indican más riesgo.",
+    "variable": "inq_last_6mths",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 1.0,
+      "tasa_grupo_bajo": 0.14837018161464702,
+      "tasa_grupo_alto": 0.2610975183502272,
+      "n_grupos": 4,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.14837018161464702,
+        0.18894651288799444,
+        0.22040018053257107,
+        0.2610975183502272
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H5",
+    "enunciado": "A mayor uso de los cupos rotativos, mayor riesgo.",
+    "variable": "revol_util",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 0.9999999999999999,
+      "tasa_grupo_bajo": 0.10851602952517352,
+      "tasa_grupo_alto": 0.22001793319883434,
+      "n_grupos": 10,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.10851602952517352,
+        0.11717104533865424,
+        0.13717405839090707,
+        0.15338164251207728,
+        0.15770171149144255,
+        0.16830155406150116,
+        0.17984807864164432,
+        0.18859942106435093,
+        0.19912136188907195,
+        0.22001793319883434
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H6",
+    "enunciado": "Un historial crediticio más largo reduce el riesgo.",
+    "variable": "antiguedad_credito_anios",
+    "direccion": "-",
+    "evidencia_eda": {
+      "spearman_grupos": -0.7333333333333332,
+      "tasa_grupo_bajo": 0.17706259677062597,
+      "tasa_grupo_alto": 0.14823033396205482,
+      "n_grupos": 10,
+      "monotona": false,
+      "tasas_por_grupo": [
+        0.17706259677062597,
+        0.15926459187063904,
+        0.16286284068247286,
+        0.16872518747243054,
+        0.17320044296788484,
+        0.1670549084858569,
+        0.1609144867003737,
+        0.15845776688210386,
+        0.15460489859248586,
+        0.14823033396205482
+      ]
+    },
+    "veredicto_eda": "la apoya, pero no es monótona"
+  },
+  {
+    "id": "H7",
+    "enunciado": "Quien arrienda es más riesgoso que quien paga hipoteca.",
+    "variable": "home_ownership",
+    "mas_riesgosa": "RENT",
+    "referencia": "MORTGAGE",
+    "evidencia_eda": {
+      "tasa_mas_riesgosa": 0.17066666666666666,
+      "tasa_referencia": 0.15401264172753878
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H8",
+    "enunciado": "Los créditos para pequeña empresa son más riesgosos que los de consolidación de deudas.",
+    "variable": "purpose",
+    "mas_riesgosa": "small_business",
+    "referencia": "debt_consolidation",
+    "evidencia_eda": {
+      "tasa_mas_riesgosa": 0.2801642451042325,
+      "tasa_referencia": 0.17306920656374733
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H9",
+    "enunciado": "Tener registros públicos negativos aumenta el riesgo.",
+    "variable": "pub_rec",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 1.0,
+      "tasa_grupo_bajo": 0.16017820662273058,
+      "tasa_grupo_alto": 0.2306227903181942,
+      "n_grupos": 2,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.16017820662273058,
+        0.2306227903181942
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  },
+  {
+    "id": "H10",
+    "enunciado": "A mayor monto solicitado, mayor riesgo.",
+    "variable": "loan_amnt",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 0.7575757575757575,
+      "tasa_grupo_bajo": 0.1472474021667035,
+      "tasa_grupo_alto": 0.2219144693108797,
+      "n_grupos": 10,
+      "monotona": false,
+      "tasas_por_grupo": [
+        0.1472474021667035,
+        0.1462446233594353,
+        0.12903545256486432,
+        0.14693313222724988,
+        0.1481448288223696,
+        0.14049046321525885,
+        0.15541309068348672,
+        0.21002566812622678,
+        0.20640318986747977,
+        0.2219144693108797
+      ]
+    },
+    "veredicto_eda": "la apoya, pero no es monótona"
+  },
+  {
+    "id": "H11",
+    "enunciado": "Haber tenido moras de 30+ días en los últimos 2 años aumenta el riesgo.",
+    "variable": "delinq_2yrs",
+    "direccion": "+",
+    "evidencia_eda": {
+      "spearman_grupos": 1.0,
+      "tasa_grupo_bajo": 0.16096956202717405,
+      "tasa_grupo_alto": 0.18455366098294884,
+      "n_grupos": 4,
+      "monotona": true,
+      "tasas_por_grupo": [
+        0.16096956202717405,
+        0.1761089681774349,
+        0.18039413845376454,
+        0.18455366098294884
+      ]
+    },
+    "veredicto_eda": "la apoya"
+  }
+]

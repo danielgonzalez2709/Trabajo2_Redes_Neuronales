@@ -1,5 +1,6 @@
 """Interfaz de línea de comandos de `run.py` (núcleo §4.1). Portada del Trabajo 1 (T0.2).
 
+    python run.py eda       --config configs/datos.yaml
     python run.py pd        --config configs/pd/demo.yaml [--set clave.subclave=valor ...]
     python run.py pd-hpo    --config configs/pd/hpo.yaml
     python run.py lgd       --config configs/lgd/demo.yaml
@@ -55,8 +56,16 @@ def _pendiente(nombre: str, tarea: str) -> Manejador:
     return manejador
 
 
+def _eda(cfg: dict | None) -> int:
+    """Parte A (A6/A6b). Import perezoso: cargar la CLI no importa pandas."""
+    from src.datos.experimento_eda import manejador
+
+    return manejador(cfg)
+
+
 # Registro único nombre -> (ayuda, usa_config, manejador). Cada parte conecta el suyo.
 SUBCOMANDOS: dict[str, Subcomando] = {
+    "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
     "pd": Subcomando("Parte B: logística + MLP de PD", True, _pendiente("pd", "B3/B5")),
     "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pendiente("pd-hpo", "B4")),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _pendiente("lgd", "D3/D4")),

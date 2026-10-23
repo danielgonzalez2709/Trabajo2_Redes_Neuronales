@@ -79,3 +79,20 @@ afirmación por verificar: fórmula y umbrales del PSI).
 ## Prompt H (literal)
 
 > Visto bueno. Haz el primer commit, súbelo a main, crea las ramas dev/ de cada uno y dame los pasos del ruleset.
+
+## Prompt I (literal, 23-oct-2026)
+
+> Empecemos con lo mio, primero lo mas importante, que es la parte A que de eso dependen los demas
+
+**Respuesta:** A1–A5 (carga, objetivo, variables, partición, preprocesador, parquet) en `dev/daniel`.
+
+## Prompt J (literal)
+
+> Eso te iba a decir, nunca hagas push directamente al repo, primero siempre PR, yo lo autorizo y mergeo con tu ayuda, esto es para todas las partes, debe estar en el spec general; en este momento no tengo como seleccionar en que cuenta Se debe hacer el push, entonces, pues porque no estoy en la casa, estoy lejos del computador. Entonces, si quieres, puedes ir adelantando, deja los commits y ya después, cuando llegue, hacemos el PR necesario. O sea, desarrolla todo, haz los commits localmente, y ya cuando llegue, pasamos el PR.
+
+## Prompt K (literal)
+
+> Pues eso a lo que me refiero con el permiso para el push, obviamente es para la rama main. Para mi rama, si hagámoslo todo directamente, pues pushamos todo de una. Y para mergear lo de mi rama a la principal, sí debe ser siempre por PR. Eso para todas las ramas, pues de todos los compañeros. Pero para cada rama sí se puede hacer push tranquilamente sin hacer PR. Pero lo que sí quiero es que vayas trabajando con el commit, con todos los commits que haya que hacer, y ya cuando llegue yo hacemos push a mi rama. Y ya después verificamos y hacemos el PR hacia la principal para que los compañeros puedan seguir.
+
+**Respuesta:** regla de push en el núcleo §7.2 (Spec v0.6); A6 y A6b (EDA, hipótesis, descriptivo posterior al
+preprocesamiento) con commits locales; hallazgo H-01 (PSI).

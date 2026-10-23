@@ -14,6 +14,9 @@ particion:
   train_hasta: "2012-12-31"
   val_hasta: "2013-12-31"
   test_hasta: "2014-12-31"
+eda:
+  hipotesis: configs/hipotesis.yaml
+  salida: results/data/eda
 preprocesamiento:
   percentiles_recorte: [1.0, 99.0]
 base_seed: 0
