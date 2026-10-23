@@ -8,7 +8,7 @@
 |---|---|---|
 | Matemáticas | 0 | 0 |
 | Código | 1 (H-01) | 0 |
-| Datos del mundo real | 0 | 0 |
+| Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
 
@@ -72,4 +72,26 @@ falsas se registran como candidatos.
    medios entre valores consecutivos). Prueba de regresión `tests/test_eda.py::test_psi_variable_discreta_no_colapsa`.
 6. **Lección aprendida:** probar las métricas con casos calculados a mano que incluyan variables discretas y desconfiar de
    resultados exactamente 0 o 1 en datos reales. Una prueba con solo datos continuos no habría fallado.
+
+### H-02 — "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora"
+- **Estado:** candidato (falta que Daniel lo confirme)
+- **Categoría:** Datos del mundo real (significado de una variable)
+- **Parte:** A
+- **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** el subagente
+  `revisor-spec` (primera ronda de la revisión de la Parte A, hallazgo B1), antes de fusionar
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md`, Prompt I ("Empecemos con lo mio, primero lo mas importante, que
+   es la parte A que de eso dependen los demas"), con la spec A §3.4 y la regla del núcleo §0.5 ("el significado de cada
+   variable se cita del diccionario de Kaggle, nunca de una IA").
+2. **Respuesta relevante de la IA:** `blog/secciones/02-datos.md` (commit da3deb3): "variables con más de la mitad de valores
+   vacíos, como `mths_since_last_delinq`, donde un vacío significa \"nunca ocurrió\" y no un dato faltante".
+3. **Cómo sospechamos:** el revisor contrastó cada afirmación sobre variables con `LCDataDictionary.xlsx` y la de los vacíos
+   no aparece ahí (prompt literal de la revisión en `prompts/A-revision-spec.md`).
+4. **Evidencia:** `evidencias/H-02_mths_since_last_delinq.py` y su salida `.txt`. El diccionario solo dice "The number of
+   months since the borrower's last delinquency." y ninguna definición habla de vacíos (missing, blank, null, never, empty).
+   Además, los datos contradicen la interpretación: entre los créditos con el campo vacío (51,2 %), el **0,46 % tiene
+   `delinq_2yrs` > 0**, es decir, moras en los últimos 2 años. Si vacío significara "nunca hubo mora", esa proporción sería 0.
+5. **Corrección:** el blog dice ahora que el diccionario no explica el vacío y que por eso no la imputamos (commit e9243c0).
+   La variable sigue fuera del modelo.
+6. **Lección aprendida:** una explicación "de sentido común" de un vacío es una afirmación sobre los datos: se cita del
+   diccionario o se prueba con los datos, como hace el script de evidencia. Revisar cada frase "X significa Y" contra la fuente.
 

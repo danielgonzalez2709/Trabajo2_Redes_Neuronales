@@ -1,0 +1,9 @@
+Definición textual en LCDataDictionary.xlsx (hoja LoanStats):
+   "The number of months since the borrower's last delinquency."
+   ¿el diccionario menciona 'missing' en alguna definición? False
+   ¿el diccionario menciona 'blank' en alguna definición? False
+   ¿el diccionario menciona 'null' en alguna definición? False
+   ¿el diccionario menciona 'never' en alguna definición? False
+   ¿el diccionario menciona 'empty' en alguna definición? False
+Vacíos: 51.2% de 887,379
+delinq_2yrs > 0 entre los vacíos: 0.46% (si vacío fuera 'nunca hubo mora', esta proporción debería ser 0)
