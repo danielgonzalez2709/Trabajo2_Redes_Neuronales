@@ -72,6 +72,13 @@ def _figures(cfg: dict | None) -> int:
     return 0
 
 
+def _notebooks(cfg: dict | None) -> int:
+    """E10: notebooks/NN_*.py → .ipynb ejecutado (núcleo §5.8)."""
+    from src.common.notebooks import manejador
+
+    return manejador(cfg)
+
+
 # Registro único nombre -> (ayuda, usa_config, manejador). Cada parte conecta el suyo.
 SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
@@ -83,7 +90,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "el": Subcomando("Parte E: pérdida esperada", True, _pendiente("el", "E5")),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
-    "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _pendiente("notebooks", "E10")),
+    "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _notebooks),
 }
 
 

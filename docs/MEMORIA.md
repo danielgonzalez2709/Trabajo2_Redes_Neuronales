@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-23 |
-| Fase | **Datos reales listos** (Parte A, PR desde `dev/daniel`). Spec v0.5 |
-| Próxima tarea | Daniel: confirmar variables (A3) y cortes (A4), fusionar el PR de A. B, C y D: trabajar con `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json` |
+| Fase | **Parte A casi completa** en `dev/daniel` (commits locales, sin push: Daniel no está en su computador). Spec v0.6 |
+| Próxima tarea | Daniel: push de `dev/daniel`, confirmar variables (A3) y cortes (A4), PR a `main`. Luego B, C y D trabajan con `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Pendiente de A: A8 bibliografía |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 4) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -53,9 +53,12 @@ mar 27 6 p. m. entrega.
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 0 · Candidatos: 0 · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 0 · Candidatos: 1 (H-01, Código) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-23** — A6/A6b: 11 hipótesis (todas con apoyo; H6 y H10 no monótonas), PSI por variable (los mayores: `purpose` y
+  `pub_rec`, 0,27 en test), hallazgo H-01 (PSI = 0 en silencio para variables discretas). Blog portado del Trabajo 1 con
+  01–03 escritas; `run.py eda`, `run.py figures` y `run.py notebooks` (01_datos en 14 s). 170 pruebas.
 - **2026-10-23** — Parte A: crudo de Kaggle descargado (887 379 × 74, 2007-06 a 2015-12, SHA-256 en `data/fuentes.md`);
   objetivo, 15 variables de originación, partición ≤ 2012 / 2013 / 2014 (2015 tiene 93 % sin resolver), preprocesador y
   `loans_pd.parquet` (237 695 créditos). Entorno `.venv` 3.12 + `requirements.txt` fijado + CI. Los sintéticos ya no hacen falta.
