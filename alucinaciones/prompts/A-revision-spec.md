@@ -34,3 +34,9 @@ Comprueba, citando la sección del Spec en cada hallazgo:
 No modifiques ningún archivo. Salida: APROBADO o RECHAZADO + lista de hallazgos (archivo:línea, sección del Spec, qué falta o
 sobra, gravedad bloqueante/recomendado).
 ```
+
+## Ronda 2 (literal, enviada al mismo revisor el 23-oct-2026)
+
+```text
+Segunda ronda de la revisión de la Parte A: el commit e9243c0 en dev/daniel aplica tus hallazgos. Vuelve a revisar SOLO lo que señalaste (B1, B2, R1–R9) con el mismo contexto de la primera ronda, más el Spec v0.7 (núcleo §4.1, §5.1, §5.2) y A §3.7. Qué cambió: B1 en blog/secciones/02-datos.md; B2 en src/datos/eda.py (distribucion_antes_despues, distribucion_discretas), results/data/eda/post_preprocesamiento.json, figura post-transformaciones y blog 03; R1 en blog 03 y eda.py; R2 en scripts/preparar_datos.py, src/common/cli.py, src/common/notebooks.py y núcleo §4.1; R3 en src/datos/experimento_eda.py (eda_en_memoria) y notebooks/01_datos.py; R4 en tests/; R5 en src/common/preprocesamiento.py (to_dict) y §5.2; R6 en §5.1; R7 en configs/features.yaml; R8 en blog 03; R9 en configs/datos.yaml y A §3.7. Ejecuta de nuevo pytest y run.py eda con eda.salida en una carpeta temporal. No modifiques archivos. Salida: APROBADO o RECHAZADO + hallazgos que sigan abiertos o nuevos.
+```
