@@ -128,13 +128,13 @@ def test_correos_y_comentarios_no_son_citas():
 
 
 # ---------------------------------------------------------------- bibliografía y build completo
-def test_toda_entrada_de_la_bibliografia_tiene_doi_y_clave_apellido_anio():
+def test_toda_entrada_de_la_bibliografia_tiene_doi_o_url_y_clave_apellido_anio():
     bib = (BLOG / "references.bib").read_text(encoding="utf-8")
     entradas = re.split(r"\n(?=@)", bib[bib.index("@"):])
     for entrada in entradas:
         clave = re.match(r"@\w+\{([^,]+),", entrada).group(1)
         assert re.fullmatch(r"[a-z]+\d{4}[a-z]?", clave), clave
-        assert re.search(r"^\s*doi\s*=", entrada, re.M), f"{clave} sin DOI verificable"
+        assert re.search(r"^\s*(doi|url)\s*=", entrada, re.M), f"{clave} sin DOI ni URL oficial verificable"
 
 
 def test_build_estricto_del_blog(tmp_path):

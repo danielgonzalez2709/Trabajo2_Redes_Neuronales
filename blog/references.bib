@@ -1,9 +1,16 @@
 % Bibliografía del reporte (APA 7.ª edición vía pandoc citeproc + blog/apa.csl).
 % REGLA: toda entrada se obtiene del registro oficial (BibTeX de doi.org / Crossref) y se verifica antes de citarla.
 %   NUNCA escribir una referencia "de memoria". Claves: apellido del primer autor + año, en minúsculas.
-% Verificaciones (consultadas el 23-oct-2026):
-%   - yurdakul2020: BibTeX de https://doi.org/10.21314/jrmv.2020.227 (Crossref). Se cita solo para la definición del PSI;
-%     el texto completo no se consultó (acceso de pago): los umbrales de interpretación NO se citan de aquí.
+% Verificación del 23-oct-2026 (A8): alucinaciones/evidencias/A8_verificacion_bib.py y su salida .txt.
+% Notas sobre entradas concretas:
+%   - yurdakul2020: se cita solo para la definición del PSI; el texto completo no se consultó (acceso de pago), así que
+%     los umbrales de interpretación NO se citan de aquí.
+%   - kingma2014, loshchilov2017, lundberg2017, grinsztajn2022: BibTeX de arXiv (DataCite, DOI 10.48550). El año es el de
+%     arXiv. Las versiones de congreso (ICLR 2015, ICLR 2019, NeurIPS 2017, NeurIPS 2022) no tienen DOI; si se citan,
+%     va otra entrada con la URL oficial de las actas.
+%   - siddiqi2017: Crossref registra la versión en línea el 23-dic-2016 y la impresa el 10-ene-2017; APA usa el año de la
+%     publicación (2017). Edición: VERIFICAR en la página de créditos del libro antes de escribirla en el reporte.
+%   - bergstra2011, srivastava2014: sin DOI; verificadas por la URL oficial (título de la página = título del trabajo).
 
 @article{yurdakul2020,
   title     = {Statistical properties of the population stability index},
@@ -13,4 +20,135 @@
   year      = {2020},
   issn      = {1753-9579},
   doi       = {10.21314/jrmv.2020.227}
+}
+
+@inproceedings{akiba2019,
+  title     = {Optuna: A Next-generation Hyperparameter Optimization Framework},
+  author    = {Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  series    = {KDD '19},
+  pages     = {2623--2631},
+  year      = {2019},
+  publisher = {ACM},
+  doi       = {10.1145/3292500.3330701}
+}
+
+@inproceedings{bergstra2011,
+  title     = {Algorithms for Hyper-Parameter Optimization},
+  author    = {Bergstra, James and Bardenet, R{\'e}mi and Bengio, Yoshua and K{\'e}gl, Bal{\'a}zs},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {24},
+  year      = {2011},
+  url       = {https://papers.nips.cc/paper_files/paper/2011/hash/86e8f7ab32cfd12577bc2619bc635690-Abstract.html}
+}
+
+@article{rumelhart1986,
+  title     = {Learning representations by back-propagating errors},
+  author    = {Rumelhart, David E. and Hinton, Geoffrey E. and Williams, Ronald J.},
+  journal   = {Nature},
+  volume    = {323},
+  number    = {6088},
+  pages     = {533--536},
+  year      = {1986},
+  publisher = {Springer Science and Business Media LLC},
+  doi       = {10.1038/323533a0}
+}
+
+@misc{kingma2014,
+  title     = {Adam: A Method for Stochastic Optimization},
+  author    = {Kingma, Diederik P. and Ba, Jimmy},
+  publisher = {arXiv},
+  year      = {2014},
+  doi       = {10.48550/arXiv.1412.6980}
+}
+
+@misc{loshchilov2017,
+  title     = {Decoupled Weight Decay Regularization},
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  publisher = {arXiv},
+  year      = {2017},
+  doi       = {10.48550/arXiv.1711.05101}
+}
+
+@article{srivastava2014,
+  title     = {Dropout: A Simple Way to Prevent Neural Networks from Overfitting},
+  author    = {Srivastava, Nitish and Hinton, Geoffrey and Krizhevsky, Alex and Sutskever, Ilya and Salakhutdinov, Ruslan},
+  journal   = {Journal of Machine Learning Research},
+  volume    = {15},
+  pages     = {1929--1958},
+  year      = {2014},
+  url       = {https://jmlr.org/papers/v15/srivastava14a.html}
+}
+
+@article{brier1950,
+  title     = {Verification of forecasts expressed in terms of probability},
+  author    = {Brier, Glenn W.},
+  journal   = {Monthly Weather Review},
+  volume    = {78},
+  number    = {1},
+  pages     = {1--3},
+  year      = {1950},
+  publisher = {American Meteorological Society},
+  doi       = {10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2}
+}
+
+@article{hanley1982,
+  title     = {The meaning and use of the area under a receiver operating characteristic (ROC) curve},
+  author    = {Hanley, J. A. and McNeil, B. J.},
+  journal   = {Radiology},
+  volume    = {143},
+  number    = {1},
+  pages     = {29--36},
+  year      = {1982},
+  publisher = {Radiological Society of North America (RSNA)},
+  doi       = {10.1148/radiology.143.1.7063747}
+}
+
+@book{siddiqi2017,
+  title     = {Intelligent Credit Scoring: Building and Implementing Better Credit Risk Scorecards},
+  author    = {Siddiqi, Naeem},
+  year      = {2017},
+  publisher = {Wiley},
+  isbn      = {9781119282396},
+  doi       = {10.1002/9781119282396}
+}
+
+@misc{lundberg2017,
+  title     = {A Unified Approach to Interpreting Model Predictions},
+  author    = {Lundberg, Scott and Lee, Su-In},
+  publisher = {arXiv},
+  year      = {2017},
+  doi       = {10.48550/arXiv.1705.07874}
+}
+
+@article{papke1996,
+  title     = {Econometric methods for fractional response variables with an application to 401(k) plan participation rates},
+  author    = {Papke, Leslie E. and Wooldridge, Jeffrey M.},
+  journal   = {Journal of Applied Econometrics},
+  volume    = {11},
+  number    = {6},
+  pages     = {619--632},
+  year      = {1996},
+  publisher = {Wiley},
+  doi       = {10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}
+}
+
+@article{ferrari2004,
+  title     = {Beta Regression for Modelling Rates and Proportions},
+  author    = {Ferrari, Silvia and Cribari-Neto, Francisco},
+  journal   = {Journal of Applied Statistics},
+  volume    = {31},
+  number    = {7},
+  pages     = {799--815},
+  year      = {2004},
+  publisher = {Informa UK Limited},
+  doi       = {10.1080/0266476042000214501}
+}
+
+@misc{grinsztajn2022,
+  title     = {Why do tree-based models still outperform deep learning on tabular data?},
+  author    = {Grinsztajn, L{\'e}o and Oyallon, Edouard and Varoquaux, Ga{\"e}l},
+  publisher = {arXiv},
+  year      = {2022},
+  doi       = {10.48550/arXiv.2207.08815}
 }
