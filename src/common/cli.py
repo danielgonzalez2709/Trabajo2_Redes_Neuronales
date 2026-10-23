@@ -65,10 +65,14 @@ def _eda(cfg: dict | None) -> int:
 
 def _figures(cfg: dict | None) -> int:
     """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A."""
+    import time
+
     from src.viz import figs_datos
 
+    inicio = time.perf_counter()
     for ruta in figs_datos.generar():
         print(ruta.as_posix())
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0
 
 

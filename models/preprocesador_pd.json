@@ -4,6 +4,17 @@
     1.0,
     99.0
   ],
+  "categoricas": {
+    "limpieza": "strip",
+    "vacio": "DESCONOCIDO",
+    "no_vista": "OTRA"
+  },
+  "orden_numericas": [
+    "imputar_mediana",
+    "recortar",
+    "log1p_si_aplica",
+    "estandarizar"
+  ],
   "columnas_salida": [
     "loan_amnt",
     "term=36 months",

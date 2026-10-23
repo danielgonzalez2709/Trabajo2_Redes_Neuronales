@@ -89,6 +89,9 @@ train**; `to_dict → from_dict` reproduce la salida bit a bit. `scripts/prepara
 `src/datos/eda.py` → `results/data/eda/` (tasa de malos por bins y categorías, faltantes, valores atípicos). Formular H1…Hn
 **antes** de ver los modelos (p. ej. "a mayor `dti`, mayor riesgo", "plazo de 60 meses más riesgoso", "más consultas recientes →
 más riesgo"), cada una con su figura. C las cierra con SHAP.
+Criterio de "relación monótona": |Spearman| entre el orden del grupo y su tasa ≥ `eda.umbral_monotonia` (0,9 en
+`configs/datos.yaml`); con datos reales la monotonía estricta se rompe por oscilaciones de milésimas entre deciles vecinos.
+Una hipótesis numérica con apoyo pero relación no monótona se reporta como "la apoya, pero no es monótona".
 
 ### 3.8 Análisis descriptivo después del preprocesamiento
 Se hace sobre la matriz que **realmente ven los modelos** (la salida del `Preprocesador` ajustado en train), por `split`.

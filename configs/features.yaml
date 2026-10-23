@@ -7,7 +7,7 @@ features:
   - nombre: loan_amnt
     tipo: num
     disponible_en_originacion: true
-    justificacion: Monto que pide el solicitante; se conoce al presentar la solicitud.
+    justificacion: Monto de la solicitud (incluye la reducción que haga el departamento de crédito antes de aprobar, según el diccionario); se conoce antes del desembolso.
     cita_diccionario: "The listed amount of the loan applied for by the borrower. If at some point in time, the credit department reduces the loan amount, then it will be reflected in this value."
     transformacion: log1p
     en_app: true
@@ -26,7 +26,7 @@ features:
     tipo: cat
     disponible_en_originacion: true
     justificacion: Antigüedad laboral declarada en la solicitud.
-    cita_diccionario: "Employment length in years. Possible values are between 0 and 10 where 0 means less than one year and 10 means ten or more years."
+    cita_diccionario: "Employment length in years. Possible values are between 0 and 10 where 0 means less than one year and 10 means ten or more years. "
     transformacion: ninguna
     en_app: true
     etiqueta_es: Antigüedad en el empleo
@@ -53,7 +53,7 @@ features:
     tipo: cat
     disponible_en_originacion: true
     justificacion: Destino del crédito declarado en la solicitud.
-    cita_diccionario: "A category provided by the borrower for the loan request."
+    cita_diccionario: "A category provided by the borrower for the loan request. "
     transformacion: ninguna
     en_app: true
     etiqueta_es: Destino del préstamo
@@ -70,7 +70,7 @@ features:
   - nombre: delinq_2yrs
     tipo: num
     disponible_en_originacion: true
-    justificacion: Historial de buró a la fecha de la solicitud.
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "The number of 30+ days past-due incidences of delinquency in the borrower's credit file for the past 2 years"
     transformacion: ninguna
     en_app: true
@@ -97,7 +97,7 @@ features:
   - nombre: open_acc
     tipo: num
     disponible_en_originacion: true
-    justificacion: Historial de buró a la fecha de la solicitud.
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "The number of open credit lines in the borrower's credit file."
     transformacion: ninguna
     en_app: true
@@ -106,7 +106,7 @@ features:
   - nombre: pub_rec
     tipo: num
     disponible_en_originacion: true
-    justificacion: Historial de buró a la fecha de la solicitud.
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "Number of derogatory public records"
     transformacion: ninguna
     en_app: true
@@ -115,7 +115,7 @@ features:
   - nombre: revol_bal
     tipo: num
     disponible_en_originacion: true
-    justificacion: Saldo rotativo en el buró a la fecha de la solicitud.
+    justificacion: Saldo rotativo en el buró (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "Total credit revolving balance"
     transformacion: log1p
     en_app: true
@@ -124,7 +124,7 @@ features:
   - nombre: revol_util
     tipo: num
     disponible_en_originacion: true
-    justificacion: Utilización del crédito rotativo a la fecha de la solicitud.
+    justificacion: Utilización del crédito rotativo (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "Revolving line utilization rate, or the amount of credit the borrower is using relative to all available revolving credit."
     transformacion: ninguna
     en_app: true
@@ -133,7 +133,7 @@ features:
   - nombre: total_acc
     tipo: num
     disponible_en_originacion: true
-    justificacion: Historial de buró a la fecha de la solicitud.
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
     cita_diccionario: "The total number of credit lines currently in the borrower's credit file"
     transformacion: ninguna
     en_app: true

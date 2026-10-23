@@ -88,6 +88,10 @@ class Preprocesador:
     # ------------------------------------------------------------ serializar
     def to_dict(self) -> dict:
         return {"version": VERSION, "percentiles_recorte": list(self.percentiles_recorte),
+                # Limpieza de categóricas que la app debe repetir antes del one-hot (núcleo §5.2): quitar espacios al
+                # inicio y al final (" 36 months" → "36 months"); vacío → DESCONOCIDO; no vista en train → OTRA.
+                "categoricas": {"limpieza": "strip", "vacio": DESCONOCIDO, "no_vista": OTRA},
+                "orden_numericas": ["imputar_mediana", "recortar", "log1p_si_aplica", "estandarizar"],
                 "columnas_salida": self.nombres_salida(), "variables": [dict(v) for v in self.variables]}
 
     @classmethod

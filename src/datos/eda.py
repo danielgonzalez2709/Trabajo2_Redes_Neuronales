@@ -2,27 +2,33 @@
 
 - EDA inicial (§3.7): sobre los datos con objetivo, ANTES de transformar, solo en train (para no mirar val/test al
   formular hipótesis). Tasa del objetivo por decil (numéricas) o por categoría.
-- Después del preprocesamiento (§3.8): sobre la matriz que ven los modelos, por split: efecto de cada transformación,
-  verificación de la estandarización, estabilidad entre splits (PSI), correlaciones y relación con el objetivo.
+- Después del preprocesamiento (§3.8): sobre la matriz que ven los modelos, por split: efecto de cada transformación
+  (incluida la distribución antes vs. después), verificación de la estandarización, estabilidad entre splits (PSI),
+  correlaciones y relación con el objetivo.
 
 PSI (índice de estabilidad poblacional) de una variable, con los cortes de los deciles de la referencia (train):
-    PSI = Σ_i (a_i − e_i) · ln(a_i / e_i)
-donde e_i y a_i son las proporciones de la referencia y de la población comparada en el bin i.
-TODO(cita): fórmula y umbrales de interpretación con una fuente verificada (A8).
+    PSI = Σ_i (a_i − e_i) · ln(a_i / e_i) = KL(a‖e) + KL(e‖a)
+donde e_i y a_i son las proporciones de la referencia y de la población comparada en el bin i. La segunda igualdad
+(divergencia de Kullback–Leibler simetrizada) es álgebra: Σ a ln(a/e) + Σ e ln(e/a); `tests/test_eda.py` la comprueba.
+Umbrales de interpretación: NO se usan (no hay fuente verificada; ver blog/references.bib).
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import skew, spearmanr
 
 from src.common.preprocesamiento import DESCONOCIDO, OTRA, Preprocesador
 
 EPS_PSI = 1e-6  # evita log(0) en bins vacíos
-# Relación "monótona": |Spearman| entre el orden del grupo y su tasa >= este umbral. La monotonía estricta es
-# demasiado frágil: con datos reales una oscilación de 0,001 entre deciles vecinos la rompería.
+# Relación "monótona": |Spearman| entre el orden del grupo y su tasa >= este umbral (configurable en
+# configs/datos.yaml, eda.umbral_monotonia; Parte A §3.7). La monotonía estricta es demasiado frágil: con datos reales
+# una oscilación de 0,001 entre deciles vecinos la rompería.
 UMBRAL_MONOTONIA = 0.9
+CUANTILES = (0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99)
+N_BINS_HISTOGRAMA = 30
+MAX_VALORES_DISCRETA = 10
 
 
 # ------------------------------------------------------------------ EDA inicial (§3.7)
@@ -60,7 +66,7 @@ def grupos_ordenados(x: pd.Series, n_bins: int = 10) -> pd.Series:
     return (x.clip(upper=x.quantile(0.99)).rank(method="dense") - 1).astype(int)
 
 
-def tendencia_numerica(x: pd.Series, y: pd.Series, n_bins: int = 10) -> dict:
+def tendencia_numerica(x: pd.Series, y: pd.Series, n_bins: int = 10, umbral: float = UMBRAL_MONOTONIA) -> dict:
     """Spearman entre el orden del grupo y su tasa, y tasas del primer y del último grupo (`grupos_ordenados`)."""
     validos = x.notna()
     grupos = grupos_ordenados(x[validos], n_bins)
@@ -69,17 +75,17 @@ def tendencia_numerica(x: pd.Series, y: pd.Series, n_bins: int = 10) -> dict:
         np.sign(tasas.iloc[-1] - tasas.iloc[0]))
     return {"spearman_grupos": rho, "tasa_grupo_bajo": float(tasas.iloc[0]),
             "tasa_grupo_alto": float(tasas.iloc[-1]), "n_grupos": int(len(tasas)),
-            "monotona": bool(abs(rho) >= UMBRAL_MONOTONIA),
-            "tasas_por_grupo": [float(v) for v in tasas]}
+            "monotona": bool(abs(rho) >= umbral), "tasas_por_grupo": [float(v) for v in tasas]}
 
 
-def evaluar_hipotesis(train: pd.DataFrame, hipotesis: list[dict], objetivo: str = "target") -> list[dict]:
+def evaluar_hipotesis(train: pd.DataFrame, hipotesis: list[dict], objetivo: str = "target",
+                      umbral: float = UMBRAL_MONOTONIA) -> list[dict]:
     """Primera evidencia (EDA en train) de cada hipótesis. Veredicto provisional: lo cierra la Parte C con SHAP."""
     salida = []
     for h in hipotesis:
         x, y = train[h["variable"]], train[objetivo].astype(float)
         if "direccion" in h:
-            t = tendencia_numerica(x, y)
+            t = tendencia_numerica(x, y, umbral=umbral)
             signo = 1 if h["direccion"] == "+" else -1
             apoya = signo * (t["tasa_grupo_alto"] - t["tasa_grupo_bajo"]) > 0 and signo * t["spearman_grupos"] > 0
             evidencia = t
@@ -118,7 +124,7 @@ def psi(referencia: np.ndarray, comparada: np.ndarray, n_bins: int = 10) -> floa
     """PSI con los cortes de los deciles de la referencia (ver la fórmula en el docstring del módulo).
 
     Si la referencia tiene ≤ n_bins valores distintos (variables de conteo recortadas, p. ej. `pub_rec` ∈ {0, 1}), cada
-    valor es su propio bin: con cuantiles los cortes colapsarían en uno solo y el PSI daría 0 sin medir nada.
+    valor es su propio bin: con cuantiles los cortes colapsarían en uno solo y el PSI daría 0 sin medir nada (H-01).
     """
     valores = np.unique(referencia)
     if len(valores) <= n_bins:
@@ -148,7 +154,50 @@ def _efecto_transformaciones(df: pd.DataFrame, pre: Preprocesador) -> dict:
     return out
 
 
-def descriptivo_post(df: pd.DataFrame, pre: Preprocesador, objetivo: str = "target") -> dict:
+def _resumen_distribucion(x: np.ndarray) -> dict:
+    """Cuantiles, media, desviación, asimetría e histograma (30 bins) de un vector sin vacíos."""
+    conteos, bordes = np.histogram(x, bins=N_BINS_HISTOGRAMA)
+    return {"cuantiles": {f"p{round(q * 100)}": float(np.quantile(x, q)) for q in CUANTILES},
+            "media": float(np.mean(x)), "desv": float(np.std(x)), "asimetria": float(skew(x)),
+            "histograma": {"bordes": [float(b) for b in bordes], "conteos": [int(c) for c in conteos]}}
+
+
+def distribucion_antes_despues(train: pd.DataFrame, pre: Preprocesador) -> dict:
+    """A §3.8.1: distribución de cada variable numérica de train antes (cruda, sin vacíos) y después del preprocesador."""
+    X = pre.transform(train)
+    nombres = pre.nombres_salida()
+    out = {}
+    for v in pre.variables:
+        if v["tipo"] != "num":
+            continue
+        crudo = pd.to_numeric(train[v["nombre"]], errors="raise").astype(float).dropna().to_numpy()
+        out[v["nombre"]] = {"log1p": v["log1p"], "recorte": v["recorte"],
+                            "proporcion_cero_cruda": float(np.mean(crudo == 0)),
+                            "antes": _resumen_distribucion(crudo),
+                            "despues": _resumen_distribucion(X[:, nombres.index(v["nombre"])])}
+    return out
+
+
+def distribucion_discretas(df: pd.DataFrame, pre: Preprocesador, splits: list[str]) -> dict:
+    """Proporción de cada valor (ya recortado) de las variables numéricas con ≤ 10 valores distintos, por split.
+
+    Da cifras como "con al menos un registro público: 4,1 % en train y 19,5 % en test" sin tener que leer el parquet.
+    """
+    out = {}
+    for v in pre.variables:
+        if v["tipo"] != "num":
+            continue
+        x = pd.to_numeric(df[v["nombre"]], errors="raise").astype(float).fillna(v["mediana"]).clip(*v["recorte"])
+        if x.nunique() > MAX_VALORES_DISCRETA:
+            continue
+        out[v["nombre"]] = {s: {f"{k:g}": float(p) for k, p in
+                                x[df["split"] == s].value_counts(normalize=True).sort_index().items()}
+                            for s in splits}
+    return out
+
+
+def descriptivo_post(df: pd.DataFrame, pre: Preprocesador, objetivo: str = "target",
+                     umbral: float = UMBRAL_MONOTONIA) -> dict:
     """Los cinco puntos de A §3.8 sobre la salida del preprocesador, por split."""
     nombres = pre.nombres_salida()
     numericas = [v["nombre"] for v in pre.variables if v["tipo"] == "num"]
@@ -171,15 +220,15 @@ def descriptivo_post(df: pd.DataFrame, pre: Preprocesador, objetivo: str = "targ
                 a = np.clip(X[s][:, cols].mean(axis=0), EPS_PSI, None)
                 psi_tabla[s][v["nombre"]] = float(np.sum((a - e) * np.log(a / e)))
     corr = np.corrcoef(X["train"][:, idx_num], rowvar=False)
-    relacion = {}
-    for n, i in zip(numericas, idx_num):
-        t = tendencia_numerica(pd.Series(X["train"][:, i]), pd.Series(y["train"]))
-        relacion[n] = t
+    relacion = {n: tendencia_numerica(pd.Series(X["train"][:, i]), pd.Series(y["train"]), umbral=umbral)
+                for n, i in zip(numericas, idx_num)}
     return {
         "splits": splits,
         "n_por_split": {s: int(len(y[s])) for s in splits},
         "tasa_objetivo_por_split": {s: float(y[s].mean()) for s in splits},
         "efecto_transformaciones": efecto,
+        "distribucion_antes_despues_train": distribucion_antes_despues(df[df["split"] == "train"], pre),
+        "distribucion_discretas": distribucion_discretas(df, pre, splits),
         "estandarizacion": estandar,
         "psi_vs_train": psi_tabla,
         "correlacion_train": {"variables": numericas, "matriz": corr.round(6).tolist()},

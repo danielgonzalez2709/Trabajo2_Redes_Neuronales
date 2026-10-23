@@ -23,8 +23,12 @@ CAMPOS = {"nombre", "tipo", "disponible_en_originacion", "justificacion", "cita_
           "en_app", "etiqueta_es", "ayuda_es"}
 
 
+PREFIJOS_PROHIBIDOS = ("total_pymnt", "total_rec_", "out_prncp", "last_pymnt_")  # patrones del núcleo §5.7
+
+
 def test_ninguna_variable_prohibida():
     assert not set(NOMBRES) & PROHIBIDAS
+    assert not [n for n in NOMBRES if n.startswith(PREFIJOS_PROHIBIDOS)]
 
 
 def test_sin_repetidas_y_cantidad_para_un_formulario():

@@ -58,8 +58,10 @@ def ejecutar(fuente: Path, raiz: Path = Path(".")) -> Path:
 
 
 def manejador(cfg: dict | None) -> int:
+    total = time.perf_counter()
     for fuente in fuentes():
         inicio = time.perf_counter()
         destino = ejecutar(fuente)
         print(f"{destino.as_posix()}: {time.perf_counter() - inicio:.1f} s")
+    print(f"Tiempo de ejecución: {time.perf_counter() - total:.1f} s")
     return 0

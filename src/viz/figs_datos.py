@@ -4,6 +4,7 @@
     eda-tasa-variables.png    tasa de malos por decil o categoría de cada variable (train)
     post-psi.png              PSI de cada variable, train → val y train → test (después del preprocesamiento)
     post-correlacion.png      correlaciones entre las variables numéricas transformadas (train)
+    post-transformaciones.png distribución antes y después del preprocesador (train) de las variables con log1p y de dti
 """
 
 from __future__ import annotations
@@ -127,15 +128,50 @@ def _guardar(fig, ruta: Path) -> Path:
     return ruta
 
 
-def generar(raiz: Path = Path("."), destino: Path | None = None) -> list[Path]:
-    """Regenera las cuatro figuras de la Parte A."""
+VARIABLES_TRANSFORMACIONES = ("loan_amnt", "annual_inc", "revol_bal", "dti")
+
+
+def figura_transformaciones(post: dict, features: list[dict], destino: Path) -> Path:
+    """Histogramas antes (crudo) y después (salida del preprocesador) de cada variable, en train."""
+    etiquetas = {f["nombre"]: f["etiqueta_es"] for f in features}
+    dist = post["distribucion_antes_despues_train"]
+    nombres = [n for n in VARIABLES_TRANSFORMACIONES if n in dist]
+    fig, ejes = plt.subplots(2, len(nombres), figsize=(3.2 * len(nombres), 5.2))
+    for j, nombre in enumerate(nombres):
+        for i, momento in enumerate(("antes", "despues")):
+            h = dist[nombre][momento]["histograma"]
+            bordes = np.array(h["bordes"])
+            ax = ejes[i, j]
+            ax.bar(bordes[:-1], h["conteos"], width=np.diff(bordes), align="edge",
+                   color=p.CATEGORICA[0] if momento == "antes" else p.CATEGORICA[2])
+            estado = "cruda" if momento == "antes" else "transformada"
+            ax.set_title(f"{etiquetas[nombre]}\n{estado} · asimetría {dist[nombre][momento]['asimetria']:.1f}",
+                         fontsize=8)
+            ax.tick_params(labelsize=7)
+            ax.ticklabel_format(axis="x", style="sci", scilimits=(-3, 4))
+    fig.supylabel("Créditos (train)")
+    fig.tight_layout()
+    return _guardar(fig, destino / "post-transformaciones.png")
+
+
+def generar(raiz: Path = Path("."), destino: Path | None = None, datos: dict | None = None) -> list[Path]:
+    """Regenera las cinco figuras de la Parte A desde los archivos de results/ y data/processed/.
+
+    `datos` (salida de `src.datos.experimento_eda.eda_en_memoria`) permite dibujarlas con otra partición o recorte sin
+    leer ni escribir los archivos compartidos (notebook 01; usar un `destino` temporal).
+    """
     from src.common.config import load_config
 
     aplicar_estilo()
     destino = destino or raiz / SALIDA
     features = load_config(raiz / "configs" / "features.yaml")["features"]
     resumen = load_json(raiz / "data" / "processed" / "resumen_datos.json")
-    eda = load_json(raiz / "results" / "data" / "eda" / "eda_inicial.json")
-    post = load_json(raiz / "results" / "data" / "eda" / "post_preprocesamiento.json")
+    if datos is None:
+        eda = load_json(raiz / "results" / "data" / "eda" / "eda_inicial.json")
+        post = load_json(raiz / "results" / "data" / "eda" / "post_preprocesamiento.json")
+    else:
+        eda, post = datos["inicial"], datos["post"]
+        resumen = {**resumen, "particion": datos["particion"]["cortes"]}
     return [figura_anio(resumen, destino), figura_tasa_variables(eda, features, destino),
-            figura_psi(post, features, destino), figura_correlacion(post, features, destino)]
+            figura_psi(post, features, destino), figura_correlacion(post, features, destino),
+            figura_transformaciones(post, features, destino)]

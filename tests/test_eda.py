@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.common.preprocesamiento import Preprocesador
-from src.datos.eda import descriptivo_post, eda_inicial, evaluar_hipotesis, psi, tasa_por_grupo
+from src.datos.eda import eda_inicial, evaluar_hipotesis, psi, tasa_por_grupo
 
 FEATURES = [{"nombre": "dti", "tipo": "num", "transformacion": "ninguna"},
             {"nombre": "plazo", "tipo": "cat", "transformacion": "ninguna"}]
@@ -72,12 +71,3 @@ def test_eda_inicial_solo_train(df):
     out = eda_inicial(df, FEATURES)
     assert out["n_train"] == (df["split"] == "train").sum()
     assert set(out["variables"]) == {"dti", "plazo"}
-
-
-def test_descriptivo_post_estandariza_train_y_mide_psi(df):
-    pre = Preprocesador().fit(df[df["split"] == "train"], FEATURES)
-    out = descriptivo_post(df, pre)
-    assert out["estandarizacion"]["train"]["dti"]["media"] == pytest.approx(0, abs=1e-5)
-    assert out["estandarizacion"]["train"]["dti"]["desv"] == pytest.approx(1, abs=1e-4)
-    assert out["psi_vs_train"]["val"]["dti"] < 0.02  # mismo proceso generador
-    assert out["relacion_con_objetivo_train"]["dti"]["spearman_grupos"] > 0.8

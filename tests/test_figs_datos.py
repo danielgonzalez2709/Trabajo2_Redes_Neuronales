@@ -7,8 +7,8 @@ from src.viz.figs_datos import generar
 RAIZ = Path(__file__).resolve().parents[1]
 
 
-def test_generar_escribe_las_cuatro_figuras(tmp_path):
+def test_generar_escribe_las_cinco_figuras(tmp_path):
     rutas = generar(RAIZ, tmp_path)
     assert sorted(r.name for r in rutas) == ["datos-anio.png", "eda-tasa-variables.png", "post-correlacion.png",
-                                             "post-psi.png"]
+                                             "post-psi.png", "post-transformaciones.png"]
     assert all(r.stat().st_size > 10_000 for r in rutas)

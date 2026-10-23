@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.6** — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.7** — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -171,6 +171,7 @@ compartidos: se cambian solo con un PR dedicado (§7.2).
 
 ```bash
 python scripts/preparar_datos.py                                  # crudo → data/processed (una vez)
+python run.py eda --config configs/datos.yaml                     # Parte A: EDA, hipótesis y descriptivo posterior (~5 s)
 python run.py pd --config configs/pd/demo.yaml                    # DEMO PD (< 2 min, CPU)
 python run.py pd --config configs/pd/base.yaml                    # PD completo: logística + MLP final con 30 semillas
 python run.py pd-hpo --config configs/pd/hpo.yaml                 # búsqueda Optuna del MLP de PD
@@ -205,7 +206,7 @@ jupyter lab notebooks/                                            # abrir los no
 |---|---|
 | `data/processed/loans_pd.parquet` | Una fila por crédito con objetivo definido (sin NA): `id` (str), `issue_d` (fecha), `anio_origen` (int), `target` (int 0/1), `split` ∈ {`train`, `val`, `test`}, y las variables crudas de `configs/features.yaml` **antes** de transformar |
 | `data/processed/loans_lgd.parquet` | Subconjunto elegible para LGD (definido en la Parte D): `id`, `issue_d`, `split`, variables de `features.yaml`, campos de la fórmula de LGD [VERIFICAR nombres en el diccionario], `ead` (float), `lgd` (float en [0, 1]), `lgd_sin_recorte` (float) |
-| `data/processed/resumen_datos.json` | `{archivo_crudo, sha256, fecha_descarga, n_registros_crudo, n_variables_crudo, periodo {min, max}, conteo_por_loan_status, n_por_split, tasa_malos_por_split, tasa_malos_por_anio, fraccion_na_por_anio}` |
+| `data/processed/resumen_datos.json` | `{archivo_crudo, sha256, fecha_descarga, n_registros_crudo, n_variables_crudo, periodo {min, max}, conteo_por_loan_status, n_por_split, tasa_malos_por_split, tasa_malos_por_anio, fraccion_na_por_anio}` + campos adicionales que usa el blog: `url`, `n_objetivo_na`, `n_resueltos_posteriores_a_test`, `particion` (cortes), `n_modelado`, `n_por_anio`, `variables`, `faltantes_por_variable_train` |
 | `configs/features.yaml` | Lista de variables: `{nombre, tipo: num|cat, disponible_en_originacion: true, justificacion, cita_diccionario, transformacion, en_app: bool, etiqueta_es, ayuda_es}` |
 
 `loans_lgd.parquet` lo escribe D (con el preprocesador de A); el resto, A.
@@ -225,7 +226,9 @@ class Preprocesador:
 ```
 Operaciones permitidas (todas reimplementables en TypeScript): imputación por mediana (numéricas) o categoría `"DESCONOCIDO"`
 (categóricas), recorte a percentiles de train, `log1p` en variables declaradas, estandarización (x − media)/desv de train,
-one-hot con categorías fijas de train + `"OTRA"` para no vistas. **Nada más** sin cambiar este contrato.
+one-hot con categorías fijas de train + `"OTRA"` para no vistas. Antes del one-hot, las categóricas se limpian: se quitan
+los espacios al inicio y al final (el CSV trae `" 36 months"`) y el texto vacío cuenta como vacío. `to_dict()` declara esta
+limpieza y el orden de las operaciones numéricas para que la app las repita. **Nada más** sin cambiar este contrato.
 Mientras A lo termina, E deja en el esqueleto una versión mínima (mediana + estandarización + one-hot) con esta misma firma.
 
 ### 5.3 Modelos (producen: B y D · consumen: C, E)

@@ -79,8 +79,8 @@ Dejamos por fuera, con su razón:
 - **Identificadores y texto libre:** `id`, `member_id`, `url`, `desc`, `title`, `emp_title`.
 - **Sensibles:** `zip_code` y `addr_state`, por el riesgo de discriminar por ubicación.
 - **No disponibles para el solicitante o casi vacías:** `verification_status` (la hace el banco, no la persona) y variables
-  con más de la mitad de valores vacíos, como `mths_since_last_delinq`, donde un vacío significa "nunca ocurrió" y no un dato
-  faltante.
+  con más de la mitad de valores vacíos, como `mths_since_last_delinq` (51,2 % vacía). El diccionario no explica qué
+  significa un vacío en ella, así que imputarlo con la mediana le daría un significado que no podemos respaldar.
 
 ### 2.4 Partición temporal
 
@@ -116,6 +116,7 @@ Fuente: Elaboración propia a partir de data/processed/resumen_datos.json.
 Todos los modelos de una misma tarea usan el mismo preprocesamiento, ajustado **solo con el conjunto de entrenamiento**
 (`src/common/preprocesamiento.py`). Para cada variable numérica, en este orden: imputación por la mediana, recorte a los
 percentiles 1 y 99, logaritmo $\log(1+x)$ en las variables de monto (monto solicitado, ingreso y saldo rotativo) y
-estandarización $z = (x - \bar{x})/s$. Las categóricas se codifican en una columna por categoría (*one-hot*); los vacíos van a
-la categoría `DESCONOCIDO` y las categorías que no aparecieron en entrenamiento, a `OTRA`. Elegimos solo operaciones que la
+estandarización $z = (x - \bar{x})/s$. Las categóricas se codifican en una columna por categoría (*one-hot*) después de
+quitarles los espacios sobrantes (el archivo trae, por ejemplo, `" 36 months"`); los vacíos van a la categoría `DESCONOCIDO` y
+las categorías que no aparecieron en entrenamiento, a `OTRA`. Elegimos solo operaciones que la
 aplicación web puede repetir exactamente en el navegador. La sección 3.3 describe qué efecto tienen sobre los datos.

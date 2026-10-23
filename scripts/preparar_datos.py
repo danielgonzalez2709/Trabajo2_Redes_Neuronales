@@ -11,6 +11,8 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
+import yaml  # noqa: E402
+
 from src.common.config import apply_overrides, load_config  # noqa: E402
 from src.datos.preparar import preparar  # noqa: E402
 
@@ -21,6 +23,8 @@ def main() -> int:
     parser.add_argument("--set", dest="overrides", action="append", default=[])
     args = parser.parse_args()
     cfg = apply_overrides(load_config(RAIZ / args.config), args.overrides)
+    print("Configuración final resuelta:")
+    print(yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True), end="")
     inicio = time.perf_counter()
     r = preparar(cfg, RAIZ)
     print(f"Registros crudos: {r['n_registros_crudo']:,} · variables: {r['n_variables_crudo']} · "

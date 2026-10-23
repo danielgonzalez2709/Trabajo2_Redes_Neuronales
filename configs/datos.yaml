@@ -17,6 +17,7 @@ particion:
 eda:
   hipotesis: configs/hipotesis.yaml
   salida: results/data/eda
+  umbral_monotonia: 0.9   # |Spearman| mínimo para llamar "monótona" una relación (A §3.7)
 preprocesamiento:
   percentiles_recorte: [1.0, 99.0]
 base_seed: 0

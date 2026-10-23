@@ -1,7 +1,11 @@
 """A4 — Partición temporal (Parte A §3.5)."""
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
+
+from src.common.config import load_config
 
 from src.datos.particion import asignar_split, muestra_estratificada
 
@@ -42,3 +46,14 @@ def test_muestra_estratificada_conserva_proporciones_y_es_reproducible():
     assert abs(len(a) - 100) <= 4
     assert (a["split"] == "train").mean() == pytest.approx(0.8, abs=0.03)
     assert a["target"].mean() == pytest.approx(0.1, abs=0.03)
+
+
+def test_el_parquet_respeta_los_cortes_de_la_config():
+    """Aceptación de A4: el split versionado es exactamente el que dan los cortes de configs/datos.yaml."""
+    raiz = Path(__file__).resolve().parents[1]
+    cfg = load_config(raiz / "configs" / "datos.yaml")
+    df = pd.read_parquet(raiz / "data" / "processed" / "loans_pd.parquet")
+    corte = cfg["particion"]
+    esperado = asignar_split(df["issue_d"], corte["train_hasta"], corte["val_hasta"])
+    assert (df["split"] == esperado).all()
+    assert df["issue_d"].max() <= pd.Timestamp(corte["test_hasta"])

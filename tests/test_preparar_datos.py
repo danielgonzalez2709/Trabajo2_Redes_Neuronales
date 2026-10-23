@@ -14,6 +14,9 @@ from src.datos.preparar import preparar
 RAIZ = Path(__file__).resolve().parents[1]
 FEATURES = RAIZ / "configs" / "features.yaml"
 ESTADOS = ["Fully Paid", "Charged Off", "Current", "Late (31-120 days)", "Issued"]
+CAMPOS_RESUMEN = ["archivo_crudo", "sha256", "fecha_descarga", "n_registros_crudo", "n_variables_crudo", "periodo",
+                  "conteo_por_loan_status", "n_por_split", "tasa_malos_por_split", "tasa_malos_por_anio",
+                  "fraccion_na_por_anio"]
 
 
 @pytest.fixture
@@ -62,6 +65,18 @@ def test_esquema_del_parquet_y_resumen(entorno):
     assert resumen["n_modelado"] == len(df) == sum(resumen["n_por_split"].values())
     assert resumen["n_registros_crudo"] == 400 and resumen["n_variables_crudo"] == 20
     assert load_json(raiz / "processed" / "resumen_datos.json") == resumen
+    # tipos del contrato §5.1
+    assert df["id"].map(type).eq(str).all() and pd.api.types.is_datetime64_any_dtype(df["issue_d"])
+    assert pd.api.types.is_integer_dtype(df["anio_origen"]) and str(df["target"].dtype) == "int8"
+    assert set(df["split"]) <= {"train", "val", "test"}
+    # campos del contrato §5.1 (más los adicionales del blog)
+    assert set(CAMPOS_RESUMEN) <= set(resumen)
+    # los resueltos posteriores a test_hasta (2015) se cuentan y no entran
+    crudo = pd.read_csv(raiz / "raw" / "loan.csv")
+    fechas = pd.to_datetime(crudo["issue_d"], format="%b-%Y")
+    resueltos_2015 = ((fechas > "2014-12-31") & crudo["loan_status"].isin(["Fully Paid", "Charged Off",
+                                                                            "Late (31-120 days)"])).sum()
+    assert resueltos_2015 > 0 and resumen["n_resueltos_posteriores_a_test"] == resueltos_2015
 
 
 def test_preprocesador_ajustado_solo_con_train(entorno):

@@ -59,22 +59,38 @@ Repetimos el análisis sobre la matriz que realmente reciben los modelos, por co
 
 - **Imputación y recortes.** Los vacíos son escasos: el 3,2 % de las personas no reporta antigüedad laboral (categoría
   `DESCONOCIDO`), el 0,15 % no tiene uso del cupo rotativo y el resto de variables tiene menos del 0,05 % de vacíos. El recorte
-  a los percentiles 1 y 99 toca, por construcción, alrededor del 1 % de cada cola cuando la variable es continua.
+  a los percentiles 1 y 99 toca hasta el 1 % de cada cola; en las variables de conteo y en el monto (cuyo máximo, 35 000
+  USD, coincide con su percentil 99) la cola superior se recorta menos o nada.
+- **Distribución antes y después.** La [[fig:post-transformaciones]] compara los histogramas de entrenamiento antes y
+  después de transformar. El logaritmo cumple su función con el ingreso, cuya asimetría pasa de 38,7 a 0,0, y la reduce en el
+  monto (de 1,0 a −0,5). En el saldo rotativo deja un efecto que conviene conocer: el 1,5 % de las personas tiene saldo 0, y
+  como $\log(1+0) = 0$ queda lejos del resto, ese grupo aparece aislado a la izquierda (la asimetría pasa de 11,8 a −3,1).
+
+::: figura post-transformaciones
+Título: Distribución de cuatro variables en entrenamiento, antes y después del preprocesamiento
+Fuente: Elaboración propia a partir de results/data/eda/post_preprocesamiento.json (histogramas de 30 intervalos).
+![Ocho histogramas: monto, ingreso, saldo rotativo y razón deuda/ingreso, crudos arriba y transformados abajo](figures/post-transformaciones.png)
+:::
 - **Estandarización.** En entrenamiento todas las variables numéricas quedan con media 0 y desviación 1. En validación y
   prueba no: por ejemplo, la razón deuda/ingreso tiene media 0,25 en validación y 0,32 en prueba, y los registros públicos
   0,44 y 0,78. Esa diferencia ya es una medida de cuánto cambiaron los solicitantes con el tiempo.
-- **Estabilidad entre conjuntos.** Para cuantificar ese cambio usamos el índice de estabilidad poblacional
-  [@yurdakul2020]. Con los cortes de los deciles de entrenamiento, y con $e_i$ y $a_i$ las proporciones de entrenamiento y
-  del conjunto comparado en el intervalo $i$:
+- **Estabilidad entre conjuntos.** Para cuantificar ese cambio usamos el índice de estabilidad poblacional (PSI), cuyas
+  propiedades estadísticas estudian @yurdakul2020. Lo calculamos con los cortes de los deciles de entrenamiento; con $e_i$ y
+  $a_i$ las proporciones de entrenamiento y del conjunto comparado en el intervalo $i$:
 
 $$
-\mathrm{PSI} = \sum_{i} (a_i - e_i)\,\ln\frac{a_i}{e_i}.
+\mathrm{PSI} = \sum_{i} (a_i - e_i)\,\ln\frac{a_i}{e_i}
+= \sum_i a_i \ln\frac{a_i}{e_i} + \sum_i e_i \ln\frac{e_i}{a_i}
+= D_{\mathrm{KL}}(a\,\|\,e) + D_{\mathrm{KL}}(e\,\|\,a),
 $$
+
+  es decir, la divergencia de Kullback–Leibler en los dos sentidos: vale 0 si las dos distribuciones son iguales y crece con
+  la diferencia. No usamos umbrales de interpretación porque no encontramos una fuente que pudiéramos verificar.
 
   En las variables discretas cada valor es su propio intervalo (con cuantiles, los cortes colapsan y el índice da 0 aunque la
   población cambie; ver la sección 12, hallazgo H-01). La [[fig:post-psi]] muestra que los dos cambios más grandes son el
   destino del crédito (PSI de 0,27 en prueba) y los registros públicos negativos (0,27): la proporción de solicitantes con al
-  menos un registro pasa de 4,1 % en entrenamiento a 19,5 % en prueba.
+  menos un registro pasa de 4,1 % en entrenamiento a 12,8 % en validación y 19,5 % en prueba.
 
 ::: figura post-psi
 Título: Índice de estabilidad poblacional de cada variable frente al conjunto de entrenamiento
