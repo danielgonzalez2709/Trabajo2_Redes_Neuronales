@@ -79,7 +79,7 @@ Dejamos por fuera, con su razón:
 - **Identificadores y texto libre:** `id`, `member_id`, `url`, `desc`, `title`, `emp_title`.
 - **Sensibles:** `zip_code` y `addr_state`, por el riesgo de discriminar por ubicación.
 - **No disponibles para el solicitante o casi vacías:** `verification_status` (la hace el banco, no la persona) y variables
-  con más de la mitad de valores vacíos, como `mths_since_last_delinq` (51,2 % vacía). El diccionario no explica qué
+  con más de la mitad de valores vacíos, como `mths_since_last_delinq`. El diccionario no explica qué
   significa un vacío en ella, así que imputarlo con la mediana le daría un significado que no podemos respaldar.
 
 ### 2.4 Partición temporal
