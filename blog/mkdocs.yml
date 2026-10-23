@@ -1,0 +1,61 @@
+# Reporte técnico (entrada de blog). Construir:  mkdocs build --strict -f blog/mkdocs.yml
+# Configuración y hook portados del Trabajo 1 (mkdocs 1.6.x: MkDocs 2.0 elimina los hooks).
+site_name: "Redes neuronales y algoritmos bioinspirados. Trabajo 2"
+site_description: "Trabajo 2 — Redes neuronales para datos tabulares (UNAL, 2026-02)"
+site_url: https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/
+repo_url: https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales
+repo_name: Trabajo2_Redes_Neuronales
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: es
+  font: false                     # skill apple-design: fuente del sistema (ver stylesheets/ds.css)
+  features:
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Cambiar a modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Cambiar a modo claro
+
+hooks:
+  - hooks/reporte.py              # inclusiones, figuras/tablas APA, referencias cruzadas y citas APA 7
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - tables
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+extra_css:
+  - stylesheets/ds.css
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css
+
+extra_javascript:
+  - javascripts/katex.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js
+
+nav:
+  - Reporte: index.md

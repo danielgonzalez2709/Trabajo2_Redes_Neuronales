@@ -1,4 +1,4 @@
-"""Pruebas del hook del reporte (blog/hooks/reporte.py; Spec §8, T0.7).
+"""Pruebas del hook del reporte (blog/hooks/reporte.py; portado del Trabajo 1, T0.7).
 
 Cada regla del enunciado se prueba en las dos direcciones: el caso válido pasa y el caso que la viola FALLA
 (figura sin fuente, figura huérfana, referencia inexistente, id repetido, cita fuera de references.bib).
@@ -13,6 +13,7 @@ import pytest
 
 RAIZ = Path(__file__).resolve().parents[1]
 BLOG = RAIZ / "blog"
+BIB_PRUEBA = RAIZ / "tests" / "fixtures" / "referencias_prueba.bib"
 
 _spec = importlib.util.spec_from_file_location("reporte", BLOG / "hooks" / "reporte.py")
 reporte = importlib.util.module_from_spec(_spec)
@@ -102,7 +103,7 @@ def test_inclusion_circular_falla(tmp_path):
 # ---------------------------------------------------------------- citas APA 7
 def test_citas_parentetica_narrativa_y_multiple():
     texto = "Uno [@kennedy1995]. Según @storn1997, dos. Tres [@clerc2002; @shi1998].\n\n\\bibliografia"
-    salida = reporte.resolver_citas(texto)
+    salida = reporte.resolver_citas(texto, BIB_PRUEBA)
     assert "(Kennedy & Eberhart, 1995)" in salida
     assert "Storn & Price (1997)" in salida
     assert "(Clerc & Kennedy, 2002; Shi & Eberhart, 1998)" in salida
@@ -113,17 +114,17 @@ def test_citas_parentetica_narrativa_y_multiple():
 
 def test_cita_fuera_de_la_bibliografia_falla():
     with pytest.raises(ErrorReporte, match="no están en references.bib"):
-        reporte.resolver_citas("Ver [@inventado2024].\n\\bibliografia")
+        reporte.resolver_citas("Ver [@inventado2024].\n\\bibliografia", BIB_PRUEBA)
 
 
 def test_citas_sin_marca_de_bibliografia_falla():
     with pytest.raises(ErrorReporte, match="bibliografia"):
-        reporte.resolver_citas("Ver [@kennedy1995].")
+        reporte.resolver_citas("Ver [@kennedy1995].", BIB_PRUEBA)
 
 
 def test_correos_y_comentarios_no_son_citas():
     texto = "Contacto: alguien@unal.edu.co\n<!-- nota para autores: @storn1997 -->\n\\bibliografia"
-    assert "storn" not in reporte.procesar(texto)
+    assert "storn" not in reporte.procesar(texto, bib=BIB_PRUEBA)
 
 
 # ---------------------------------------------------------------- bibliografía y build completo
