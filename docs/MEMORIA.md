@@ -32,6 +32,8 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
+  originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
 - Git: rama por parte, PR obligatorio, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
@@ -48,14 +50,13 @@ mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja.
-2. Visto bueno a las 15 variables de `configs/features.yaml` (A3).
-3. Visto bueno a la partición ≤ 2012 / 2013 / 2014 sin 2015 (A §3.5).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-23** — Daniel aprueba la partición B y las 15 variables, y pide la sensibilidad con `grade`/`int_rate` (Spec v0.8).
 - **2026-10-23** — revisor-spec: Parte A RECHAZADA en la 1.ª ronda (2 bloqueantes + 9 recomendaciones), APROBADA en la 2.ª tras
   las correcciones (Spec v0.7: `run.py eda`, limpieza de categóricas en §5.2, EDA en memoria para el notebook). Hallazgo H-02.
 - **2026-10-23** — A6/A6b: 11 hipótesis (todas con apoyo; H6 y H10 no monótonas), PSI por variable (los mayores: `purpose` y

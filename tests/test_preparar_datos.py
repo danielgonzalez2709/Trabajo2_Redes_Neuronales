@@ -37,14 +37,18 @@ def entorno(tmp_path: Path) -> tuple[dict, Path]:
         "pub_rec": rng.integers(0, 2, n), "revol_bal": rng.uniform(0, 30000, n),
         "revol_util": rng.uniform(0, 100, n), "total_acc": rng.integers(5, 40, n),
         "recoveries": 0.0,  # columna que no debe llegar al parquet
+        "grade": rng.choice(list("ABCDEFG"), n), "int_rate": rng.uniform(5, 25, n),
     })
     (tmp_path / "raw").mkdir()
     crudo.to_csv(tmp_path / "raw" / "loan.csv", index=False)
     (tmp_path / "configs").mkdir()
     (tmp_path / "configs" / "features.yaml").write_text(FEATURES.read_text(encoding="utf-8"), encoding="utf-8")
+    sens = RAIZ / "configs" / "features_sensibilidad.yaml"
+    (tmp_path / "configs" / "features_sensibilidad.yaml").write_text(sens.read_text(encoding="utf-8"), encoding="utf-8")
     cfg = {
         "crudo": {"csv": "raw/loan.csv", "url": "u", "fecha_descarga": "2026-10-23"},
         "features": "configs/features.yaml",
+        "sensibilidad": {"features": "configs/features_sensibilidad.yaml", "archivo": "sens.parquet"},
         "salida": {"carpeta": "processed", "preprocesador": "models/pre.json"},
         "particion": {"train_hasta": "2012-12-31", "val_hasta": "2013-12-31", "test_hasta": "2014-12-31"},
         "preprocesamiento": {"percentiles_recorte": [1.0, 99.0]},
@@ -63,7 +67,7 @@ def test_esquema_del_parquet_y_resumen(entorno):
     assert df["issue_d"].max() <= pd.Timestamp("2014-12-31")
     assert "recoveries" not in df.columns and "loan_status" not in df.columns
     assert resumen["n_modelado"] == len(df) == sum(resumen["n_por_split"].values())
-    assert resumen["n_registros_crudo"] == 400 and resumen["n_variables_crudo"] == 20
+    assert resumen["n_registros_crudo"] == 400 and resumen["n_variables_crudo"] == 22
     assert load_json(raiz / "processed" / "resumen_datos.json") == resumen
     # tipos del contrato §5.1
     assert df["id"].map(type).eq(str).all() and pd.api.types.is_datetime64_any_dtype(df["issue_d"])
@@ -87,3 +91,14 @@ def test_preprocesador_ajustado_solo_con_train(entorno):
     X = pre.transform(df[df["split"] == "train"])
     assert np.allclose(X[:, pre.nombres_salida().index("dti")].mean(), 0, atol=1e-5)
     assert X.shape[0] == (df["split"] == "train").sum()
+
+
+def test_sensibilidad_aparte_y_alineada(entorno):
+    """grade e int_rate van en su propio archivo, con las mismas filas y en el mismo orden que loans_pd (Parte A §3.4)."""
+    cfg, raiz = entorno
+    preparar(cfg, raiz)
+    df = pd.read_parquet(raiz / "processed" / "loans_pd.parquet")
+    sens = pd.read_parquet(raiz / "processed" / "sens.parquet")
+    assert list(sens.columns) == ["id", "grade", "int_rate"]
+    assert sens["id"].equals(df["id"])
+    assert not {"grade", "int_rate"} & set(df.columns)

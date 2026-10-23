@@ -5,6 +5,10 @@ crudo:
   fecha_descarga: "2026-10-23"
   url: https://www.kaggle.com/datasets/ranadeep/credit-risk-dataset
 features: configs/features.yaml
+# Análisis de sensibilidad con grade e int_rate (Daniel, 23-oct): se guardan aparte, nunca en loans_pd.parquet.
+sensibilidad:
+  features: configs/features_sensibilidad.yaml
+  archivo: sensibilidad_lc.parquet
 salida:
   carpeta: data/processed
   preprocesador: models/preprocesador_pd.json

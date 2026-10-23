@@ -40,10 +40,12 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     """Ejecuta la preparación completa y devuelve el resumen que también escribe en disco."""
     features = load_config(raiz / cfg["features"])["features"]
     nombres = [f["nombre"] for f in features]
+    adicionales = load_config(raiz / cfg["sensibilidad"]["features"])["adicionales"] if "sensibilidad" in cfg else []
+    nombres_sens = [f["nombre"] for f in adicionales]
     ruta_csv = raiz / cfg["crudo"]["csv"]
 
     n_variables = len(pd.read_csv(ruta_csv, nrows=0).columns)
-    crudo = leer_crudo(ruta_csv, columnas_crudas(features))
+    crudo = leer_crudo(ruta_csv, columnas_crudas(features) + nombres_sens)
     crudo["target"] = construir_objetivo(crudo["loan_status"])
     crudo["anio_origen"] = crudo["issue_d"].dt.year
 
@@ -58,6 +60,7 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     df["split"] = asignar_split(df["issue_d"], corte["train_hasta"], corte["val_hasta"])
     df["target"] = df["target"].astype("int8")
     df["id"] = df["id"].astype(str)
+    sensibilidad = df[["id", *nombres_sens]].reset_index(drop=True)
     df = df[["id", "issue_d", "anio_origen", "target", "split", *nombres]].reset_index(drop=True)
 
     pre = Preprocesador(tuple(cfg["preprocesamiento"]["percentiles_recorte"]))
@@ -66,6 +69,8 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     salida = raiz / cfg["salida"]["carpeta"]
     salida.mkdir(parents=True, exist_ok=True)
     df.to_parquet(salida / "loans_pd.parquet", index=False, compression="zstd")
+    if nombres_sens:  # variables de Lending Club: archivo aparte, para que no entren por error al modelo principal
+        sensibilidad.to_parquet(salida / cfg["sensibilidad"]["archivo"], index=False, compression="zstd")
     save_json(raiz / cfg["salida"]["preprocesador"], pre.to_dict())
 
     resumen = {

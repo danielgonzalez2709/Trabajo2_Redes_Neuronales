@@ -49,11 +49,13 @@ declara el solicitante y su historial de buró en ese momento. Consecuencia: sol
 `src/datos/objetivo.py` con un diccionario literal de la tabla. **Un `loan_status` que no esté en la tabla es un error**, no un
 NA silencioso. Verificar los textos exactos del CSV (espacios, mayúsculas, puntos) [VERIFICAR].
 
-### 3.4 Selección de variables [checkpoint vie 23, 10 a. m.]
+### 3.4 Selección de variables [DECIDIDO, Daniel, 23-oct: las 15 de `configs/features.yaml`]
 - Excluir todo lo de núcleo §5.7 y revisar, **una por una contra el diccionario**, cualquier otra variable que pueda
   actualizarse después del desembolso.
 - `grade`, `sub_grade`, `int_rate`, `installment`: las asigna Lending Club **después** de evaluar el riesgo; usarlas es usar el
-  puntaje de otro. [PROPUESTO] excluirlas del modelo principal (sensibilidad opcional si sobra tiempo).
+  puntaje de otro. [DECIDIDO, Daniel, 23-oct] Fuera del modelo principal y de la app; **`grade` e `int_rate` se usan en un
+  análisis de sensibilidad aparte** (tarea B10): A entrega `data/processed/sensibilidad_lc.parquet` y
+  `configs/features_sensibilidad.yaml`. `sub_grade` (redundante con `grade`) e `installment` (depende de la tasa) no entran.
 - Fuera: `id`, `member_id`, `url`, `desc`, `emp_title`, `title`. Sensibles (`zip_code`, `addr_state`): discutir equidad;
   [PROPUESTO] fuera de la app.
 - Derivadas permitidas solo con información de la originación (p. ej. antigüedad crediticia en meses = `issue_d` −
@@ -63,7 +65,7 @@ NA silencioso. Verificar los textos exactos del CSV (espacios, mayúsculas, punt
 ### 3.5 Partición temporal [decisión vie 23, mediodía]
 - ~~Propuesta inicial: train ≤ 2013, val = 2014, test = 2015.~~ Descartada con los datos (23-oct): en 2015 el 93 % de los
   créditos sigue sin resolverse (`Current`, etc.); los 30 835 resueltos son una muestra muy sesgada para un test.
-- **[PROPUESTO por A, 23-oct; lo confirma Daniel] train = originados ≤ 2012, val = 2013, test = 2014; los resueltos de 2015
+- **[DECIDIDO, Daniel, 23-oct] train = originados ≤ 2012, val = 2013, test = 2014; los resueltos de 2015
   quedan fuera** (y se cuentan en `resumen_datos.json`). Tamaños: 90 347 / 73 194 / 74 154; tasa de malos 16,3 % / 23,0 % /
   26,2 %. Los cortes están en `configs/datos.yaml` (`particion.*`) y se cambian sin tocar código.
 
