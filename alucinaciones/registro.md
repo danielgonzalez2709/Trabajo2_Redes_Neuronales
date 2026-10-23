@@ -83,7 +83,7 @@ falsas se registran como candidatos.
    es la parte A que de eso dependen los demas"), con la spec A §3.4 y la regla del núcleo §0.5 ("el significado de cada
    variable se cita del diccionario de Kaggle, nunca de una IA").
 2. **Respuesta relevante de la IA:** `blog/secciones/02-datos.md` (commit da3deb3): "variables con más de la mitad de valores
-   vacíos, como `mths_since_last_delinq`, donde un vacío significa \"nunca ocurrió\" y no un dato faltante".
+   vacíos, como `mths_since_last_delinq`, donde un vacío significa «nunca ocurrió» y no un dato faltante".
 3. **Cómo sospechamos:** el revisor contrastó cada afirmación sobre variables con `LCDataDictionary.xlsx` y la de los vacíos
    no aparece ahí (prompt literal de la revisión en `prompts/A-revision-spec.md`).
 4. **Evidencia:** `evidencias/H-02_mths_since_last_delinq.py` y su salida `.txt`. El diccionario solo dice "The number of
