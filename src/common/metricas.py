@@ -380,7 +380,10 @@ def area_trapecio(x: np.ndarray, y: np.ndarray) -> float:
 # \mathrm{AUC} = \Pr(p_{\text{malo}} > p_{\text{bueno}}) + \tfrac{1}{2}\Pr(p_{\text{malo}} = p_{\text{bueno}})
 # $$
 #
-# para un malo y un bueno tomados al azar (Hanley y McNeil, 1982) TODO(cita).
+# para un malo y un bueno tomados al azar (Hanley y McNeil, 1982, pp. 30–31: el área por trapecios coincide con el
+# estadístico de Wilcoxon, que cuenta 1, ½ o 0 por par). Hanley, J. A., & McNeil, B. J. (1982). The meaning and use of
+# the area under a receiver operating characteristic (ROC) curve. *Radiology, 143*(1), 29–36.
+# https://doi.org/10.1148/radiology.143.1.7063747
 #
 # **Cómo se lee:** 0,5 es un modelo que ordena al azar, 1 es una separación perfecta y 0 un orden invertido.
 # Solo depende del **orden** de $p$: no cambia ante transformaciones monótonas crecientes (por ejemplo, logit).
@@ -532,11 +535,18 @@ def ks(y, p, curva: FuncionCurvaKS = curva_ks) -> float:
 # **Cómo se lee:** error cuadrático medio de la probabilidad; 0 es perfecto y menor es mejor. Se usa la versión
 # binaria de la fórmula de arriba, con rango $[0, 1]$, la misma de `sklearn.metrics.brier_score_loss`.
 #
-# - **Calibración y discriminación:** el puntaje depende de ambas; la descomposición de Murphy en términos de
-#   calibración y resolución lo formaliza TODO(cita).
-# - **Regla de puntuación propia:** su valor esperado se minimiza al reportar la probabilidad verdadera TODO(cita).
-# - **Versión original:** la definición de Brier (1950) suma sobre las dos clases y en el caso binario da el doble
-#   de la versión usada aquí TODO(cita).
+# - **Calibración y discriminación:** el puntaje depende de ambas; la descomposición de Murphy (1973) lo formaliza
+#   con tres términos, fiabilidad (calibración) − resolución + incertidumbre; con bins es solo una aproximación.
+#   TODO(cita): confirmar en el texto de Murphy, A. H. (1973). A new vector partition of the probability score.
+#   *Journal of Applied Meteorology, 12*(4), 595–600. https://doi.org/10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2
+# - **Regla de puntuación propia:** su valor esperado se minimiza al reportar la probabilidad verdadera (Gneiting y
+#   Raftery, 2007, Ejemplo 1, p. 363). Gneiting, T., & Raftery, A. E. (2007). Strictly proper scoring rules,
+#   prediction, and estimation. *Journal of the American Statistical Association, 102*(477), 359–378.
+#   https://doi.org/10.1198/016214506000001437
+# - **Versión original:** Brier (1950) suma sobre las dos clases, $-\sum_j (\delta_{ij} - p_j)^2$ en la notación de
+#   Gneiting y Raftery (2007, p. 363); en el caso binario da $2(y - p)^2$, el doble de la versión usada aquí.
+#   Brier, G. W. (1950). Verification of forecasts expressed in terms of probability. *Monthly Weather Review, 78*(1),
+#   1–3. https://doi.org/10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2
 
 # %%
 def brier(y, p) -> float:
@@ -576,7 +586,8 @@ def brier(y, p) -> float:
 # con **interpolación lineal** entre estadísticos de orden: si $p_{(1)} \le \dots \le p_{(n)}$ y
 # $h = (n - 1)\,q$, entonces $Q_p(q) = p_{(\lfloor h \rfloor + 1)} + (h - \lfloor h \rfloor)
 # \bigl(p_{(\lfloor h \rfloor + 2)} - p_{(\lfloor h \rfloor + 1)}\bigr)$ (método por defecto de `np.percentile`,
-# el que usa `sklearn.calibration.calibration_curve`). $b_0 = \min p$ y $b_B = \max p$.
+# el que usa `sklearn.calibration.calibration_curve`); si $h$ es entero, $Q_p(q) = p_{(h + 1)}$. $b_0 = \min p$ y
+# $b_B = \max p$.
 #
 # **Cómo se lee:** cada bin contiene aproximadamente $n / B$ créditos, así que todos los puntos de la curva de
 # calibración se apoyan en el mismo volumen de datos.
@@ -624,7 +635,7 @@ def bordes_cuantiles(p, n_bins: int) -> np.ndarray:
 # \bar p_k = \frac{1}{n_k} \sum_{i:\,k(i)=k} p_i, \qquad \bar y_k = \frac{1}{n_k} \sum_{i:\,k(i)=k} y_i .
 # $$
 #
-# Los bins vacíos (aparecen cuando hay empates y varios bordes coinciden) **se omiten**.
+# Los bins vacíos (aparecen con empates que hacen coincidir bordes, o con menos de $B + 1$ créditos) **se omiten**.
 #
 # **Cómo se lee:** se grafica $\bar y_k$ (tasa observada de malos) contra $\bar p_k$ (PD media); un modelo bien
 # calibrado queda sobre la diagonal $\bar y_k = \bar p_k$.
@@ -667,7 +678,7 @@ def curva_calibracion(
     suma_p = np.bincount(bin_de, weights=p, minlength=n_total_bins)  # Σ pᵢ por bin
     suma_y = np.bincount(bin_de, weights=y, minlength=n_total_bins)  # Σ yᵢ por bin (malos del bin)
     n_bin = np.bincount(bin_de, minlength=n_total_bins)  # n_k: créditos por bin
-    no_vacio = n_bin > 0  # se omiten los bins vacíos (empates con bordes repetidos)
+    no_vacio = n_bin > 0  # se omiten los bins vacíos (bordes repetidos o pocos créditos)
     return CurvaCalibracion(
         pd_media=suma_p[no_vacio] / n_bin[no_vacio],  # \bar p_k
         tasa_observada=suma_y[no_vacio] / n_bin[no_vacio],  # \bar y_k
