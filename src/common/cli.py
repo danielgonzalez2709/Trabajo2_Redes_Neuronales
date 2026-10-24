@@ -63,6 +63,13 @@ def _eda(cfg: dict | None) -> int:
     return manejador(cfg)
 
 
+def _el(cfg: dict | None) -> int:
+    """Parte E (E5): pérdida esperada."""
+    from src.el.experimento import manejador
+
+    return manejador(cfg)
+
+
 def _figures(cfg: dict | None) -> int:
     """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A."""
     import time
@@ -91,7 +98,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _pendiente("lgd", "D3/D4")),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _pendiente("lgd-hpo", "D4")),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
-    "el": Subcomando("Parte E: pérdida esperada", True, _pendiente("el", "E5")),
+    "el": Subcomando("Parte E: pérdida esperada", True, _el),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
     "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _notebooks),

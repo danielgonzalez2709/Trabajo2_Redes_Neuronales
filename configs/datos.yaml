@@ -9,6 +9,10 @@ features: configs/features.yaml
 sensibilidad:
   features: configs/features_sensibilidad.yaml
   archivo: sensibilidad_lc.parquet
+# Montos posteriores al desembolso (núcleo §5.1 y §5.7): solo para la LGD (D) y el contraste de la E[L] (E).
+montos:
+  archivo: montos.parquet
+  columnas: [loan_status, funded_amnt, total_rec_prncp, recoveries, collection_recovery_fee]
 salida:
   carpeta: data/processed
   preprocesador: models/preprocesador_pd.json

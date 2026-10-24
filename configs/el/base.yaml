@@ -1,0 +1,14 @@
+# Parte E — pérdida esperada E[L] = PD · LGD · EAD (Parte E §3.2). Lo lee `python run.py el --config configs/el/base.yaml`.
+base_seed: 0
+datos:
+  loans: data/processed/loans_pd.parquet
+  montos: data/processed/montos.parquet
+pd:
+  predicciones: results/data/pd/pred_test.parquet       # entrega de B (núcleo §5.4)
+  modelo: mlp                                           # columna pred_<modelo>
+lgd:
+  predicciones: results/data/lgd/pred_pd_test.parquet   # entrega de D: LGD para todo el test (núcleo §5.4)
+  modelo: mlp
+bandas:
+  n: 10            # deciles de PD; con la scorecard de C se pasa a bandas de puntaje
+salida: results/data/el
