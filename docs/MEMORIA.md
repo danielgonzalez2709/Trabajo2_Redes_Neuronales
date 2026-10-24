@@ -11,10 +11,10 @@
 ## 📍 Estado actual
 | | |
 |---|---|
-| Última actualización | 2026-10-23 |
-| Fase | **Parte A completa y aprobada por revisor-spec (2 rondas)** en `dev/daniel` (commits locales, sin push). Spec v0.7 |
-| Próxima tarea | Daniel: push de `dev/daniel`, confirmar variables (A3) y cortes (A4), PR a `main`. Luego B, C y D trabajan con `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Pendiente de A: A8 bibliografía |
-| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 4) |
+| Última actualización | 2026-10-24 |
+| Fase | **Parte A completa** (aprobada por revisor-spec en 2 rondas); **PR `dev/daniel` → `main` abierto**. Spec v0.8 |
+| Próxima tarea | Daniel: fusionar el PR de la Parte A y activar el ruleset de `main`. Después, B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
 ## 👥 Equipo
@@ -34,7 +34,7 @@ Juan José González Morales.
 ## ✅ Decisiones vigentes
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
-- Git: rama por parte, PR obligatorio, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
+- Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
 - Para no bloquearse: contratos congelados el jue 22 + datos sintéticos con el mismo esquema (núcleo §5.6).
@@ -56,6 +56,7 @@ mar 27 6 p. m. entrega.
 Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-24** — PR de la Parte A (`dev/daniel` → `main`) abierto: 17 commits.
 - **2026-10-23** — Daniel aprueba la partición B y las 15 variables, y pide la sensibilidad con `grade`/`int_rate` (Spec v0.8).
 - **2026-10-23** — revisor-spec: Parte A RECHAZADA en la 1.ª ronda (2 bloqueantes + 9 recomendaciones), APROBADA en la 2.ª tras
   las correcciones (Spec v0.7: `run.py eda`, limpieza de categóricas en §5.2, EDA en memoria para el notebook). Hallazgo H-02.
