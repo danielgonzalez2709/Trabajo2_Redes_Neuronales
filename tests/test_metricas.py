@@ -334,8 +334,90 @@ def test_curva_calibracion_usa_binning_inyectado():
     np.testing.assert_array_equal(cal.n_por_bin, [4, 2])
 
 
+def test_curva_roc_usa_conteos_y_tasas_inyectados():
+    # Conteos falsos: un solo umbral 0.5 con vp = 7 y fp = 9. Tasas falsas: dividen entre 10 sin mirar
+    # el total -> TPR = [0, 0.7], FPR = [0, 0.9] (con el punto inicial (0, 0) y umbral +inf).
+    def conteos_falsos(y, p):
+        return np.array([0.5]), np.array([7]), np.array([9])
+
+    def tasa_falsa(conteo, total):
+        return np.asarray(conteo, dtype=float) / 10
+
+    curva = curva_roc(Y_MANO, P_MANO, conteos=conteos_falsos, tpr_fn=tasa_falsa, fpr_fn=tasa_falsa)
+    np.testing.assert_allclose(curva.tpr, [0.0, 0.7], rtol=0, atol=TOL)
+    np.testing.assert_allclose(curva.fpr, [0.0, 0.9], rtol=0, atol=TOL)
+    np.testing.assert_array_equal(curva.umbrales, [np.inf, 0.5])
+
+
+def test_compuestas_validan_aunque_se_inyecte_el_colaborador():
+    # Con colaboradores falsos que no validan, la función compuesta debe rechazar igual la entrada inválida.
+    y_mal, p = np.array([0, 2, 1]), np.array([0.2, 0.7, 0.1])  # y fuera de {0, 1}
+
+    def curva_roc_falsa(y, p):
+        return CurvaROC(fpr=np.array([0.0, 1.0]), tpr=np.array([0.0, 1.0]), umbrales=np.array([np.inf, 0.1]))
+
+    def curva_ks_falsa(y, p):
+        return CurvaKS(umbrales=np.array([0.1]), f_malos=np.array([1.0]), f_buenos=np.array([1.0]))
+
+    with pytest.raises(ValueError):
+        auc(y_mal, p, curva=curva_roc_falsa)
+    with pytest.raises(ValueError):
+        ks(y_mal, p, curva=curva_ks_falsa)
+    with pytest.raises(ValueError):
+        gini(y_mal, p, auc_fn=lambda y, p: 0.5)
+
+
 # --------------------------------------------------------------------------------------------
-# 5. Errores
+# 5. Casos borde
+# --------------------------------------------------------------------------------------------
+def test_desbalance_extremo_un_malo():
+    # 1 malo entre 100 000 créditos: contraste con roc_auc_score y ks_2samp.
+    rng = np.random.default_rng(SEMILLA)
+    n = 100_000
+    y = np.zeros(n, dtype=int)
+    y[rng.integers(n)] = 1
+    p = rng.random(n)
+    np.testing.assert_allclose(auc(y, p), roc_auc_score(y, p), rtol=0, atol=TOL)
+    np.testing.assert_allclose(ks(y, p), ks_2samp(p[y == 1], p[y == 0]).statistic, rtol=0, atol=TOL)
+
+
+def test_dos_creditos_empatados():
+    # Un malo y un bueno con la misma PD: el único par empata y vale 1/2 -> AUC = 0.5.
+    # KS: único t = 0.5, F₁ = 1/1 y F₀ = 1/1 -> |1 − 1| = 0.
+    y, p = np.array([0, 1]), np.array([0.5, 0.5])
+    assert auc(y, p) == pytest.approx(0.5, abs=TOL)
+    assert ks(y, p) == pytest.approx(0.0, abs=TOL)
+
+
+def test_brier_acepta_p_en_la_frontera():
+    # Frontera inclusiva: p = 0 y p = 1 son válidos.
+    # (1 − 0)² + (0 − 1)² + (0 − 0)² = 2 -> Brier = 2/3.
+    assert brier(np.array([0, 1, 0]), np.array([1.0, 0.0, 0.0])) == pytest.approx(2 / 3, abs=TOL)
+
+
+def test_curva_calibracion_acepta_p_en_la_frontera():
+    # p = [0, 1, 0, 1], 2 bins: bordes = cuantiles 0, 1/2, 1 = [0, 0.5, 1] (la mediana interpola entre 0 y 1).
+    # bin 1 = {0, 0} con y = {0, 0}; bin 2 = {1, 1} con y = {1, 1}.
+    # pd_media = [0, 1]; tasa_observada = [0, 1]; n_por_bin = [2, 2].
+    cal = curva_calibracion(np.array([0, 1, 0, 1]), np.array([0.0, 1.0, 0.0, 1.0]), n_bins=2)
+    np.testing.assert_allclose(cal.pd_media, [0.0, 1.0], rtol=0, atol=TOL)
+    np.testing.assert_allclose(cal.tasa_observada, [0.0, 1.0], rtol=0, atol=TOL)
+    np.testing.assert_array_equal(cal.n_por_bin, [2, 2])
+
+
+def test_curva_calibracion_p_constante_un_solo_bin():
+    # p constante = 0.3: los 11 bordes valen 0.3, todos los datos caen en el bin inferior (borde -> bin
+    # inferior) y los otros 9 bins quedan vacíos y se omiten. Un bin: pd_media = 0.3,
+    # tasa_observada = 2/5 (y = 0, 1, 0, 1, 0), n = 5.
+    y = np.array([0, 1, 0, 1, 0])
+    cal = curva_calibracion(y, np.full(5, 0.3), n_bins=10)
+    np.testing.assert_allclose(cal.pd_media, [0.3], rtol=0, atol=TOL)
+    np.testing.assert_allclose(cal.tasa_observada, [0.4], rtol=0, atol=TOL)
+    np.testing.assert_array_equal(cal.n_por_bin, [5])
+
+
+# --------------------------------------------------------------------------------------------
+# 6. Errores
 # --------------------------------------------------------------------------------------------
 def test_validar_entradas_devuelve_arrays():
     y, p = validar_entradas([0, 1, 0], [0.2, 0.7, 0.1])
@@ -351,6 +433,8 @@ def test_validar_entradas_devuelve_arrays():
         pytest.param([], [], id="vacio"),
         pytest.param([0, 1, 0], [0.2, np.nan, 0.1], id="nan_en_p"),
         pytest.param([0, np.nan, 1], [0.2, 0.7, 0.1], id="nan_en_y"),
+        pytest.param([0, 1, 0], [0.2, np.inf, 0.1], id="inf_en_p"),
+        pytest.param([0, 1, 0], [0.2, -np.inf, 0.1], id="menos_inf_en_p"),
         pytest.param([1, 1, 1], [0.2, 0.7, 0.1], id="una_sola_clase"),
         pytest.param([0, 2, 1], [0.2, 0.7, 0.1], id="y_fuera_de_0_1"),
     ],

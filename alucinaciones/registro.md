@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 2 (H-01, H-03) | 0 |
+| Código | 3 (H-01, H-03, H-04) | 0 |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -116,3 +116,23 @@ falsas se registran como candidatos.
    usa `side="left"` (ronda verde de B1).
 6. **Lección aprendida:** una afirmación del tipo "la referencia hace X" se comprueba en el código fuente de la referencia;
    y una prueba de contraste solo fija una convención si sus datos ejercitan el caso (aquí, empates en los bordes).
+
+### H-04 — AUC errónea en silencio cuando el puntaje trae ±inf
+- **Estado:** candidato (falta que Andrés lo confirme)
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad`; el orquestador lo reprodujo
+1. **Prompt (literal):** `prompts/B1.md`, sección "3. implementador — fase verde".
+2. **Respuesta relevante de la IA:** `src/common/metricas.py` (commit a11a56c) declara en la celda de la ROC que $p_i \in
+   \mathbb{R}$ y que el umbral `+inf` es "nadie clasificado como malo", pero `validar_entradas` solo rechaza NaN
+   (`np.isnan`), no ±inf.
+3. **Cómo sospechamos:** al revisar casos borde: el logit de una PD saturada en 0 o 1 es ±inf, y la prueba de invariancia
+   recortaba p a [1e-6, 1 − 1e-6], justo para evitar ese caso.
+4. **Evidencia:** con y = [0,1,0,1,0,1] y p = [−inf, −inf, 0.2, 0.5, inf, inf], `auc` devuelve 0.444; por pares
+   (Mann-Whitney, empates ½) la AUC es 5/9 = 0.556. Causa: `np.diff` entre infinitos iguales da NaN (≠ 0), así que los
+   empates en ±inf no se agrupan, y el umbral inicial `+inf` choca con datos que valen `+inf`. `roc_auc_score` rechaza esa
+   entrada. `evidencias/H-04_auc_infinitos.py` y `.txt`.
+5. **Corrección:** `validar_entradas` exige valores finitos (`np.isfinite`) y hay una prueba con `inf` (ronda 2 de B1).
+6. **Lección aprendida:** validar "sin NaN" no es validar "número real": ±inf también rompe las diferencias y los
+   umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.

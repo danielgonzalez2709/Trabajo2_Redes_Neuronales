@@ -21,8 +21,7 @@
 # "clasificar como malo" es $p_i \ge t$ para un umbral $t$. Notación: $n$ créditos, $P = \sum_i y_i$ malos y
 # $N = n - P$ buenos.
 #
-# **Quién lo consume:** la Parte B (evaluación de la logística y el MLP, figuras ROC/KS/calibración), la Parte C
-# (scorecard), la Parte D (si evalúa clasificadores) y la Parte E (métricas del JSON de la app).
+# **Quién lo consume:** la Parte B lo entrega y lo usan C, D y E (Parte B §2).
 #
 # El archivo está en formato *percent* de Jupytext: se lee como notebook, pero sigue siendo un módulo importable
 # (`from src.common.metricas import auc`) sin efectos al importar.
@@ -33,8 +32,6 @@
 Convención: ``y`` = 1 malo (incumplió), 0 bueno; ``p`` = PD predicha. Las métricas devuelven ``float`` y las
 curvas devuelven un ``NamedTuple`` de arreglos listos para graficar.
 """
-
-from __future__ import annotations  # anotaciones como texto: permite usar los alias de tipo antes de definirlos
 
 from typing import Callable, NamedTuple  # Callable: tipo de los colaboradores inyectados; NamedTuple: curvas
 
@@ -138,8 +135,12 @@ FuncionBinning = Callable[[np.ndarray, int], np.ndarray]
 # Todas las funciones públicas que reciben $(y, p)$ pasan primero por aquí. Se exige:
 #
 # $$
-# |y| = |p| = n > 0, \qquad y_i \in \{0, 1\}, \qquad p_i \in \mathbb{R} \text{ (sin NaN)}, \qquad 0 < P < n .
+# |y| = |p| = n > 0, \qquad y_i \in \{0, 1\}, \qquad p_i \in \mathbb{R} \text{ finito}, \qquad 0 < P < n .
 # $$
+#
+# Se rechazan los valores no finitos (NaN o $\pm\infty$): un NaN contamina sumas y medias, y con $\pm\infty$ la
+# diferencia entre dos infinitos iguales da NaN (los empates no se agrupan) y un dato $+\infty$ chocaría con el
+# umbral $+\infty$ con que empieza la ROC.
 #
 # La última condición (ambas clases presentes) es necesaria porque TPR divide entre $P$, FPR entre $N$ y
 # $F_1$, $F_0$ también; con una sola clase la AUC y el KS no están definidos. El rango $p_i \in [0, 1]$ solo se
@@ -165,10 +166,10 @@ def validar_entradas(y, p) -> tuple[np.ndarray, np.ndarray]:
     Lanza
     -----
     ValueError
-        Si las longitudes difieren, están vacíos, no son unidimensionales, hay NaN, ``y`` tiene valores fuera
-        de {0, 1} o solo hay una clase.
+        Si las longitudes difieren, están vacíos, no son unidimensionales, hay valores no finitos (NaN o
+        ±inf), ``y`` tiene valores fuera de {0, 1} o solo hay una clase.
     """
-    y_arr = np.asarray(y, dtype=float)  # flotante para poder detectar NaN antes de pasar a enteros
+    y_arr = np.asarray(y, dtype=float)  # flotante para poder detectar NaN/±inf antes de pasar a enteros
     p_arr = np.asarray(p, dtype=float)  # la predicción siempre se trabaja como flotante
     if y_arr.ndim != 1 or p_arr.ndim != 1:  # las métricas se definen sobre vectores de créditos
         raise ValueError("y y p deben ser unidimensionales.")
@@ -176,8 +177,9 @@ def validar_entradas(y, p) -> tuple[np.ndarray, np.ndarray]:
         raise ValueError(f"Longitudes distintas: len(y)={y_arr.shape[0]}, len(p)={p_arr.shape[0]}.")
     if y_arr.shape[0] == 0:  # sin créditos no hay métrica que calcular
         raise ValueError("y y p están vacíos.")
-    if np.isnan(y_arr).any() or np.isnan(p_arr).any():  # un NaN contaminaría sumas acumuladas y medias
-        raise ValueError("y o p contienen NaN.")
+    # NaN contamina sumas y medias; ±inf rompe la agrupación de empates (inf − inf = NaN) y choca con el umbral +inf.
+    if not (np.isfinite(y_arr).all() and np.isfinite(p_arr).all()):
+        raise ValueError("y o p contienen valores no finitos (NaN o ±inf).")
     if not np.isin(y_arr, (0.0, 1.0)).all():  # convención binaria: 1 malo, 0 bueno
         raise ValueError("y solo puede tomar los valores 0 y 1.")
     n_malos = int(y_arr.sum())  # P = número de malos
@@ -304,8 +306,8 @@ def curva_roc(
     y,
     p,
     conteos: FuncionConteos = conteos_acumulados,
-    tpr: FuncionTasa = tasa_verdaderos_positivos,
-    fpr: FuncionTasa = tasa_falsos_positivos,
+    tpr_fn: FuncionTasa = tasa_verdaderos_positivos,
+    fpr_fn: FuncionTasa = tasa_falsos_positivos,
 ) -> CurvaROC:
     """Curva ROC de (0, 0) con umbral +inf a (1, 1).
 
@@ -315,7 +317,7 @@ def curva_roc(
         Desenlace real y predicción.
     conteos : FuncionConteos
         Calcula (umbrales, vp, fp); por defecto ``conteos_acumulados``.
-    tpr, fpr : FuncionTasa
+    tpr_fn, fpr_fn : FuncionTasa
         Convierten los conteos en tasas; por defecto ``tasa_verdaderos_positivos`` y ``tasa_falsos_positivos``.
 
     Retorna
@@ -328,8 +330,8 @@ def curva_roc(
     n_neg = int(y.shape[0] - n_pos)  # N: buenos
     umbrales, vp, fp = conteos(y, p)  # VP(t) y FP(t) por umbral único (colaborador inyectado)
     return CurvaROC(
-        fpr=np.r_[0.0, fpr(fp, n_neg)],  # FPR(t), anteponiendo el punto t = +inf con FPR = 0
-        tpr=np.r_[0.0, tpr(vp, n_pos)],  # TPR(t), anteponiendo el punto t = +inf con TPR = 0
+        fpr=np.r_[0.0, fpr_fn(fp, n_neg)],  # FPR(t), anteponiendo el punto t = +inf con FPR = 0
+        tpr=np.r_[0.0, tpr_fn(vp, n_pos)],  # TPR(t), anteponiendo el punto t = +inf con TPR = 0
         umbrales=np.r_[np.inf, umbrales],  # umbral +inf: nadie clasificado como malo
     )
 
@@ -378,7 +380,7 @@ def area_trapecio(x: np.ndarray, y: np.ndarray) -> float:
 # \mathrm{AUC} = \Pr(p_{\text{malo}} > p_{\text{bueno}}) + \tfrac{1}{2}\Pr(p_{\text{malo}} = p_{\text{bueno}})
 # $$
 #
-# para un malo y un bueno tomados al azar (Hanley y McNeil, 1982) [VERIFICAR referencia].
+# para un malo y un bueno tomados al azar (Hanley y McNeil, 1982) TODO(cita).
 #
 # **Cómo se lee:** 0,5 es un modelo que ordena al azar, 1 es una separación perfecta y 0 un orden invertido.
 # Solo depende del **orden** de $p$: no cambia ante transformaciones monótonas crecientes (por ejemplo, logit).
@@ -406,7 +408,9 @@ def auc(
     float
         AUC en [0, 1].
     """
-    y, p = validar_entradas(y, p)  # reutiliza la validación común
+    # Se valida aquí aunque el colaborador por defecto ya valide: si se inyecta un colaborador falso
+    # (que no valida), la entrada inválida se rechaza igual.
+    y, p = validar_entradas(y, p)
     roc = curva(y, p)  # puntos (FPR, TPR) de la ROC (colaborador inyectado)
     return float(integrador(roc.fpr, roc.tpr))  # ∫ TPR d(FPR): x = FPR, y = TPR
 
@@ -437,7 +441,9 @@ def gini(y, p, auc_fn: FuncionMetrica = auc) -> float:
     float
         Gini en [−1, 1].
     """
-    y, p = validar_entradas(y, p)  # reutiliza la validación común
+    # Se valida aquí aunque el colaborador por defecto ya valide: si se inyecta un colaborador falso
+    # (que no valida), la entrada inválida se rechaza igual.
+    y, p = validar_entradas(y, p)
     return float(2.0 * auc_fn(y, p) - 1.0)  # 2·AUC − 1 (se resta 1: azar → 0)
 
 
@@ -509,7 +515,9 @@ def ks(y, p, curva: FuncionCurvaKS = curva_ks) -> float:
     float
         KS en [0, 1].
     """
-    y, p = validar_entradas(y, p)  # reutiliza la validación común
+    # Se valida aquí aunque el colaborador por defecto ya valide: si se inyecta un colaborador falso
+    # (que no valida), la entrada inválida se rechaza igual.
+    y, p = validar_entradas(y, p)
     c = curva(y, p)  # F₁(t) y F₀(t) en cada umbral (colaborador inyectado)
     return float(np.max(np.abs(np.asarray(c.f_malos) - np.asarray(c.f_buenos))))  # máx_t |F₁(t) − F₀(t)|
 
@@ -521,10 +529,14 @@ def ks(y, p, curva: FuncionCurvaKS = curva_ks) -> float:
 # \mathrm{Brier} = \frac{1}{n} \sum_{i=1}^{n} (p_i - y_i)^2 .
 # $$
 #
-# **Cómo se lee:** error cuadrático medio de la probabilidad; 0 es perfecto y menor es mejor. Premia a la vez la
-# calibración y la discriminación (es una regla de puntuación propia). Nota: la definición original de Brier
-# (1950) suma sobre las dos clases y en el caso binario da el doble; aquí se usa la versión binaria, con rango
-# $[0, 1]$, la misma de `sklearn.metrics.brier_score_loss`.
+# **Cómo se lee:** error cuadrático medio de la probabilidad; 0 es perfecto y menor es mejor. Se usa la versión
+# binaria de la fórmula de arriba, con rango $[0, 1]$, la misma de `sklearn.metrics.brier_score_loss`.
+#
+# - **Calibración y discriminación:** el puntaje depende de ambas; la descomposición de Murphy en términos de
+#   calibración y resolución lo formaliza TODO(cita).
+# - **Regla de puntuación propia:** su valor esperado se minimiza al reportar la probabilidad verdadera TODO(cita).
+# - **Versión original:** la definición de Brier (1950) suma sobre las dos clases y en el caso binario da el doble
+#   de la versión usada aquí TODO(cita).
 
 # %%
 def brier(y, p) -> float:
@@ -584,6 +596,10 @@ def bordes_cuantiles(p, n_bins: int) -> np.ndarray:
     -------
     np.ndarray
         ``n_bins + 1`` bordes: los cuantiles 0, 1/B, …, 1 de p.
+
+    Notas
+    -----
+    No valida ``p`` (longitud, NaN, rango): la llama ``curva_calibracion`` después de ``validar_entradas``.
     """
     if int(n_bins) != n_bins or n_bins < 1:  # B debe ser un entero positivo
         raise ValueError("n_bins debe ser un entero >= 1.")
