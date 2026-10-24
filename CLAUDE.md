@@ -23,6 +23,9 @@ Idioma del proyecto: español.
 - Los experimentos nunca usan internet.
 - Semillas con `src/common/seeds.py` (`base_seed + run_id`; numpy, torch y random).
 - Prueba primero, luego código.
+- **Nunca push directo a `main`; a `main` solo se llega por PR** (lo autoriza y fusiona Daniel). A la rama personal
+  `dev/<nombre>` se hace push libremente; Claude hace commits frecuentes y el push a la rama cuando el integrante lo indique
+  (núcleo §7.2).
 - Trabaja en tu rama personal (`dev/<nombre>`) y solo en los archivos de tus tareas; los compartidos (`src/common/`,
   `requirements.txt`, `run.py`, `configs/features.yaml`, README) solo por PR dedicado.
 

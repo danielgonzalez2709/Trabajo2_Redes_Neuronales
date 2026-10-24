@@ -1,0 +1,4 @@
+valores distintos de pub_rec transformada en train: [-0.20600000023841858, 4.855000019073486]
+cortes por cuantiles: [-0.206]
+val: proporción con pub_rec >= 1 = 0.1275 (train 0.0407) | PSI original = 0.0000 | PSI corregido = 0.1074
+test: proporción con pub_rec >= 1 = 0.1950 (train 0.0407) | PSI original = 0.0000 | PSI corregido = 0.2687

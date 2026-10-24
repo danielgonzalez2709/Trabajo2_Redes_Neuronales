@@ -1,0 +1,24 @@
+# Variables ADICIONALES del análisis de sensibilidad (decisión de Daniel, 23-oct; Parte A §3.4 y Parte B, tarea B10).
+# NO entran al modelo principal ni a la app: son el puntaje (grade) y el precio (int_rate) que Lending Club asigna al
+# evaluar la solicitud, antes del desembolso. El análisis mide cuánto ganaría el modelo si "copiara" esa evaluación.
+# Modelo de sensibilidad = las 15 variables de configs/features.yaml + estas. Los datos están en
+# data/processed/sensibilidad_lc.parquet (mismas filas y mismo orden que loans_pd.parquet, unir por `id`).
+adicionales:
+  - nombre: grade
+    tipo: cat
+    disponible_en_originacion: true
+    justificacion: "Grado que asigna Lending Club a la solicitud; se conoce antes del desembolso, pero es el resultado de la evaluación de riesgo de otro."
+    cita_diccionario: "LC assigned loan grade"
+    transformacion: ninguna
+    en_app: false
+    etiqueta_es: Grado asignado por Lending Club
+    ayuda_es: "No se pregunta en la app."
+  - nombre: int_rate
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: "Tasa de interés que fija Lending Club según su evaluación de riesgo; se conoce antes del desembolso."
+    cita_diccionario: "Interest Rate on the loan"
+    transformacion: ninguna
+    en_app: false
+    etiqueta_es: Tasa de interés asignada (%)
+    ayuda_es: "No se pregunta en la app."

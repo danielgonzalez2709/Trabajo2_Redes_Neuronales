@@ -49,11 +49,13 @@ declara el solicitante y su historial de buró en ese momento. Consecuencia: sol
 `src/datos/objetivo.py` con un diccionario literal de la tabla. **Un `loan_status` que no esté en la tabla es un error**, no un
 NA silencioso. Verificar los textos exactos del CSV (espacios, mayúsculas, puntos) [VERIFICAR].
 
-### 3.4 Selección de variables [checkpoint vie 23, 10 a. m.]
+### 3.4 Selección de variables [DECIDIDO, Daniel, 23-oct: las 15 de `configs/features.yaml`]
 - Excluir todo lo de núcleo §5.7 y revisar, **una por una contra el diccionario**, cualquier otra variable que pueda
   actualizarse después del desembolso.
 - `grade`, `sub_grade`, `int_rate`, `installment`: las asigna Lending Club **después** de evaluar el riesgo; usarlas es usar el
-  puntaje de otro. [PROPUESTO] excluirlas del modelo principal (sensibilidad opcional si sobra tiempo).
+  puntaje de otro. [DECIDIDO, Daniel, 23-oct] Fuera del modelo principal y de la app; **`grade` e `int_rate` se usan en un
+  análisis de sensibilidad aparte** (tarea B10): A entrega `data/processed/sensibilidad_lc.parquet` y
+  `configs/features_sensibilidad.yaml`. `sub_grade` (redundante con `grade`) e `installment` (depende de la tasa) no entran.
 - Fuera: `id`, `member_id`, `url`, `desc`, `emp_title`, `title`. Sensibles (`zip_code`, `addr_state`): discutir equidad;
   [PROPUESTO] fuera de la app.
 - Derivadas permitidas solo con información de la originación (p. ej. antigüedad crediticia en meses = `issue_d` −
@@ -61,8 +63,20 @@ NA silencioso. Verificar los textos exactos del CSV (espacios, mayúsculas, punt
 - Meta: **12–18 variables** que una persona pueda llenar en un formulario (`en_app: true`), con `etiqueta_es` y `ayuda_es`.
 
 ### 3.5 Partición temporal [decisión vie 23, mediodía]
-- Propuesta inicial: train = originados ≤ 2013, val = 2014, test = 2015 (fuera de tiempo) [VERIFICAR que el periodo real lo
-  permita].
+- ~~Propuesta inicial: train ≤ 2013, val = 2014, test = 2015.~~ Descartada con los datos (23-oct): en 2015 el 93 % de los
+  créditos sigue sin resolverse (`Current`, etc.); los 30 835 resueltos son una muestra muy sesgada para un test.
+- **[DECIDIDO, Daniel, 23-oct] train = originados ≤ 2012, val = 2013, test = 2014; los resueltos de 2015
+  quedan fuera** (y se cuentan en `resumen_datos.json`). Tamaños: 90 347 / 73 194 / 74 154; tasa de malos 16,3 % / 23,0 % /
+  26,2 %. Los cortes están en `configs/datos.yaml` (`particion.*`) y se cambian sin tocar código.
+
+  | Año | Créditos | Resueltos | Sin resolver | Tasa de malos (resueltos) |
+  |---|---|---|---|---|
+  | 2007–2010 | 20 814 | 20 805 | ~0 % | 13,7–26,2 % |
+  | 2011 | 21 721 | 19 729 | 9 % | 16,5 % |
+  | 2012 | 53 367 | 49 813 | 7 % | 16,7 % |
+  | 2013 | 134 755 | 73 194 | 46 % | 23,0 % |
+  | 2014 | 235 628 | 74 154 | 69 % | 26,2 % |
+  | 2015 | 421 094 | 30 835 | 93 % | 25,5 % |
 - **Trampa a cuantificar antes de decidir:** en los años recientes, los créditos que ya están resueltos tienden a ser los que
   incumplieron pronto (los demás siguen en `Current` → NA). Medir la tasa de malos y la fracción de NA por año
   (`resumen_datos.json` + figura) y decidir los cortes con esa figura; la discusión va al blog.
@@ -77,6 +91,9 @@ train**; `to_dict → from_dict` reproduce la salida bit a bit. `scripts/prepara
 `src/datos/eda.py` → `results/data/eda/` (tasa de malos por bins y categorías, faltantes, valores atípicos). Formular H1…Hn
 **antes** de ver los modelos (p. ej. "a mayor `dti`, mayor riesgo", "plazo de 60 meses más riesgoso", "más consultas recientes →
 más riesgo"), cada una con su figura. C las cierra con SHAP.
+Criterio de "relación monótona": |Spearman| entre el orden del grupo y su tasa ≥ `eda.umbral_monotonia` (0,9 en
+`configs/datos.yaml`); con datos reales la monotonía estricta se rompe por oscilaciones de milésimas entre deciles vecinos.
+Una hipótesis numérica con apoyo pero relación no monótona se reporta como "la apoya, pero no es monótona".
 
 ### 3.8 Análisis descriptivo después del preprocesamiento
 Se hace sobre la matriz que **realmente ven los modelos** (la salida del `Preprocesador` ajustado en train), por `split`.

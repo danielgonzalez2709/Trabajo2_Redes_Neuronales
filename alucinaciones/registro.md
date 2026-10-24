@@ -7,8 +7,8 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 0 | 0 |
-| Datos del mundo real | 0 | 0 |
+| Código | 1 (H-01) | 0 |
+| Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
 
@@ -28,7 +28,7 @@ falsas se registran como candidatos.
 | V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ⬜ |
 | V-09 | La EAD al castigo = `funded_amnt` − `total_rec_prncp`, y LGD = 1 − (`recoveries` − `collection_recovery_fee`)/EAD | Diccionario de Kaggle + casos reales (D1) | ⬜ |
 | V-10 | Material for MkDocs está en mantenimiento con correcciones hasta el 5-nov-2026 (dato del Trabajo 1) | Anuncio oficial del proyecto | ⬜ |
-| V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ⬜ |
+| V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ✅ 23-oct: las 14 candidatas (estas + Rumelhart, Kingma & Ba, Srivastava, Brier, Hanley & McNeil, Ferrari & Cribari-Neto, Yurdakul & Naranjo) existen y sus DOI/URL resuelven al trabajo esperado (`evidencias/A8_verificacion_bib.*`). Matices, no alucinaciones: Kingma & Ba y Loshchilov & Hutter tienen DOI de arXiv con año 2014 y 2017 (los años 2015 y 2019 son de ICLR, sin DOI); Siddiqi: Crossref 2016 en línea, 2017 impreso. Autores de Bergstra y Srivastava confirmados en las páginas oficiales |
 
 ---
 
@@ -51,4 +51,47 @@ falsas se registran como candidatos.
 
 ## Candidatos
 
-_(ninguno todavía)_
+### H-01 — PSI que da 0 en silencio para variables discretas
+- **Estado:** candidato (falta que Daniel lo confirme)
+- **Categoría:** Código
+- **Parte:** A
+- **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** la misma sesión de
+  Claude al revisar los resultados, antes del commit (tarea A6b)
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md`, Prompt I ("Empecemos con lo mio, primero lo mas importante, que
+   es la parte A que de eso dependen los demas") con la spec A §3.8, punto 3 ("índice de estabilidad poblacional (PSI) por
+   variable").
+2. **Respuesta relevante de la IA:** `src/datos/eda.py`, función `psi` original: los bins se definen con
+   `np.unique(np.quantile(referencia, deciles))` y se cuentan con `np.searchsorted(..., side="right")`.
+3. **Cómo sospechamos:** en `post_preprocesamiento.json` el PSI de `pub_rec` era **exactamente 0,0000** en val y en test,
+   mientras las demás variables daban entre 0,003 y 0,27. Un 0 exacto en datos reales es sospechoso.
+4. **Evidencia:** `evidencias/H-01_psi_discreto.py` y su salida `.txt`. Tras el recorte al p99, `pub_rec` solo toma dos
+   valores; los nueve cuantiles coinciden en un único corte igual al mínimo, y con `side="right"` ambos valores caen en el
+   mismo bin: e = a = 1 y PSI = 0. Pero la proporción con registros públicos pasa de 4,07 % en train a 12,75 % en val y
+   19,50 % en test (2,8 % en 2012 y 19,5 % en 2014 en los datos crudos): el PSI correcto es 0,107 (val) y 0,269 (test).
+5. **Corrección:** si la referencia tiene ≤ n_bins valores distintos, cada valor es su propio bin (cortes en los puntos
+   medios entre valores consecutivos). Prueba de regresión `tests/test_eda.py::test_psi_variable_discreta_no_colapsa`.
+6. **Lección aprendida:** probar las métricas con casos calculados a mano que incluyan variables discretas y desconfiar de
+   resultados exactamente 0 o 1 en datos reales. Una prueba con solo datos continuos no habría fallado.
+
+### H-02 — "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora"
+- **Estado:** candidato (falta que Daniel lo confirme)
+- **Categoría:** Datos del mundo real (significado de una variable)
+- **Parte:** A
+- **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** el subagente
+  `revisor-spec` (primera ronda de la revisión de la Parte A, hallazgo B1), antes de fusionar
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md`, Prompt I ("Empecemos con lo mio, primero lo mas importante, que
+   es la parte A que de eso dependen los demas"), con la spec A §3.4 y la regla del núcleo §0.5 ("el significado de cada
+   variable se cita del diccionario de Kaggle, nunca de una IA").
+2. **Respuesta relevante de la IA:** `blog/secciones/02-datos.md` (commit da3deb3): "variables con más de la mitad de valores
+   vacíos, como `mths_since_last_delinq`, donde un vacío significa «nunca ocurrió» y no un dato faltante".
+3. **Cómo sospechamos:** el revisor contrastó cada afirmación sobre variables con `LCDataDictionary.xlsx` y la de los vacíos
+   no aparece ahí (prompt literal de la revisión en `prompts/A-revision-spec.md`).
+4. **Evidencia:** `evidencias/H-02_mths_since_last_delinq.py` y su salida `.txt`. El diccionario solo dice "The number of
+   months since the borrower's last delinquency." y ninguna definición habla de vacíos (missing, blank, null, never, empty).
+   Además, los datos contradicen la interpretación: entre los créditos con el campo vacío (51,2 %), el **0,46 % tiene
+   `delinq_2yrs` > 0**, es decir, moras en los últimos 2 años. Si vacío significara "nunca hubo mora", esa proporción sería 0.
+5. **Corrección:** el blog dice ahora que el diccionario no explica el vacío y que por eso no la imputamos (commit e9243c0).
+   La variable sigue fuera del modelo.
+6. **Lección aprendida:** una explicación "de sentido común" de un vacío es una afirmación sobre los datos: se cita del
+   diccionario o se prueba con los datos, como hace el script de evidencia. Revisar cada frase "X significa Y" contra la fuente.
+

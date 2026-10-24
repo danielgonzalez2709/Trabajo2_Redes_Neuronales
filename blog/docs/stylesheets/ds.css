@@ -1,0 +1,163 @@
+/* Design System del reporte — principios de la skill apple-design (Emil Kowalski; Spec §8).
+   Tipografía del sistema, jerarquía por peso + tamaño + interlineado, barra translucida,
+   accesibilidad (movimiento, transparencia y contraste reducidos).
+   Colores de las figuras: src/viz/paleta.py (fuente única; validación en su docstring). */
+
+:root {
+  --ds-fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-fuente-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Paleta (T4.1): tinta y acento de src/viz/paleta.py (paleta de referencia validada). */
+  --ds-fondo: #ffffff;
+  --ds-texto: #0b0b0b;
+  --ds-texto-suave: #52514e;
+  --ds-borde: rgba(0, 0, 0, 0.1);
+  --ds-acento: #2a78d6;
+  --ds-barra: rgba(255, 255, 255, 0.72);
+}
+
+[data-md-color-scheme="slate"] {
+  --ds-fondo: #1a1a19;
+  --ds-texto: #ffffff;
+  --ds-texto-suave: #c3c2b7;
+  --ds-borde: rgba(255, 255, 255, 0.14);
+  --ds-acento: #3987e5;
+  --ds-barra: rgba(26, 26, 25, 0.72);
+  --md-default-bg-color: var(--ds-fondo);
+}
+
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--ds-acento);
+  --md-primary-fg-color--light: var(--ds-acento);
+  --md-primary-fg-color--dark: var(--ds-acento);
+}
+
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: var(--ds-acento);
+}
+
+:root {
+  --md-text-font-family: var(--ds-fuente);
+  --md-code-font-family: var(--ds-fuente-mono);
+}
+
+/* ---------- Tipografía: cuerpo holgado, títulos apretados con tracking negativo ---------- */
+.md-typeset {
+  line-height: 1.5;
+  color: var(--ds-texto);
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ds-texto);
+}
+
+.md-typeset h2 {
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-top: 2.4em;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset small,
+.md-typeset .apa-nota {
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Material: barra superior translúcida, el contenido se desplaza por debajo ---------- */
+.md-header {
+  background-color: var(--ds-barra);
+  color: var(--ds-texto);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--ds-borde);
+  box-shadow: none;
+}
+
+.md-header .md-header__button,
+.md-header .md-header__title,
+.md-header .md-source {
+  color: var(--ds-texto);
+}
+
+/* ---------- Figuras y tablas en formato APA 7 ---------- */
+.md-typeset .apa-figura,
+.md-typeset .apa-tabla {
+  margin: 2em 0;
+}
+
+.md-typeset .apa-numero {
+  margin: 0 0 0.2em;
+}
+
+.md-typeset .apa-titulo {
+  margin: 0 0 0.8em;
+}
+
+.md-typeset .apa-figura img {
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--ds-borde);
+}
+
+.md-typeset .apa-nota {
+  margin-top: 0.6em;
+  font-size: 0.85em;
+  color: var(--ds-texto-suave);
+}
+
+/* Las figuras se dibujan siempre sobre la superficie clara de la paleta (src/viz/paleta.py): en modo oscuro
+   se muestran dentro de una tarjeta clara para que ejes y etiquetas conserven el contraste. */
+[data-md-color-scheme="slate"] .md-typeset .apa-figura img,
+[data-md-color-scheme="slate"] .md-typeset .apa-figura .plotly-graph-div {
+  background-color: #fcfcfb;
+  padding: 0.5rem;
+}
+
+/* ---------- Referencias APA: sangría francesa ---------- */
+.md-typeset .apa-referencias .csl-entry {
+  padding-left: 2em;
+  text-indent: -2em;
+  margin-bottom: 0.6em;
+}
+
+/* ---------- Accesibilidad ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .md-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--ds-fondo);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --ds-borde: rgba(0, 0, 0, 0.6);
+    --ds-texto-suave: var(--ds-texto);
+  }
+
+  .md-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--ds-fondo);
+  }
+}

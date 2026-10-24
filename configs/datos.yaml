@@ -1,0 +1,27 @@
+# Parte A — datos (Spec, Parte A §3). Lo lee scripts/preparar_datos.py.
+crudo:
+  csv: data/raw/credit-risk-dataset/loan/loan.csv
+  diccionario: data/raw/credit-risk-dataset/LCDataDictionary.xlsx
+  fecha_descarga: "2026-10-23"
+  url: https://www.kaggle.com/datasets/ranadeep/credit-risk-dataset
+features: configs/features.yaml
+# Análisis de sensibilidad con grade e int_rate (Daniel, 23-oct): se guardan aparte, nunca en loans_pd.parquet.
+sensibilidad:
+  features: configs/features_sensibilidad.yaml
+  archivo: sensibilidad_lc.parquet
+salida:
+  carpeta: data/processed
+  preprocesador: models/preprocesador_pd.json
+# Partición temporal por issue_d (A §3.5). Los créditos originados después de test_hasta quedan fuera
+# y se cuentan en resumen_datos.json. Decisión del 23-oct con la tasa de malos y la fracción sin resolver por año.
+particion:
+  train_hasta: "2012-12-31"
+  val_hasta: "2013-12-31"
+  test_hasta: "2014-12-31"
+eda:
+  hipotesis: configs/hipotesis.yaml
+  salida: results/data/eda
+  umbral_monotonia: 0.9   # |Spearman| mínimo para llamar "monótona" una relación (A §3.7)
+preprocesamiento:
+  percentiles_recorte: [1.0, 99.0]
+base_seed: 0

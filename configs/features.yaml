@@ -1,0 +1,141 @@
+# Variables del modelo de PD y de la app (contrato del núcleo §5.1; Parte A §3.4).
+# Caso de uso: el banco decide ANTES del desembolso, con lo que declara el solicitante y su buró en ese momento.
+# Solo entran variables conocidas en la originación (núcleo §5.7) y que una persona pueda llenar en el formulario.
+# cita_diccionario: texto literal de LCDataDictionary.xlsx, hoja LoanStats (descargado de Kaggle el 23-oct-2026).
+# Excluidas y por qué: ver docs/spec/partes/A-datos.md §3.4 y la sección 02 del blog.
+features:
+  - nombre: loan_amnt
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Monto de la solicitud (incluye la reducción que haga el departamento de crédito antes de aprobar, según el diccionario); se conoce antes del desembolso.
+    cita_diccionario: "The listed amount of the loan applied for by the borrower. If at some point in time, the credit department reduces the loan amount, then it will be reflected in this value."
+    transformacion: log1p
+    en_app: true
+    etiqueta_es: Monto solicitado (USD)
+    ayuda_es: Cuánto dinero pides prestado.
+  - nombre: term
+    tipo: cat
+    disponible_en_originacion: true
+    justificacion: Plazo elegido en la solicitud.
+    cita_diccionario: "The number of payments on the loan. Values are in months and can be either 36 or 60."
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Plazo
+    ayuda_es: Número de cuotas mensuales (36 o 60).
+  - nombre: emp_length
+    tipo: cat
+    disponible_en_originacion: true
+    justificacion: Antigüedad laboral declarada en la solicitud.
+    cita_diccionario: "Employment length in years. Possible values are between 0 and 10 where 0 means less than one year and 10 means ten or more years. "
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Antigüedad en el empleo
+    ayuda_es: Años en tu empleo actual.
+  - nombre: home_ownership
+    tipo: cat
+    disponible_en_originacion: true
+    justificacion: Situación de vivienda declarada al registrarse.
+    cita_diccionario: "The home ownership status provided by the borrower during registration. Our values are: RENT, OWN, MORTGAGE, OTHER."
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Vivienda
+    ayuda_es: Si alquilas, eres propietario o pagas una hipoteca.
+  - nombre: annual_inc
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Ingreso anual declarado al registrarse.
+    cita_diccionario: "The self-reported annual income provided by the borrower during registration."
+    transformacion: log1p
+    en_app: true
+    etiqueta_es: Ingreso anual (USD)
+    ayuda_es: Tus ingresos de un año, antes de impuestos.
+  - nombre: purpose
+    tipo: cat
+    disponible_en_originacion: true
+    justificacion: Destino del crédito declarado en la solicitud.
+    cita_diccionario: "A category provided by the borrower for the loan request. "
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Destino del préstamo
+    ayuda_es: Para qué vas a usar el dinero.
+  - nombre: dti
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Razón deuda/ingreso calculada con la información de la solicitud (excluye el crédito pedido).
+    cita_diccionario: "A ratio calculated using the borrower’s total monthly debt payments on the total debt obligations, excluding mortgage and the requested LC loan, divided by the borrower’s self-reported monthly income."
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Deuda mensual sobre ingreso mensual (%)
+    ayuda_es: Cuotas mensuales de tus deudas (sin hipoteca) divididas por tu ingreso mensual, en porcentaje.
+  - nombre: delinq_2yrs
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "The number of 30+ days past-due incidences of delinquency in the borrower's credit file for the past 2 years"
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Moras de 30+ días en los últimos 2 años
+    ayuda_es: Cuántas veces te atrasaste más de 30 días en algún pago.
+  - nombre: antiguedad_credito_anios
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: "Derivada: issue_d − earliest_cr_line en años; la primera línea de crédito se conoce al solicitar."
+    cita_diccionario: "earliest_cr_line: The month the borrower's earliest reported credit line was opened; issue_d: The month which the loan was funded"
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Años de historial crediticio
+    ayuda_es: Años desde que abriste tu primer producto de crédito.
+  - nombre: inq_last_6mths
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Consultas al buró antes de la solicitud.
+    cita_diccionario: "The number of inquiries in past 6 months (excluding auto and mortgage inquiries)"
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Consultas de crédito en los últimos 6 meses
+    ayuda_es: Cuántas veces pediste crédito recientemente (sin contar auto ni hipoteca).
+  - nombre: open_acc
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "The number of open credit lines in the borrower's credit file."
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Líneas de crédito abiertas
+    ayuda_es: Tarjetas y créditos que tienes activos.
+  - nombre: pub_rec
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "Number of derogatory public records"
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Registros públicos negativos
+    ayuda_es: Quiebras, embargos u otros registros públicos en tu contra.
+  - nombre: revol_bal
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Saldo rotativo en el buró (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "Total credit revolving balance"
+    transformacion: log1p
+    en_app: true
+    etiqueta_es: Saldo en tarjetas de crédito (USD)
+    ayuda_es: Lo que debes hoy en tarjetas y cupos rotativos.
+  - nombre: revol_util
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Utilización del crédito rotativo (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "Revolving line utilization rate, or the amount of credit the borrower is using relative to all available revolving credit."
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Uso de tus cupos rotativos (%)
+    ayuda_es: Qué porcentaje de tus cupos de tarjeta estás usando.
+  - nombre: total_acc
+    tipo: num
+    disponible_en_originacion: true
+    justificacion: Historial de buró del solicitante (el diccionario no fecha el campo; lo tratamos como dato del buró consultado al originar).
+    cita_diccionario: "The total number of credit lines currently in the borrower's credit file"
+    transformacion: ninguna
+    en_app: true
+    etiqueta_es: Total de líneas de crédito en tu historial
+    ayuda_es: Todas las cuentas de crédito que has tenido, abiertas o cerradas.

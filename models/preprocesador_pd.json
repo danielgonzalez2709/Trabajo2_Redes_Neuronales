@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "percentiles_recorte": [
+    1.0,
+    99.0
+  ],
+  "categoricas": {
+    "limpieza": "strip",
+    "vacio": "DESCONOCIDO",
+    "no_vista": "OTRA"
+  },
+  "orden_numericas": [
+    "imputar_mediana",
+    "recortar",
+    "log1p_si_aplica",
+    "estandarizar"
+  ],
+  "columnas_salida": [
+    "loan_amnt",
+    "term=36 months",
+    "term=60 months",
+    "term=OTRA",
+    "emp_length=1 year",
+    "emp_length=10+ years",
+    "emp_length=2 years",
+    "emp_length=3 years",
+    "emp_length=4 years",
+    "emp_length=5 years",
+    "emp_length=6 years",
+    "emp_length=7 years",
+    "emp_length=8 years",
+    "emp_length=9 years",
+    "emp_length=< 1 year",
+    "emp_length=DESCONOCIDO",
+    "emp_length=OTRA",
+    "home_ownership=MORTGAGE",
+    "home_ownership=NONE",
+    "home_ownership=OTHER",
+    "home_ownership=OWN",
+    "home_ownership=RENT",
+    "home_ownership=OTRA",
+    "annual_inc",
+    "purpose=car",
+    "purpose=credit_card",
+    "purpose=debt_consolidation",
+    "purpose=educational",
+    "purpose=home_improvement",
+    "purpose=house",
+    "purpose=major_purchase",
+    "purpose=medical",
+    "purpose=moving",
+    "purpose=other",
+    "purpose=renewable_energy",
+    "purpose=small_business",
+    "purpose=vacation",
+    "purpose=wedding",
+    "purpose=OTRA",
+    "dti",
+    "delinq_2yrs",
+    "antiguedad_credito_anios",
+    "inq_last_6mths",
+    "open_acc",
+    "pub_rec",
+    "revol_bal",
+    "revol_util",
+    "total_acc"
+  ],
+  "variables": [
+    {
+      "nombre": "loan_amnt",
+      "tipo": "num",
+      "mediana": 10000.0,
+      "recorte": [
+        1350.0,
+        35000.0
+      ],
+      "log1p": true,
+      "media": 9.17214254609383,
+      "desv": 0.7057320968696751
+    },
+    {
+      "nombre": "term",
+      "tipo": "cat",
+      "categorias": [
+        "36 months",
+        "60 months",
+        "OTRA"
+      ]
+    },
+    {
+      "nombre": "emp_length",
+      "tipo": "cat",
+      "categorias": [
+        "1 year",
+        "10+ years",
+        "2 years",
+        "3 years",
+        "4 years",
+        "5 years",
+        "6 years",
+        "7 years",
+        "8 years",
+        "9 years",
+        "< 1 year",
+        "DESCONOCIDO",
+        "OTRA"
+      ]
+    },
+    {
+      "nombre": "home_ownership",
+      "tipo": "cat",
+      "categorias": [
+        "MORTGAGE",
+        "NONE",
+        "OTHER",
+        "OWN",
+        "RENT",
+        "OTRA"
+      ]
+    },
+    {
+      "nombre": "annual_inc",
+      "tipo": "num",
+      "mediana": 60000.0,
+      "recorte": [
+        15058.54,
+        230000.0
+      ],
+      "log1p": true,
+      "media": 10.981100232922868,
+      "desv": 0.5234929956042197
+    },
+    {
+      "nombre": "purpose",
+      "tipo": "cat",
+      "categorias": [
+        "car",
+        "credit_card",
+        "debt_consolidation",
+        "educational",
+        "home_improvement",
+        "house",
+        "major_purchase",
+        "medical",
+        "moving",
+        "other",
+        "renewable_energy",
+        "small_business",
+        "vacation",
+        "wedding",
+        "OTRA"
+      ]
+    },
+    {
+      "nombre": "dti",
+      "tipo": "num",
+      "mediana": 14.99,
+      "recorte": [
+        0.6346000000000004,
+        32.5
+      ],
+      "log1p": false,
+      "media": 15.093069702369752,
+      "desv": 7.352874379877304
+    },
+    {
+      "nombre": "delinq_2yrs",
+      "tipo": "num",
+      "mediana": 0.0,
+      "recorte": [
+        0.0,
+        3.0
+      ],
+      "log1p": false,
+      "media": 0.16873830896432643,
+      "desv": 0.5002858655711986
+    },
+    {
+      "nombre": "antiguedad_credito_anios",
+      "tipo": "num",
+      "mediana": 12.837782340862423,
+      "recorte": [
+        3.5044490075290895,
+        36.0
+      ],
+      "log1p": false,
+      "media": 14.063051706332008,
+      "desv": 6.6704970483583255
+    },
+    {
+      "nombre": "inq_last_6mths",
+      "tipo": "num",
+      "mediana": 1.0,
+      "recorte": [
+        0.0,
+        5.0
+      ],
+      "log1p": false,
+      "media": 0.9250002767109036,
+      "desv": 1.1463169481800806
+    },
+    {
+      "nombre": "open_acc",
+      "tipo": "num",
+      "mediana": 9.0,
+      "recorte": [
+        2.0,
+        23.0
+      ],
+      "log1p": false,
+      "media": 9.985909880792942,
+      "desv": 4.401922900815645
+    },
+    {
+      "nombre": "pub_rec",
+      "tipo": "num",
+      "mediana": 0.0,
+      "recorte": [
+        0.0,
+        1.0
+      ],
+      "log1p": false,
+      "media": 0.04069863968919831,
+      "desv": 0.19759114458053811
+    },
+    {
+      "nombre": "revol_bal",
+      "tipo": "num",
+      "mediana": 10392.0,
+      "recorte": [
+        0.0,
+        81831.61999999998
+      ],
+      "log1p": true,
+      "media": 8.959273256786407,
+      "desv": 1.5858091982846447
+    },
+    {
+      "nombre": "revol_util",
+      "tipo": "num",
+      "mediana": 56.4,
+      "recorte": [
+        0.0,
+        97.6
+      ],
+      "log1p": false,
+      "media": 53.75247124973712,
+      "desv": 26.52542241432555
+    },
+    {
+      "nombre": "total_acc",
+      "tipo": "num",
+      "mediana": 21.0,
+      "recorte": [
+        4.0,
+        56.0
+      ],
+      "log1p": false,
+      "media": 22.795045767983442,
+      "desv": 11.094388575914147
+    }
+  ]
+}
