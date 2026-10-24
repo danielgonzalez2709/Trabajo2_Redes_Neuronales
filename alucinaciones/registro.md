@@ -22,7 +22,7 @@ falsas se registran como candidatos.
 | V-02 | El plan Hobby de Vercel es gratis y para uso personal/no comercial | Términos y precios oficiales de Vercel | ⬜ |
 | V-03 | Neon Postgres tiene un plan gratis en el Marketplace de Vercel | Documentación de Vercel/Neon | ⬜ |
 | V-04 | Render (plan gratis) duerme los servicios tras un periodo sin uso | Documentación de Render | ⬜ |
-| V-05 | Remotion es gratis para individuos y equipos pequeños | Licencia oficial de Remotion | ⬜ |
+| V-05 | Remotion es gratis para individuos y equipos pequeños | Licencia oficial de Remotion | ✅ 24-oct: el LICENSE.md oficial da la licencia gratis a "an individual", "a for-profit organization with up to 3 employees" y "a non-profit or not-for-profit organization"; un video de curso hecho por estudiantes queda cubierto |
 | V-06 | Los créditos recientes ya resueltos sesgan la tasa de malos hacia arriba | Experimento A4 (tasa de malos y fracción de NA por año) | ✅ 23-oct: consistente con los datos. Sin desenlace: 7 % (2012), 46 % (2013), 69 % (2014), 93 % (2015); tasa de malos de los resueltos: 16,7 % → 23,0 % → 26,2 % → 25,5 % (`resumen_datos.json`). Además, al incumplir seguía pendiente el 80 % del monto en test frente al 64 % en train (incumplimientos más tempranos) |
 | V-07 | `AdamW` aplica weight decay desacoplado, que no equivale a L2 con Adam | Loshchilov & Hutter + documentación de PyTorch | ⬜ |
 | V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ✅ 23-oct: `issue_d` de 2007-06 a 2015-12 |
