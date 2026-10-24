@@ -36,3 +36,35 @@ def test_notebook_corre_de_punta_a_punta(fuente, tmp_path, monkeypatch):
     monkeypatch.chdir(RAIZ)
     destino = ejecutar(copia, RAIZ)
     assert destino.is_file()
+
+
+def test_estado_demos_marca_las_pendientes():
+    from src.common.notebooks import estado_demos
+
+    cfg = config_notebook(RAIZ / "configs" / "sustentacion.yaml", imprimir=False)
+    estados = {e["demo"]: e["estado"] for e in estado_demos(cfg)}
+    assert estados["eda"] == "listo"
+    assert all(e == "listo" or e.startswith("pendiente") for e in estados.values())
+    # la E[L] tiene config pero necesita las predicciones de B y D
+    if not (RAIZ / "results" / "data" / "pd" / "pred_test.parquet").is_file():
+        assert estados["el"].startswith("pendiente") and "pred_test.parquet" in estados["el"]
+
+
+def test_correr_demo_no_escribe_en_los_resultados_versionados(monkeypatch, capsys):
+    """La demo de la Parte A escribe en una carpeta temporal y los JSON versionados quedan intactos."""
+    from src.common.notebooks import correr_demo
+
+    monkeypatch.chdir(RAIZ)
+    cfg = config_notebook(RAIZ / "configs" / "sustentacion.yaml", imprimir=False)
+    antes = {p: p.stat().st_mtime_ns for p in (RAIZ / "results" / "data" / "eda").glob("*.json")}
+    r = correr_demo(cfg, "eda", {"eda.umbral_monotonia": 0.8})
+    assert r["estado"] == "ok", r
+    assert "eda.umbral_monotonia=0.8" in capsys.readouterr().out
+    assert {p: p.stat().st_mtime_ns for p in (RAIZ / "results" / "data" / "eda").glob("*.json")} == antes
+
+
+def test_correr_demo_pendiente_no_falla(tmp_path):
+    from src.common.notebooks import correr_demo
+
+    cfg = {"demos": {"x": {"parte": "B", "subcomando": "pd", "config": str(tmp_path / "no.yaml"), "salida_temporal": None}}}
+    assert correr_demo(cfg, "x") == {"estado": "pendiente"}
