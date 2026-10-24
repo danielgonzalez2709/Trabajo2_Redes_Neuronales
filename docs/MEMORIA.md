@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-24 |
-| Fase | **Parte A completa** (aprobada por revisor-spec en 2 rondas); **PR `dev/daniel` → `main` abierto**. Spec v0.8 |
-| Próxima tarea | Daniel: fusionar el PR de la Parte A y activar el ruleset de `main`. Después, B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.9 |
+| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés arranca B1/B2 y Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -21,8 +21,8 @@
 | Parte | Spec | Quién |
 |---|---|---|
 | A — Datos y caso de uso | `docs/spec/partes/A-datos.md` | Daniel |
-| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés y Juan José |
-| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Andrés y Juan José |
+| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés |
+| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Juan José |
 | D — LGD | `docs/spec/partes/D-lgd.md` | Camila y José |
 | E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel y Camila (Camila: frontend de la app) |
 
@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
 - Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
@@ -49,13 +50,15 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
-1. Reparto de tareas dentro de cada pareja.
+1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-24** — Spec v0.9: Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B, Juan José C); PR
+  `dev/andres` → `main`.
 - **2026-10-24** — PR de la Parte A (`dev/daniel` → `main`) abierto: 17 commits.
 - **2026-10-23** — Daniel aprueba la partición B y las 15 variables, y pide la sensibilidad con `grade`/`int_rate` (Spec v0.8).
 - **2026-10-23** — revisor-spec: Parte A RECHAZADA en la 1.ª ronda (2 bloqueantes + 9 recomendaciones), APROBADA en la 2.ª tras

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Responsables | **Andrés y Juan José (comparten B y C)** |
-| Ramas personales | `dev/andres`, `dev/juanjose` |
+| Responsables | **Juan José** (reparto de la pareja, 24-oct; Andrés hace la Parte B) |
+| Rama personal | `dev/juanjose` |
 | Carpetas propias | `src/scorecard/`, `src/export/`, `configs/scorecard/`, `src/viz/figs_scorecard.py`, `notebooks/03_scorecard.py`, `blog/secciones/07` |
 | Lee del núcleo | §0, §3, §4.1, §5.2, §5.3, §5.4, §5.5 · **Anexo (enunciado):** Parte 1, tareas 2, 6 y 7; Entregables 1 y 4 |
 | Arranca sin esperar | Sí: la scorecard es una fórmula sobre p y el exportador trabaja con un modelo de juguete en el formato del contrato |
@@ -60,14 +60,14 @@ test, entradas de `features.yaml` con `en_app: true`.
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
-| C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | por repartir |
-| C2 | Exportador + `pd_model.json` de juguete | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | por repartir |
-| C3 | Scorecard de la logística | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | por repartir |
-| C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | por repartir |
-| C5 | Export real + casos de paridad | B5, C2 | Contrato §5.5 | revisor-spec | **sáb 24, noche** | por repartir |
-| C6 | Cierre de hipótesis | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | por repartir |
-| C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | por repartir |
-| C7 | Blog 07 | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | por repartir |
+| C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
+| C2 | Exportador + `pd_model.json` de juguete | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | Juan José |
+| C3 | Scorecard de la logística | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
+| C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
+| C5 | Export real + casos de paridad | B5, C2 | Contrato §5.5 | revisor-spec | **sáb 24, noche** | Juan José |
+| C6 | Cierre de hipótesis | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
+| C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
+| C7 | Blog 07 | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
 
 ## 5. Pruebas de la parte
 `test_scorecard.py` (base, PDO, monotonía, aditividad), `test_export.py`, `test_shap_aditividad.py`.
