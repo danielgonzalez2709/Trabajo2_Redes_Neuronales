@@ -1,0 +1,4 @@
+Línea de sklearn: ['binids = np.searchsorted(bins[1:-1], y_prob)']
+Bordes internos que coinciden con algún dato: 8 de 9
+side='left': coincide con calibration_curve -> True
+side='right': coincide con calibration_curve -> False

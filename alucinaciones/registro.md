@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 1 (H-01) | 0 |
+| Código | 2 (H-01, H-03) | 0 |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -95,3 +95,24 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** una explicación "de sentido común" de un vacío es una afirmación sobre los datos: se cita del
    diccionario o se prueba con los datos, como hace el script de evidencia. Revisar cada frase "X significa Y" contra la fuente.
 
+
+### H-03 — "calibration_curve asigna al bin superior el dato que cae en un borde (`side="right"`)"
+- **Estado:** candidato (falta que Andrés lo confirme)
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico` al revisar las pruebas de B1 antes de implementar; el orquestador lo
+  comprobó en el código fuente de sklearn
+1. **Prompt (literal):** `prompts/B1.md`, sección "1. implementador — fase roja".
+2. **Respuesta relevante de la IA:** "Puntos en un borde interno. La interfaz tampoco dice a qué bin van. Las pruebas a mano lo
+   evitan y el contraste con sklearn fija su convención: `searchsorted(bordes[1:-1], p, side="right")`."
+3. **Cómo sospechamos:** el verificador probó una implementación mutante con `side="right"` y pasaba las 52 pruebas: el
+   contraste con sklearn solo usaba datos sin empates, donde ningún dato cae en un borde, así que la prueba no fijaba nada.
+4. **Evidencia:** `sklearn/calibration.py:1332` (scikit-learn 1.9.1): `binids = np.searchsorted(bins[1:-1], y_prob)`, es decir,
+   lado por defecto `"left"`: el dato que cae en un borde va al bin **inferior**. Con datos con empates (p a 2 decimales)
+   8 de los 9 bordes internos coinciden con datos; `side="left"` reproduce `calibration_curve` y `side="right"` no
+   (`evidencias/H-03_calibracion_borde.py` y `.txt`).
+5. **Corrección:** la prueba de contraste con `calibration_curve` se corre también con datos con empates y la implementación
+   usa `side="left"` (ronda verde de B1).
+6. **Lección aprendida:** una afirmación del tipo "la referencia hace X" se comprueba en el código fuente de la referencia;
+   y una prueba de contraste solo fija una convención si sus datos ejercitan el caso (aquí, empates en los bordes).
