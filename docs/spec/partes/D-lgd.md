@@ -85,8 +85,8 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 | D1b | Descriptivo de la LGD observada y después del preprocesamiento (§3.2b) | D1 (A6b para la parte posterior al preprocesamiento) | `descriptivo.json`; figuras citadas en el blog | analista-experimentos | sáb 24 | por repartir |
 | D2 ✅ | `loans_lgd.parquet` con el preprocesador y la partición reales | A5, D1 | Misma partición temporal; esquema = núcleo §5.1 | revisor-spec | vie 23, noche | Camila |
 | D3 ✅ | Lineal + MLP de LGD (salida sigmoide, pérdida §3.3) | E0 (B2 cuando llegue) | Derivación de la pérdida revisada; `test_lgd_mlp.py` | verificador-matematico | vie 23 | Camila |
-| D4 | Optuna + 30 semillas + `summary.json` | D2, D3 | Presupuesto y semillas según núcleo §6 | analista-experimentos | **sáb 24, 6 p. m.** | por repartir |
-| D5 | Demo | D3 | **< 2 min en CPU** | auditor-reproducibilidad | sáb 24 | por repartir |
+| D4 ✅ | Optuna + 30 semillas + `summary.json` | D2, D3 | Presupuesto y semillas según núcleo §6 | analista-experimentos | **sáb 24, 6 p. m.** | Camila |
+| D5 🟨 | Demo | D3 | **< 2 min en CPU** | auditor-reproducibilidad | sáb 24 | Camila |
 | D6 | Figuras: distribuciones, Q-Q, error por banda | D4 | `run.py figures` las regenera | revisor-spec | sáb 24 | por repartir |
 | D8 | Notebook `04_lgd` (núcleo §5.8) | D4, D6 | Corre en < 2 min; cero lógica propia | revisor-spec | dom 25 | por repartir |
 | D7 | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | por repartir |
