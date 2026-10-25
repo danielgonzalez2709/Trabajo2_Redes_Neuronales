@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2) y Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3, 24-oct 10:26 p. m.). Spec v0.11 |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2) y Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3, 24-oct 10:26 p. m.). Spec v0.12 |
 | Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1–D3. Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
@@ -59,6 +59,9 @@ mar 27 6 p. m. entrega.
 Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — Revisión de lo que B, C, D y E consumen de la Parte A, desde una copia limpia de `main` sin datos crudos:
+  todo se carga y funciona. Hueco corregido (Spec v0.12): `categorias_es` en `features.yaml` y `etiquetas_categorias` en el
+  JSON de la app (las categorías salían en inglés); avisar a Juan José (exportador) y Camila (app). Siddiqi: 2.ª ed., 2017.
 - **2026-10-25** — Spec v0.11: `data/processed/diccionario_loanstats.csv` (copia literal del diccionario, hoja LoanStats) para
   que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
 - **2026-10-24** — PR #3 fusionado (10:26 p. m.): `montos.parquet` y contratos v0.10 en `main`, que Camila necesitaba para D1/D2;

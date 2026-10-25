@@ -21,6 +21,7 @@ PROHIBIDAS = {
 }
 CAMPOS = {"nombre", "tipo", "disponible_en_originacion", "justificacion", "cita_diccionario", "transformacion",
           "en_app", "etiqueta_es", "ayuda_es"}
+CAMPOS_CAT = CAMPOS | {"categorias_es"}  # las categóricas traen además la etiqueta en español de cada código (§5.1)
 
 
 PREFIJOS_PROHIBIDOS = ("total_pymnt", "total_rec_", "out_prncp", "last_pymnt_")  # patrones del núcleo §5.7
@@ -38,8 +39,21 @@ def test_sin_repetidas_y_cantidad_para_un_formulario():
 
 @pytest.mark.parametrize("f", FEATURES, ids=NOMBRES)
 def test_cada_variable_cumple_el_contrato(f):
-    assert set(f) == CAMPOS
+    assert set(f) == (CAMPOS_CAT if f["tipo"] == "cat" else CAMPOS)
     assert f["tipo"] in {"num", "cat"}
     assert f["disponible_en_originacion"] is True
     assert f["transformacion"] in {"ninguna", "log1p"}
     assert f["cita_diccionario"].strip() and f["justificacion"].strip()
+
+
+def test_cada_categoria_que_ve_la_app_tiene_etiqueta_en_espanol():
+    """Todas las categorías del preprocesador (salvo OTRA, interna) tienen etiqueta en categorias_es, y nada sobra."""
+    import json
+
+    pre = json.loads((RAIZ / "models" / "preprocesador_pd.json").read_text(encoding="utf-8"))
+    etiquetas = {f["nombre"]: f["categorias_es"] for f in FEATURES if f["tipo"] == "cat"}
+    for v in pre["variables"]:
+        if v["tipo"] == "cat":
+            esperadas = set(v["categorias"]) - {"OTRA"}
+            assert set(etiquetas[v["nombre"]]) == esperadas, v["nombre"]
+            assert all(str(e).strip() for e in etiquetas[v["nombre"]].values())
