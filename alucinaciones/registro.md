@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 1 (H-08) | 0 |
-| Código | 6 (H-01, H-03, H-04, H-05, H-06, H-07) | 2 (H-03, H-04) |
+| Código | 7 (H-01, H-03, H-04, H-05, H-06, H-07, H-09) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -218,3 +218,21 @@ falsas se registran como candidatos.
    El código ya seguía esta convención (decisión de Andrés, 24-oct). El blog 04 (B8) debe escribir (λ/2)‖W‖².
 6. **Lección aprendida:** "equivalente" entre una penalización y un hiperparámetro de la librería se verifica derivando el
    gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
+
+### H-09 — "La prueba compara `warnings.filters` antes y después de `fit`, así que detecta un filtro global"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el propio `implementador`, con el mutante M30 de la fase verde de B3
+1. **Prompt (literal):** `prompts/B3.md`, sección "1. implementador — fase roja" (prueba 11: "warnings.filters es igual
+   antes y después de fit").
+2. **Respuesta relevante de la IA:** `tests/test_logistica.py` (commit 7d72a68), `test_11_fit_no_altera_los_filtros_globales`,
+   presentada como la prueba que atrapa un `simplefilter("error")` global en lugar de un `catch_warnings` local.
+3. **Cómo sospechamos:** el mutante M30 (quitar el `catch_warnings` local de `ajustar_sin_avisos`) sobrevivía.
+4. **Evidencia:** el `pytestmark` del módulo ya instala `error::ConvergenceWarning` y `error::FutureWarning`; el filtro
+   global del mutante coincidía con uno ya presente y la lista `warnings.filters` no cambiaba. Tras partir de un entorno con
+   `simplefilter("ignore")`, M30 muere (commit dc4cc9d).
+5. **Corrección:** prueba reforzada en la fase verde de B3 (commit dc4cc9d).
+6. **Lección aprendida:** una prueba de "no efectos secundarios" debe partir de un estado distinto del que el efecto
+   produciría; verificarla con un mutante, no por lectura.
