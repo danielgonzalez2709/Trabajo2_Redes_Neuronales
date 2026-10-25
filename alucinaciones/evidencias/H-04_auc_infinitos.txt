@@ -1,0 +1,2 @@
+AUC por pares (correcta): 0.5555555555555556
+auc() del módulo: 0.4444444444444444

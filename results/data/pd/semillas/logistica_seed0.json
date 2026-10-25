@@ -1,0 +1,44 @@
+{
+  "modelo": "logistica",
+  "seed": 0,
+  "config": {
+    "rejilla_C": [
+      0.0001,
+      0.00031623,
+      0.001,
+      0.0031623,
+      0.01,
+      0.031623,
+      0.1,
+      0.31623,
+      1.0,
+      3.1623,
+      10.0,
+      31.623,
+      100.0
+    ],
+    "max_iter": 1000,
+    "tol": 1e-06,
+    "C_elegido": 0.0031623
+  },
+  "metricas": {
+    "auc_val": 0.6669285247794581,
+    "gini_val": 0.33385704955891615,
+    "ks_val": 0.24199137592001702,
+    "brier_val": 0.16908014001670021,
+    "logloss_val": 0.5178171915257915,
+    "auc_test": 0.6696471920866485,
+    "gini_test": 0.33929438417329694,
+    "ks_test": 0.24650160083183942,
+    "brier_test": 0.186521674060379,
+    "logloss_test": 0.5600049552127315
+  },
+  "n_parametros": 49,
+  "tiempo_s": 1.7188729430054082,
+  "device": "cpu",
+  "epocas": 47,
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_preprocesador": "971f41251ed125bd2a7d5a145e94d41dd6dd79019327fd7f93ddbe592b7fd03f"
+  }
+}
