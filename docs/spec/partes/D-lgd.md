@@ -38,6 +38,8 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
 ### 3.2 Variable objetivo [PROPUESTO — verificar cada campo en el diccionario]
 - Los campos ya están en `data/processed/montos.parquet` (núcleo §5.1, v0.10): no hace falta leer el CSV crudo. Unir con
   `loans_pd.parquet` por `id`.
+- Las definiciones para citar cada campo están en `data/processed/diccionario_loanstats.csv` (núcleo §5.1, v0.11), copiadas
+  textualmente del diccionario de Kaggle.
 - Además de `pred_test.parquet`, entregar `results/data/lgd/pred_pd_test.parquet` con la LGD predicha para **todos** los
   créditos de test de `loans_pd` (núcleo §5.4): la E[L] la necesita para cada crédito, no solo para los incumplidos.
 - **EAD en el incumplimiento = `funded_amnt` − `total_rec_prncp`** (principal pendiente al castigo).
