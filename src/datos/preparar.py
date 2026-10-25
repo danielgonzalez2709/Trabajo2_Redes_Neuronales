@@ -42,10 +42,13 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     nombres = [f["nombre"] for f in features]
     adicionales = load_config(raiz / cfg["sensibilidad"]["features"])["adicionales"] if "sensibilidad" in cfg else []
     nombres_sens = [f["nombre"] for f in adicionales]
+    # Montos posteriores al desembolso: SOLO para construir la LGD (Parte D) y contrastar la E[L] (Parte E), nunca como
+    # variables de un modelo (núcleo §5.7). Van en su propio archivo.
+    columnas_montos = list(cfg["montos"]["columnas"]) if "montos" in cfg else []
     ruta_csv = raiz / cfg["crudo"]["csv"]
 
     n_variables = len(pd.read_csv(ruta_csv, nrows=0).columns)
-    crudo = leer_crudo(ruta_csv, columnas_crudas(features) + nombres_sens)
+    crudo = leer_crudo(ruta_csv, list(dict.fromkeys(columnas_crudas(features) + nombres_sens + columnas_montos)))
     crudo["target"] = construir_objetivo(crudo["loan_status"])
     crudo["anio_origen"] = crudo["issue_d"].dt.year
 
@@ -61,6 +64,7 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     df["target"] = df["target"].astype("int8")
     df["id"] = df["id"].astype(str)
     sensibilidad = df[["id", *nombres_sens]].reset_index(drop=True)
+    montos = df[["id", *[c for c in columnas_montos if c != "id"]]].reset_index(drop=True)
     df = df[["id", "issue_d", "anio_origen", "target", "split", *nombres]].reset_index(drop=True)
 
     pre = Preprocesador(tuple(cfg["preprocesamiento"]["percentiles_recorte"]))
@@ -71,6 +75,8 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     df.to_parquet(salida / "loans_pd.parquet", index=False, compression="zstd")
     if nombres_sens:  # variables de Lending Club: archivo aparte, para que no entren por error al modelo principal
         sensibilidad.to_parquet(salida / cfg["sensibilidad"]["archivo"], index=False, compression="zstd")
+    if columnas_montos:
+        montos.to_parquet(salida / cfg["montos"]["archivo"], index=False, compression="zstd")
     save_json(raiz / cfg["salida"]["preprocesador"], pre.to_dict())
 
     resumen = {

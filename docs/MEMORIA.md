@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-24 |
-| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.9. **D3 ✅ en `dev/camila`** (lineal + MLP de LGD) |
-| Próxima tarea | Camila: D1/D2 en cuanto `montos.parquet` (v0.10, en `dev/daniel`) llegue a `main`. Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés arranca B1/B2 y Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Fase | **Parte A en `main`** (PR #1), **reparto B+C en `main`** (PR #2) y **E5/E6/E7/E11 + Spec v0.10 en `main`** (PR #3). Ruleset de `main` activo. **D3 ✅ en `dev/camila`** (lineal + MLP de LGD) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1/D2 con `montos.parquet` (unir con `loans_pd.parquet` por `id`; mismas filas y orden). D4 entrega `pred_test.parquet` con columnas `pred_<modelo>` **y** `lgd/pred_pd_test.parquet` (LGD de todo el test, §5.4 v0.10). Camila: E1 (app). Daniel: confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -35,7 +35,9 @@ Juan José González Morales.
 - Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
-- Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona** (CODEOWNERS + ruleset).
+- Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona**. Ruleset
+  `proteger-main` activo (24-oct): PR con 1 aprobación de Code Owner, check `pruebas` en verde, solo *merge commit*, sin
+  force push ni borrado; Daniel fusiona sus propios PR con el bypass de admin.
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
 - Para no bloquearse: contratos congelados el jue 22 + datos sintéticos con el mismo esquema (núcleo §5.6).
@@ -61,11 +63,20 @@ Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos
 ## 📓 Bitácora
 - **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional, MSE opcional), 29 pruebas.
   revisor-calidad RECHAZÓ la 1.ª ronda (NaN entrenaba en silencio), APROBADA en la 2.ª; revisor-spec y verificador-matematico
-  aprueban; cita Papke & Wooldridge (1996) confirmada (contenido solo por fuente secundaria). Pendiente para D4: divergencia con
-  pérdida finita no avisa.
-- **2026-10-24** — Spec v0.9: Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B, Juan José C); PR
-  `dev/andres` → `main`.
-- **2026-10-24** — PR de la Parte A (`dev/daniel` → `main`) abierto: 17 commits.
+  aprueban; cita Papke & Wooldridge (1996) confirmada (contenido solo por fuente secundaria). Candidato H-05. Pendiente para D4:
+  divergencia con pérdida finita no avisa.
+- **2026-10-24** — PR #2 fusionado: Spec v0.9, Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B,
+  Juan José C). Los contratos de la E[L] de `dev/daniel` pasan a ser la v0.10.
+- **2026-10-24** — Blog 00 (resumen, sin cifras de modelos todavía) y notebook 00 de la sustentación: demos de `run.py` en
+  carpetas temporales, la celda de modificación exige escribir la predicción antes, 3 predicciones de la Parte A verificadas.
+  `configs/sustentacion.yaml`: cada parte registra ahí su demo. 192 pruebas.
+- **2026-10-24** — E6: proyecto Remotion en `video/` con las 9 escenas del guion (clips como marcadores). E7 parcial: blog 11–13.
+  V-05 (licencia de Remotion) verificada.
+- **2026-10-24** — E5: `src/el/` + `run.py el` listos con pruebas (falta la PD de B y la LGD de D). Spec v0.10: `montos.parquet`
+  (EAD y recuperaciones, solo para LGD y E[L]), columnas `pred_<modelo>` y `lgd/pred_pd_test.parquet` (LGD de todo el test).
+  Dato: al incumplir seguía pendiente en promedio el 80 % del monto en test (64 % en train).
+- **2026-10-24** — PR #1 (Parte A, 17 commits) fusionado en `main`; CI `pruebas` en verde en Linux; ruleset activo.
+  B, C y D ya pueden usar `loans_pd.parquet` y `preprocesador_pd.json` desde `main`.
 - **2026-10-23** — Daniel aprueba la partición B y las 15 variables, y pide la sensibilidad con `grade`/`int_rate` (Spec v0.8).
 - **2026-10-23** — revisor-spec: Parte A RECHAZADA en la 1.ª ronda (2 bloqueantes + 9 recomendaciones), APROBADA en la 2.ª tras
   las correcciones (Spec v0.7: `run.py eda`, limpieza de categóricas en §5.2, EDA en memoria para el notebook). Hallazgo H-02.

@@ -1,0 +1,32 @@
+# Notebook 00 (sustentación, núcleo §5.8 y Parte E). Cada demo es un comando de run.py que corre en < 2 min.
+# `requiere`: archivos que la demo necesita además de su config (entregas de otras partes).
+# `salida_temporal`: la clave de su carpeta de salida; el notebook la apunta a una carpeta temporal para no sobrescribir
+# resultados versionados. Cada parte cambia aquí su entrada cuando conecte su demo.
+demo: eda        # la que se muestra en el bloque de demostración (2 min); al final debería ser pd
+demos:
+  eda:
+    parte: A
+    subcomando: eda
+    config: configs/datos.yaml
+    salida_temporal: eda.salida
+  pd:
+    parte: B
+    subcomando: pd
+    config: configs/pd/demo.yaml
+    salida_temporal: null
+  lgd:
+    parte: D
+    subcomando: lgd
+    config: configs/lgd/demo.yaml
+    salida_temporal: null
+  scorecard:
+    parte: C
+    subcomando: scorecard
+    config: configs/scorecard/base.yaml
+    salida_temporal: null
+  el:
+    parte: E
+    subcomando: el
+    config: configs/el/base.yaml
+    requiere: [results/data/pd/pred_test.parquet, results/data/lgd/pred_pd_test.parquet]
+    salida_temporal: salida
