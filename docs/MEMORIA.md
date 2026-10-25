@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2) y Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3, 24-oct 10:26 p. m.). Spec v0.12 · `dev/andres` (PR abierto): B1 métricas ✅, B2 MLP + entrenar ✅ y B3 logística ✅; resultados reales de la logística en `results/data/pd/` y `models/pd_logistica.joblib`; Spec v0.13 (L2) y v0.14 (B3) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2) y Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3, 24-oct 10:26 p. m.). Spec v0.12 · `dev/andres` (PR #6 abierto, lo revisa Daniel): B1 métricas ✅, B2 MLP + entrenar ✅ y B3 logística ✅; resultados reales de la logística en `results/data/pd/` y `models/pd_logistica.joblib`; Spec v0.13 (L2) y v0.14 (B3) |
 | Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1–D3. Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02. Andrés (tras el PR): B4 (Optuna) y B5. Juan José: C3 ya puede usar `models/pd_logistica.joblib` (`LogisticaPD.cargar`, `predict_logit`, `coeficientes()`) |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
