@@ -43,6 +43,14 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
 - **EAD en el incumplimiento = `funded_amnt` − `total_rec_prncp`** (principal pendiente al castigo).
 - **LGD = 1 − (`recoveries` − `collection_recovery_fee`) / EAD**, recortada a [0, 1]; se reporta cuántos casos quedan fuera
   antes del recorte (`lgd_sin_recorte`) y qué se hace con EAD ≤ 0.
+- **EAD ≤ 0 o algún campo faltante [DECIDIDO, Camila, 24-oct]:** la fila se excluye de `loans_lgd.parquet` y se cuenta en el
+  resumen (`n_ead_no_positiva`, `na_por_campo`). Medido el 24-oct: 0 casos de cada uno. `calcular_lgd` marca la fila con
+  `lgd_valida`; D2 filtra con ella y **no** la escribe (el contrato de `loans_lgd.parquet` no cambia).
+- **Distribución distinta entre particiones [DECIDIDO, Camila, 24-oct]: se acepta y se documenta como limitación.** Fracción con
+  LGD = 1: train 25,9 %, val 42,9 %, test 62,7 %. Por año de originación la serie tiene forma de U (2008: 44 %, 2011: 23 %,
+  2014: 63 %); en 2013–2014 es consistente con censura (dentro de cada cosecha, más casos sin recuperación entre los castigados
+  más tarde), sin descartar composición ni cambio de canal de cobranza. Evidencia: `alucinaciones/evidencias/D1_verificacion_lgd.*`.
+  El blog lo reporta como "consistente con censura", no como causa probada.
 - Limitaciones para el blog: sin descuento del dinero en el tiempo; solo el costo de cobranza registrado; recuperaciones abiertas
   en castigos recientes (censura); intereses no incluidos; masa de probabilidad en los extremos.
 
@@ -68,7 +76,7 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
-| D1 | Población, EAD y LGD desde el CSV crudo, con la cita del diccionario por campo | E0 | `test_lgd.py` con casos hechos a mano; conteo fuera de [0, 1] | **curador-datos** + cazador | vie 23 | por repartir |
+| D1 🟨 | Población, EAD y LGD desde `montos.parquet` (v0.10), con la cita del diccionario por campo | E0 | `test_lgd.py` con casos hechos a mano; conteo fuera de [0, 1] | **curador-datos** + cazador | vie 23 | Camila |
 | D1b | Descriptivo de la LGD observada y después del preprocesamiento (§3.2b) | D1 (A6b para la parte posterior al preprocesamiento) | `descriptivo.json`; figuras citadas en el blog | analista-experimentos | sáb 24 | por repartir |
 | D2 | `loans_lgd.parquet` con el preprocesador y la partición reales | A5, D1 | Misma partición temporal; esquema = núcleo §5.1 | revisor-spec | vie 23, noche | por repartir |
 | D3 ✅ | Lineal + MLP de LGD (salida sigmoide, pérdida §3.3) | E0 (B2 cuando llegue) | Derivación de la pérdida revisada; `test_lgd_mlp.py` | verificador-matematico | vie 23 | Camila |

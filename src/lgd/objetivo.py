@@ -17,7 +17,7 @@ Tratamiento de EAD ≤ 0 — **[DECIDIDO, Camila, 24-oct]**: los créditos con E
 de LGD (no se puede dividir) y se **cuentan** en ``resumen_objetivo`` (``n_ead_no_positiva``). En ``calcular_lgd`` quedan
 con ``lgd_sin_recorte = lgd = NaN`` y ``lgd_valida = False``; ``mascara_poblacion_lgd`` los deja fuera. No se imputa.
 
-Tratamiento de un campo faltante (NA) — **[PROPUESTO], pendiente del humano**: igual que EAD ≤ 0 (excluir y contar en
+Tratamiento de un campo faltante (NA) — **[DECIDIDO, Camila, 24-oct]**: igual que EAD ≤ 0 (excluir y contar en
 ``na_por_campo``). En los datos reales medidos el 24-oct no hay ningún NA en los cuatro campos.
 
 Campos (cita literal de ``LCDataDictionary.xlsx``, hoja ``LoanStats``):
@@ -77,7 +77,7 @@ def calcular_lgd(montos: pd.DataFrame) -> pd.DataFrame:
     """Columnas ``ead``, ``lgd_sin_recorte``, ``lgd`` (recortada a [0, 1]) y ``lgd_valida`` con el índice de ``montos``.
 
     ``lgd_valida`` es ``False`` (y ``lgd``/``lgd_sin_recorte`` son NaN) si la EAD es ≤ 0 ([DECIDIDO, Camila, 24-oct]:
-    excluir y contar) o si falta algún campo de la fórmula ([PROPUESTO]). No filtra por estado: eso es
+    excluir y contar) o si falta algún campo de la fórmula ([DECIDIDO, Camila, 24-oct]: ídem). No filtra por estado: eso es
     ``es_poblacion_lgd``; la población final es ``mascara_poblacion_lgd``.
     """
     ead = calcular_ead(montos)

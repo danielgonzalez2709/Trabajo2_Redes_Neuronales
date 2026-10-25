@@ -13,3 +13,13 @@ mlp:
   paciencia: 10
   device: auto              # auto | cpu | cuda
   perdida: bce_fraccional   # bce_fraccional | mse
+# D2 — loans_lgd.parquet y preprocesador_lgd.json (python -m src.lgd.preparar). Variables y percentiles de recorte NO se
+# copian: se leen de la config de la Parte A (claves `features` y `preprocesamiento.percentiles_recorte`).
+datos:
+  config_datos: configs/datos.yaml
+  loans_pd: data/processed/loans_pd.parquet
+  montos: data/processed/montos.parquet
+  salida:
+    loans_lgd: data/processed/loans_lgd.parquet
+    preprocesador: models/preprocesador_lgd.json
+    resumen: results/data/lgd/resumen_objetivo.json
