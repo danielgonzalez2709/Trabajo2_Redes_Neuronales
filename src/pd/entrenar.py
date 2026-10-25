@@ -31,7 +31,7 @@
 
 import copy  # copia profunda del state_dict de la mejor época
 import math  # isfinite e inf para la parada temprana y la revisión de pérdidas
-from dataclasses import dataclass  # resultado inmutable del entrenamiento
+from dataclasses import dataclass  # frozen: los campos del resultado no se reasignan
 
 import numpy as np  # permutación de índices con el Generator de la corrida
 import torch  # tensores, no_grad y optimizadores
@@ -313,8 +313,8 @@ def entrenar(
         if parada.actualizar(perdida_val, epoca, red):  # ¿se agotó la paciencia?
             break  # las épocas restantes ya no mejorarían según la regla
     parada.restaurar(red)  # también al llegar a max_epocas: la última época no tiene por qué ser la mejor
-    return ResultadoEntrenamiento(  # inmutable: quien lo reciba (B4, B5, D) no puede alterar el historial
-        historial=historial,  # para las curvas de aprendizaje del blog
+    return ResultadoEntrenamiento(  # frozen: no se reasignan los campos; la lista del historial sí es mutable
+        historial=historial,  # una entrada por época: número de época, pérdida de train y de val
         mejor_epoca=parada.mejor_epoca,  # la de los pesos que quedaron en la red
         epocas_corridas=len(historial),  # puede ser < max_epocas si paró por paciencia
         mejor_perdida_val=parada.mejor_perdida,  # criterio con que se eligieron esos pesos

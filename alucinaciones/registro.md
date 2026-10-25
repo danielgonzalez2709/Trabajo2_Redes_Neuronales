@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 5 (H-01, H-03, H-04, H-05, H-06) | 2 (H-03, H-04) |
+| Código | 6 (H-01, H-03, H-04, H-05, H-06, H-07) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -180,3 +180,21 @@ falsas se registran como candidatos.
    barajado y reproducible; `evaluar_perdida` con dropout 0.5 da dos medidas iguales).
 6. **Lección aprendida:** "la prueba X cubre el fallo Y" es una afirmación verificable: se comprueba con un mutante de Y.
    Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
+
+### H-07 — "`@dataclass(frozen=True)` hace inmutable el historial de entrenamiento"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad` (3.ª revisión de B2)
+1. **Prompt (literal):** `prompts/B2.md`, sección "8. implementador — ronda 4".
+2. **Respuesta relevante de la IA:** comentarios en el commit af1456a: `src/pd/entrenar.py:316` "inmutable: quien lo reciba
+   (B4, B5, D) no puede alterar el historial"; `src/pd/mlp.py:418` "inmutable: se puede compartir sin copiar";
+   `entrenar.py:34` "resultado inmutable del entrenamiento".
+3. **Cómo sospechamos:** `frozen=True` solo prohíbe reasignar atributos (`r.historial = ...`), y `historial` es una `list`.
+4. **Evidencia:** el revisor ejecutó `r.historial.append(1)` sobre un `ResultadoEntrenamiento` y funcionó sin error: la lista
+   se puede modificar. Es el comportamiento documentado de `dataclasses` (la congelación es superficial).
+5. **Corrección:** comentarios reescritos (commit siguiente a af1456a): "frozen: no se reasignan los campos; la lista del
+   historial sí es mutable". Alternativa no aplicada: guardar `tuple(historial)`.
+6. **Lección aprendida:** "inmutable" de un contenedor congelado no se extiende a sus campos mutables; un comentario
+   también es una afirmación que se verifica.

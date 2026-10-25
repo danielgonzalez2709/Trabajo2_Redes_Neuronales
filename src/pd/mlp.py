@@ -320,8 +320,8 @@ class MLPPD:
         entrenar=entrenar,
     ):
         self._construir_red = construir_red  # inyectable: las pruebas pasan _Captura para inspeccionar la red
-        self._construir_optimizador = construir_optimizador  # inyectable: B4 podría probar otro agrupamiento
-        self._construir_perdida = construir_perdida  # inyectable: la sensibilidad de pos_weight no toca la clase
+        self._construir_optimizador = construir_optimizador  # inyectable: una prueba puede sustituir el optimizador
+        self._construir_perdida = construir_perdida  # inyectable: las pruebas pueden pasar una pérdida guionizada
         self._entrenar = entrenar  # inyectable: el bucle genérico se puede sustituir en pruebas
         self._red = None  # None = sin entrenar ni cargar
         self._cfg_mlp = None  # bloque mlp con que se entrenó (se guarda con el modelo)
@@ -378,7 +378,7 @@ class MLPPD:
             red,  # al volver, con los pesos de la mejor época
             perdida,  # BCE con logits: la red no lleva Sigmoid
             optimizador,  # ya trae la L2 en sus grupos de parámetros
-            a_tensor(X_tr, device),  # float32 y sin NaN: el preprocesador ya imputó (núcleo §5.2)
+            a_tensor(X_tr, device),  # float32; a_tensor rechaza NaN por si el preprocesador no imputó (núcleo §5.2)
             a_tensor(y_tr, device, columna=True),  # (n, 1): la forma de la salida Linear(·, 1)
             a_tensor(X_val, device),  # val solo decide la parada: nunca entrena
             a_tensor(y_val, device, columna=True),  # (n, 1), igual que en train
@@ -415,7 +415,7 @@ class MLPPD:
         """ResultadoEntrenamiento del último fit (no se guarda en disco)."""
         if self._resultado is None:  # modelo sin fit en esta sesión (p. ej. recién cargado)
             raise RuntimeError("No hay resultado de entrenamiento: el modelo no se entrenó con fit()")  # no None
-        return self._resultado  # inmutable: se puede compartir sin copiar
+        return self._resultado  # frozen: sus campos no se reasignan, pero el historial es una lista: no modificarla
 
     # --- persistencia ------------------------------------------------------------------------------------------
     def guardar(self, ruta) -> None:
