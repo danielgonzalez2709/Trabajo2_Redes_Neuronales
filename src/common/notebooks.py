@@ -31,6 +31,63 @@ def config_notebook(config: str | Path, cambios: dict | None = None, imprimir: b
     return cfg
 
 
+def _valor_set(valor) -> str:
+    return yaml.safe_dump(valor, default_flow_style=True).strip().removesuffix("...").strip()
+
+
+def _faltantes(demo: dict) -> list[str]:
+    return [r for r in [demo["config"], *demo.get("requiere", [])] if not Path(r).is_file()]
+
+
+def estado_demos(cfg: dict) -> list[dict]:
+    """Para el notebook 00: cada demo de `configs/sustentacion.yaml` y si ya se puede correr (existen su config y lo que
+    requiere de otras partes)."""
+    return [{"demo": nombre, "parte": d["parte"], "comando": _texto_comando(d, {}),
+             "estado": "listo" if not _faltantes(d) else "pendiente: falta " + ", ".join(_faltantes(d))}
+            for nombre, d in cfg["demos"].items()]
+
+
+def _argumentos(demo: dict, cambios: dict, salida_temporal: str | None) -> list[str]:
+    args = [demo["subcomando"], "--config", demo["config"]]
+    sets = dict(cambios)
+    if demo.get("salida_temporal") and salida_temporal:
+        sets.setdefault(demo["salida_temporal"], salida_temporal)
+    for clave, valor in sets.items():
+        args += ["--set", f"{clave}={_valor_set(valor)}"]
+    return args
+
+
+def _texto_comando(demo: dict, cambios: dict) -> str:
+    return "python run.py " + " ".join(_argumentos(demo, cambios, None))
+
+
+def correr_demo(cfg: dict, nombre: str, cambios: dict | None = None, timeout_s: int = 115) -> dict:
+    """Corre `python run.py <subcomando> --config ... [--set ...]` en otro proceso, como se haría en la terminal.
+
+    Si la demo declara `salida_temporal` (la clave de su carpeta de salida), escribe en una carpeta temporal: correr la
+    demo en la sustentación nunca sobrescribe los resultados versionados que usan las demás partes.
+    """
+    import subprocess
+    import sys
+    import tempfile
+
+    demo = cfg["demos"][nombre]
+    if _faltantes(demo):
+        print(f"Pendiente (Parte {demo['parte']}): todavía no existe " + ", ".join(_faltantes(demo)))
+        return {"estado": "pendiente"}
+    args = _argumentos(demo, cambios or {}, tempfile.mkdtemp(prefix=f"demo_{nombre}_"))
+    print("$ python run.py " + " ".join(args))
+    inicio = time.perf_counter()
+    proceso = subprocess.run([sys.executable, "run.py", *args], capture_output=True, text=True, encoding="utf-8",
+                             errors="replace", timeout=timeout_s, check=False)
+    segundos = time.perf_counter() - inicio
+    print(proceso.stdout[-6000:])
+    if proceso.returncode != 0:
+        print(proceso.stderr[-3000:])
+    return {"estado": "ok" if proceso.returncode == 0 else "error", "codigo": proceso.returncode,
+            "segundos": round(segundos, 1), "salida": proceso.stdout}
+
+
 def fuentes(carpeta: Path = CARPETA) -> list[Path]:
     return sorted(carpeta.glob("[0-9][0-9]_*.py"))
 
