@@ -1,6 +1,6 @@
 """Población, EAD y variable objetivo de la LGD (tarea D1; Parte D §3.1 y §3.2; núcleo §5.1).
 
-Fórmula ([PROPUESTO] en D §3.2, pendiente de verificar contra el diccionario — V-09):
+Fórmula ([PROPUESTO] en D §3.2; campos verificados contra el diccionario el 25-oct — V-09):
 
     EAD en el incumplimiento = funded_amnt − total_rec_prncp  (principal pendiente al castigo)
     LGD_sin_recorte = 1 − (recoveries − collection_recovery_fee) / EAD
@@ -20,15 +20,16 @@ con ``lgd_sin_recorte = lgd = NaN`` y ``lgd_valida = False``; ``mascara_poblacio
 Tratamiento de un campo faltante (NA) — **[DECIDIDO, Camila, 24-oct]**: igual que EAD ≤ 0 (excluir y contar en
 ``na_por_campo``). En los datos reales medidos el 24-oct no hay ningún NA en los cuatro campos.
 
-Campos (cita literal de ``LCDataDictionary.xlsx``, hoja ``LoanStats``):
-- ``loan_status``: TODO(dato-faltante): cita literal de LCDataDictionary.xlsx, hoja LoanStats, campo loan_status
-- ``funded_amnt``: TODO(dato-faltante): cita literal de LCDataDictionary.xlsx, hoja LoanStats, campo funded_amnt
-- ``total_rec_prncp``: TODO(dato-faltante): cita literal de LCDataDictionary.xlsx, hoja LoanStats, campo total_rec_prncp
-- ``recoveries``: TODO(dato-faltante): cita literal de LCDataDictionary.xlsx, hoja LoanStats, campo recoveries
-- ``collection_recovery_fee``: TODO(dato-faltante): cita literal de LCDataDictionary.xlsx, hoja LoanStats, campo
-  collection_recovery_fee
+Campos (cita literal de ``data/processed/diccionario_loanstats.csv``, copia de ``LCDataDictionary.xlsx``, hoja
+``LoanStats``):
+- ``loan_status``: "Current status of the loan"
+- ``funded_amnt``: "The total amount committed to that loan at that point in time."
+- ``total_rec_prncp``: "Principal received to date"
+- ``recoveries``: "post charge off gross recovery"
+- ``collection_recovery_fee``: "post charge off collection fee"
 
-(El diccionario no está en ``data/raw/credit-risk-dataset/`` de esta copia del repo; no se parafrasea de memoria.)
+Que ``recoveries`` sea bruta ("gross") justifica restarle ``collection_recovery_fee``. El diccionario no dice si la
+recuperación posterior al castigo se registra también en ``total_rec_prncp``: la fórmula supone que no.
 
 Supuesto de tipos: los montos llegan como numéricos (``float64`` en ``montos.parquet``, contrato núcleo §5.1). No se
 admiten columnas ``object`` con ``pd.NA``.

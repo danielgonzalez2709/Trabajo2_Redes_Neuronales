@@ -187,3 +187,17 @@ def test_estados_lgd_existen_en_montos_reales():
         pytest.skip("falta data/processed/montos.parquet")
     estados = set(pd.read_parquet(ruta, columns=["loan_status"])["loan_status"].unique())
     assert set(ESTADOS_LGD) <= estados
+
+
+def test_citas_del_docstring_coinciden_con_el_diccionario():
+    """Las definiciones citadas en ``objetivo.py`` son literales de ``diccionario_loanstats.csv`` (regla: nunca parafrasear)."""
+    import csv
+    from pathlib import Path
+
+    import src.lgd.objetivo as objetivo
+
+    ruta = Path(__file__).resolve().parents[1] / "data" / "processed" / "diccionario_loanstats.csv"
+    with ruta.open(encoding="utf-8") as f:
+        diccionario = {fila["variable"]: fila["descripcion"] for fila in csv.DictReader(f)}
+    for campo in ["loan_status", "funded_amnt", "total_rec_prncp", "recoveries", "collection_recovery_fee"]:
+        assert f'``{campo}``: "{diccionario[campo]}"' in objetivo.__doc__
