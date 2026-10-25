@@ -145,6 +145,21 @@ def validar_cfg_logistica(cfg_log: dict) -> dict:
 
 
 # %% [markdown]
+# ## Bloque `logistica` de la config completa
+#
+# `fit` y `correr_logistica` reciben la config **completa** (núcleo §5.3) y leen `cfg["logistica"]`. Una config que
+# no es diccionario o que no trae el bloque es una falla de config → `ValueError` (no `KeyError` ni `TypeError`),
+# igual que cualquier otra regla de `validar_cfg_logistica`.
+
+# %%
+def _bloque_logistica(cfg) -> dict:
+    """Copia validada de ``cfg["logistica"]``; ValueError si cfg no es dict o no trae el bloque."""
+    if not isinstance(cfg, dict) or "logistica" not in cfg:  # config sin el bloque de la logística
+        raise ValueError("La config debe ser un diccionario con el bloque 'logistica'")  # falla de config
+    return validar_cfg_logistica(cfg["logistica"])  # reglas del bloque y copia profunda
+
+
+# %% [markdown]
 # ## Estimador: objetivo de sklearn con `lbfgs` y papel de $C$
 #
 # Con $n$ filas de train, `LogisticRegression(C, solver="lbfgs")` minimiza (penalización L2 por defecto; el intercepto
@@ -338,12 +353,12 @@ def _validar_datos(X_tr, y_tr, X_val, y_val) -> int:
 # %% [markdown]
 # ## Modelo de PD (`LogisticaPD`)
 #
-# Cumple el protocolo `ModeloPD` del núcleo §5.3. La búsqueda se recibe por argumento (`buscar`, inversión de
-# dependencias): las pruebas pueden sustituirla sin tocar la clase.
+# Cumple el protocolo `ModeloPD` del núcleo §5.3. La búsqueda y el reloj se reciben por argumento (`buscar` y
+# `reloj`, inversión de dependencias): las pruebas pueden sustituirlos sin tocar la clase.
 #
 # ### `fit`
 #
-# 1. Valida la config (`validar_cfg_logistica(cfg["logistica"])`, copia sin mutar) y los datos.
+# 1. Valida la config (`_bloque_logistica(cfg)`, copia sin mutar) y los datos.
 # 2. Convierte X a `float64` (la precisión del ajuste; float32 y float64 con los mismos valores dan lo mismo).
 # 3. Llama a `buscar` con la copia validada y asigna el estado **solo al final**: si algo falla, un modelo ya
 #    entrenado sigue igual.
@@ -353,7 +368,8 @@ def _validar_datos(X_tr, y_tr, X_val, y_val) -> int:
 # semillas es 0 (Parte B §3.1). `seed` se acepta para cumplir el protocolo `ModeloPD`.
 #
 # `tiempo_total_s` es el reloj de **todo** el `fit` (los ajustes de toda la rejilla): es el presupuesto de cómputo
-# de la familia logística (núcleo §6).
+# de la familia logística (núcleo §6). El reloj se recibe por argumento (`reloj`, por defecto `time.perf_counter`)
+# para que las pruebas fijen el tiempo exacto.
 #
 # ### Predicción y parámetros
 #
@@ -370,8 +386,9 @@ def _validar_datos(X_tr, y_tr, X_val, y_val) -> int:
 class LogisticaPD:
     """Regresión logística de PD con búsqueda de C que cumple el protocolo ``ModeloPD`` del núcleo §5.3."""
 
-    def __init__(self, buscar=buscar_C):
+    def __init__(self, buscar=buscar_C, reloj=time.perf_counter):
         self._buscar = buscar  # inyectable: las pruebas pasan una búsqueda falsa
+        self._reloj = reloj  # inyectable: mide todo el fit (tiempo_total_s)
         self._estimador = None  # None = sin entrenar ni cargar
         self._busqueda = None  # filas de la búsqueda
         self._C_elegido = None  # C del estimador
@@ -393,13 +410,13 @@ class LogisticaPD:
     # --- entrenamiento -----------------------------------------------------------------------------------------
     def fit(self, X_tr, y_tr, X_val, y_val, cfg: dict, seed: int) -> "LogisticaPD":
         """Busca C con ``cfg["logistica"]`` (``seed`` se ignora: lbfgs es determinista); devuelve el modelo."""
-        inicio = time.perf_counter()  # reloj de todo el fit
-        cfg_log = validar_cfg_logistica(cfg["logistica"])  # copia validada: cfg queda intacta
+        inicio = self._reloj()  # reloj de todo el fit
+        cfg_log = _bloque_logistica(cfg)  # copia validada: cfg queda intacta
         n_entradas = _validar_datos(X_tr, y_tr, X_val, y_val)  # falla antes de tocar el estado
         X_tr64 = np.asarray(X_tr, dtype=np.float64)  # precisión del ajuste
         X_val64 = np.asarray(X_val, dtype=np.float64)  # misma precisión en val
         estimador, filas, indice = self._buscar(X_tr64, y_tr, X_val64, y_val, cfg_log)  # búsqueda de C
-        tiempo = time.perf_counter() - inicio  # presupuesto de tiempo de la familia
+        tiempo = self._reloj() - inicio  # presupuesto de tiempo de la familia
         self._estimador, self._busqueda = estimador, copy.deepcopy(filas)  # estado, solo al final
         self._C_elegido, self._n_entradas = float(filas[indice]["C"]), n_entradas  # C de la fila elegida
         self._tiempo_total_s = float(tiempo)  # segundos de todo el fit

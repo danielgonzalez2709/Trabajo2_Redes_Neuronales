@@ -29,17 +29,31 @@ Pruebas añadidas a las 28 del plan aprobado (cada una atrapa un fallo de nuestr
   un ``class_weight="balanced"`` que descalibraría la PD).
 - ``test_a09_ajustar_sin_avisos_ignora_filtros_globales``: ConvergenceWarning y FutureWarning son error aunque los
   filtros globales los ignoren (atrapa depender de los filtros de pytest).
-- ``test_a10_buscar_usa_el_reloj_inyectado``: ``buscar_C`` mide con el reloj que recibe (DIP).
+- ``test_a10_buscar_usa_el_reloj_inyectado``: ``buscar_C`` mide con el reloj que recibe (DIP): cada ``tiempo_s`` es
+  exactamente un paso del reloj falso.
 - ``test_a11_buscar_falsa_que_falla_no_altera_modelo_entrenado``: si la búsqueda falla en un re-fit, el modelo anterior
   queda intacto (la prueba 16 solo cubre la falla en la validación de datos).
 - ``test_a12_pred_test_rechaza_otra_y``: el mismo id con otra y en ``pred_test.parquet`` → ValueError.
-- ``test_a13_validacion_acepta_casos_validos``: enteros en la rejilla y rejilla desordenada se aceptan (atrapa un
-  validador más estricto que la decisión de Andrés).
-- ``test_a14_tiempo_total_cubre_la_busqueda``: ``tiempo_total_s`` del modelo es ≥ la suma de los tiempos de las filas.
-- ``test_a13_validacion_acepta_tupla_y_devuelve_lista`` (fase verde, decisión de Andrés): tupla no vacía válida y
-  copia validada como lista.
-- ``test_a15_predict_rechaza_clases_distintas`` (fase verde): un estimador con ``classes_`` ≠ [0, 1] no predice
-  (atrapa quitar la comprobación de ``classes_``, que ninguna otra prueba ve porque y siempre es 0/1).
+- ``test_a13_validacion_acepta_casos_validos``: enteros en la rejilla, rejilla desordenada, un valor y ``max_iter = 1``
+  se aceptan (atrapa un validador más estricto que la decisión de Andrés).
+- ``test_a14_validacion_acepta_tupla_y_devuelve_lista`` (decisión de Andrés): tupla no vacía válida y copia validada
+  como lista.
+- ``test_a15_predict_rechaza_clases_distintas``: un estimador con ``classes_`` ≠ [0, 1] no predice (atrapa quitar la
+  comprobación de ``classes_``, que ninguna otra prueba ve porque y siempre es 0/1).
+- ``test_a16_tiempo_total_del_fit``: ``tiempo_total_s`` es ≥ la suma de los tiempos de las filas y sale del reloj
+  inyectado en ``LogisticaPD`` (un paso exacto del reloj falso).
+- ``test_a17_cfg_sin_bloque_logistica``: cfg sin la clave ``logistica`` o que no es dict → ValueError (no KeyError ni
+  TypeError) en ``fit`` y en ``correr_logistica``, sin tocar los datos.
+- ``test_a18_correr_logistica_valida_la_semilla``: seed = −1 o ``"0"`` → ValueError antes de entrenar y sin archivos.
+- ``test_a19_pred_test_rechaza_ids_repetidos``: un id repetido haría ambigua la alineación por id → ValueError.
+- ``test_a20_resumir_rechaza_metrica_sin_sentido``: una métrica sin sentido declarado → ValueError (no un KeyError).
+- ``test_a21_resumir_sin_corridas``: ``resumir([])`` → ValueError (no un resumen vacío en silencio).
+- ``test_a22_tiempo_total_tras_cargar``: un modelo cargado no tiene ``tiempo_total_s`` (no se guarda) → RuntimeError.
+- ``test_a23_cargar_rechaza_contenido_no_dict``: un joblib que no es diccionario → ValueError.
+- ``test_a24_elegir_indice_sin_filas``: ``elegir_indice([])`` → ValueError (no el ValueError genérico de ``min``).
+- ``test_a25_medir_usa_las_metricas_inyectadas``: ``medir`` pasa ``metricas`` a ``evaluar`` (DIP, para B5).
+- ``test_a26_escribir_semilla_valida_la_semilla``: ``escribir_semilla`` (pública, la usará B5) rechaza seed = −1 o
+  ``"0"`` con ValueError y sin escribir (``correr_logistica`` ya valida antes, así que solo esta prueba lo ve).
 """
 
 import copy  # copias profundas de la config de prueba
@@ -72,6 +86,7 @@ from src.pd.experimento import (  # experimento de la PD (resultados del núcleo
     actualizar_summary,  # reemplaza la entrada de un modelo en summary.json
     cargar_matrices,  # parquet + preprocesador guardado → matrices por split
     correr_logistica,  # experimento completo de la logística
+    escribir_semilla,  # archivo de una corrida
     evaluar,  # métricas de un vector de PD
     huella_archivo,  # SHA-256 de un archivo
     huella_particion,  # SHA-256 de la partición
@@ -281,19 +296,24 @@ def _parquet_sintetico(ruta):
     return df  # DataFrame escrito
 
 
-@pytest.fixture(scope="module")
-def experimento(tmp_path_factory):
-    """Corre correr_logistica una vez sobre el parquet sintético; devuelve rutas, datos y resultado."""
-    base = tmp_path_factory.mktemp("exp_logistica")  # carpeta del escenario
+def _escenario(base):
+    """Parquet sintético + preprocesador ajustado con su train en ``base``; devuelve (rutas, df, cfg)."""
     df = _parquet_sintetico(base / "loans_pd.parquet")  # parquet sintético
     pre = Preprocesador().fit(df[df["split"] == "train"], FEATURES_EXP)  # preprocesador ajustado SOLO con train
     save_json(base / "preprocesador_pd.json", pre.to_dict())  # guardado como lo deja A
     rutas = RutasPD(base / "loans_pd.parquet", base / "preprocesador_pd.json", base / "resultados",
                     base / "models")  # rutas hacia la carpeta temporal
-    cfg = _cfg(rejilla_C=list(REJILLA_CORTA))  # rejilla corta: rápido
+    return rutas, df, _cfg(rejilla_C=list(REJILLA_CORTA))  # rejilla corta: rápido
+
+
+@pytest.fixture(scope="module")
+def experimento(tmp_path_factory):
+    """Corre correr_logistica una vez sobre el parquet sintético; devuelve rutas, datos y resultado."""
+    rutas, df, cfg = _escenario(tmp_path_factory.mktemp("exp_logistica"))  # escenario sintético
     resultado = correr_logistica(cfg, rutas=rutas)  # experimento completo
+    n_columnas = len(Preprocesador.from_dict(load_json(rutas.preprocesador)).nombres_salida())  # d
     return {"df": df, "rutas": rutas, "cfg": cfg, "resultado": resultado,
-            "n_columnas": len(pre.nombres_salida())}  # todo lo que inspeccionan las pruebas
+            "n_columnas": n_columnas}  # todo lo que inspeccionan las pruebas
 
 
 def _sha256_particion(df):
@@ -332,7 +352,6 @@ def test_01_validacion_devuelve_copia_profunda():
     cfg_log = _cfg()["logistica"]  # bloque válido
     original = copy.deepcopy(cfg_log)  # foto para comparar
     validado = validar_cfg_logistica(cfg_log)  # copia validada
-    assert CLAVES_LOGISTICA == ("rejilla_C", "max_iter", "tol")  # claves declaradas
     assert validado == original  # mismo contenido
     assert validado is not cfg_log  # otro diccionario
     assert validado["rejilla_C"] is not cfg_log["rejilla_C"]  # otra lista (copia profunda)
@@ -1138,15 +1157,13 @@ def test_a09_ajustar_sin_avisos_ignora_filtros_globales(categoria, datos):
 
 
 def test_a10_buscar_usa_el_reloj_inyectado(datos):
-    """buscar_C mide con el reloj que recibe (DIP): los tiempos son múltiplos positivos del paso del reloj falso."""
+    """buscar_C mide con el reloj que recibe (DIP): cada tiempo_s es exactamente un paso del reloj falso."""
     X_tr, y_tr, X_val, y_val = datos  # desempaca
     contador = itertools.count()  # llamadas al reloj
     reloj = lambda: next(contador) * PASO_RELOJ  # noqa: E731 — reloj falso que avanza PASO_RELOJ por llamada
     _, filas, _ = buscar_C(X_tr.astype(np.float64), y_tr, X_val.astype(np.float64), y_val,
                            _cfg(rejilla_C=list(REJILLA_CORTA))["logistica"], reloj=reloj)  # búsqueda
-    for f in filas:  # cada fila
-        pasos = f["tiempo_s"] / PASO_RELOJ  # tiempo en pasos del reloj falso
-        assert pasos >= 1 and pasos == int(pasos)  # viene del reloj inyectado, no de perf_counter
+    assert all(f["tiempo_s"] == PASO_RELOJ for f in filas)  # dos lecturas consecutivas por ajuste: un paso exacto
 
 
 def test_a11_buscar_falsa_que_falla_no_altera_modelo_entrenado(datos):
@@ -1184,7 +1201,7 @@ def test_a13_validacion_acepta_casos_validos(cambio):
     assert validar_cfg_logistica(cfg_log) == cfg_log  # pasa sin cambios
 
 
-def test_a13_validacion_acepta_tupla_y_devuelve_lista():
+def test_a14_validacion_acepta_tupla_y_devuelve_lista():
     """Una tupla no vacía es una rejilla válida (como mlp.capas); la copia validada la devuelve como lista."""
     tupla = tuple(REJILLA_CORTA)  # rejilla como tupla
     validado = validar_cfg_logistica(_cfg(rejilla_C=tupla)["logistica"])  # valida
@@ -1202,6 +1219,101 @@ def test_a15_predict_rechaza_clases_distintas(datos, tmp_path):
         LogisticaPD.cargar(tmp_path / "clases.joblib").predict_proba(X_val)  # cargar o predecir lo rechazan
 
 
-def test_a14_tiempo_total_cubre_la_busqueda(modelo):
-    """tiempo_total_s (reloj de todo el fit) es ≥ la suma de los tiempos de cada C y > 0."""
-    assert modelo.tiempo_total_s >= sum(f["tiempo_s"] for f in modelo.busqueda) > 0  # presupuesto de tiempo
+def test_a16_tiempo_total_del_fit(modelo, datos):
+    """tiempo_total_s es ≥ la suma de los tiempos de cada C y sale del reloj inyectado en LogisticaPD."""
+    assert modelo.tiempo_total_s >= sum(f["tiempo_s"] for f in modelo.busqueda) > 0  # presupuesto de tiempo real
+    contador = itertools.count()  # llamadas al reloj del fit
+    reloj = lambda: next(contador) * PASO_RELOJ  # noqa: E731 — reloj falso que avanza PASO_RELOJ por llamada
+    m = _ajustar(datos, _cfg(rejilla_C=list(REJILLA_CORTA)), reloj=reloj)  # fit con el reloj falso
+    assert m.tiempo_total_s == PASO_RELOJ  # inicio y fin del fit: un paso exacto
+
+
+def test_a17_cfg_sin_bloque_logistica(datos, tmp_path):
+    """cfg sin "logistica" o que no es dict → ValueError en fit y en correr_logistica (antes de leer datos)."""
+    X_tr, y_tr, X_val, y_val = datos  # desempaca
+    rutas = RutasPD(tmp_path / "no_existe.parquet", tmp_path / "no_existe.json", tmp_path / "res",
+                    tmp_path / "mod")  # rutas inexistentes: si se leyeran, el error sería otro
+    for cfg in ({"mlp": {}}, [CFG_PRUEBA["logistica"]], None):  # sin bloque, lista, None
+        with pytest.raises(ValueError):  # fit
+            LogisticaPD().fit(X_tr, y_tr, X_val, y_val, cfg, SEMILLA_MODELO)  # config inválida
+        with pytest.raises(ValueError):  # experimento
+            correr_logistica(cfg, rutas=rutas)  # config inválida
+    assert not any(tmp_path.iterdir())  # no se creó nada
+
+
+class _ModeloQueNoDebeUsarse:
+    """``modelo_cls`` falso: registra si alguien lo instancia (correr_logistica no debe llegar a entrenar)."""
+
+    instancias = 0  # contador de instancias
+
+    def __init__(self):
+        type(self).instancias += 1  # cuenta la instancia
+        raise AssertionError("correr_logistica entrenó con una semilla inválida")  # nunca debe ocurrir
+
+
+@pytest.mark.parametrize("seed", [-1, "0"], ids=["negativa", "texto"])  # semillas inválidas
+def test_a18_correr_logistica_valida_la_semilla(seed, tmp_path):
+    """seed = −1 o "0" → ValueError antes de cargar datos o entrenar, sin crear ningún archivo."""
+    rutas, _, cfg = _escenario(tmp_path)  # parquet y preprocesador sintéticos
+    _ModeloQueNoDebeUsarse.instancias = 0  # reinicia el contador
+    with pytest.raises(ValueError):  # semilla inválida
+        correr_logistica(cfg, rutas=rutas, modelo_cls=_ModeloQueNoDebeUsarse, seed=seed)  # experimento
+    assert _ModeloQueNoDebeUsarse.instancias == 0  # no llegó a entrenar
+    assert not rutas.resultados.exists() and not rutas.modelos.exists()  # ningún archivo de salida
+
+
+def test_a19_pred_test_rechaza_ids_repetidos(tmp_path):
+    """Un id repetido → ValueError, sin crear el archivo."""
+    ruta = tmp_path / "pred_test.parquet"  # archivo de prueba
+    with pytest.raises(ValueError):  # ids repetidos
+        actualizar_pred_test(ruta, ["a", "a", "b", "c"], Y_PRED, "pred_logistica", P_LOG)  # "a" dos veces
+    assert not ruta.exists()  # no se escribió nada
+
+
+def test_a20_resumir_rechaza_metrica_sin_sentido():
+    """Una métrica cuya base no está en SENTIDO → ValueError."""
+    with pytest.raises(ValueError):  # sin sentido declarado
+        resumir([{"exactitud_test": 0.9}])  # "exactitud" no está en SENTIDO
+
+
+def test_a21_resumir_sin_corridas():
+    """resumir([]) → ValueError."""
+    with pytest.raises(ValueError):  # sin corridas
+        resumir([])  # lista vacía
+
+
+def test_a22_tiempo_total_tras_cargar(modelo, tmp_path):
+    """Un modelo cargado no tiene tiempo_total_s (no se guarda en disco) → RuntimeError."""
+    modelo.guardar(tmp_path / "m.joblib")  # guarda
+    with pytest.raises(RuntimeError):  # sin fit en esta sesión
+        LogisticaPD.cargar(tmp_path / "m.joblib").tiempo_total_s  # noqa: B018 — se accede para provocar el error
+
+
+def test_a23_cargar_rechaza_contenido_no_dict(datos, tmp_path):
+    """Un joblib cuyo contenido no es un diccionario → ValueError."""
+    joblib.dump(_resultado_falso(datos)[0], tmp_path / "estimador.joblib")  # el estimador solo, sin diccionario
+    with pytest.raises(ValueError):  # contenido inesperado
+        LogisticaPD.cargar(tmp_path / "estimador.joblib")  # carga
+
+
+def test_a24_elegir_indice_sin_filas():
+    """elegir_indice([]) → ValueError con mensaje propio."""
+    with pytest.raises(ValueError, match="filas"):  # mensaje de nuestra guarda, no el de min()
+        elegir_indice([])  # sin filas
+
+
+def test_a25_medir_usa_las_metricas_inyectadas(modelo, datos):
+    """medir pasa ``metricas`` a evaluar: con una métrica falsa, solo aparece ella por split."""
+    X_tr, y_tr, X_val, y_val = datos  # desempaca
+    m_datos = {"val": (X_val, y_val, None), "test": (X_tr, y_tr, None)}  # ids no se usan
+    r = medir(modelo, m_datos, metricas={"uno": lambda y, p: 1.0})  # métrica falsa
+    assert r == {"uno_val": 1.0, "uno_test": 1.0}  # solo la inyectada
+
+
+@pytest.mark.parametrize("seed", [-1, "0"], ids=["negativa", "texto"])  # semillas inválidas
+def test_a26_escribir_semilla_valida_la_semilla(seed, tmp_path):
+    """escribir_semilla con seed = −1 o "0" → ValueError, sin crear el archivo."""
+    rutas = RutasPD(tmp_path / "p.parquet", tmp_path / "pre.json", tmp_path / "res", tmp_path / "mod")  # salida temporal
+    with pytest.raises(ValueError):  # semilla inválida
+        escribir_semilla(rutas, "logistica", seed, {"modelo": "logistica"})  # registro mínimo
+    assert not rutas.resultados.exists()  # no se escribió nada

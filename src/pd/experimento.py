@@ -36,7 +36,7 @@ from src.common.metricas import auc, brier, gini, ks  # métricas comunes (B1)
 from src.common.preprocesamiento import Preprocesador  # preprocesador común (núcleo §5.2)
 from src.common.results import load_json, save_json  # JSON sin NaN y escritura atómica (núcleo §5.4)
 from src.common.seeds import validar_entero  # semilla entera ≥ 0
-from src.pd.logistica import LogisticaPD, esta_en_borde, logloss, validar_cfg_logistica  # modelo de referencia
+from src.pd.logistica import LogisticaPD, _bloque_logistica, esta_en_borde, logloss  # modelo de referencia
 
 __all__ = [  # interfaz pública acordada (tarea B3); lo demás es interno
     "RutasPD", "RUTAS_PD", "huella_particion", "huella_archivo", "cargar_matrices",  # datos y evidencia
@@ -118,15 +118,16 @@ def huella_archivo(ruta) -> str:
 # %% [markdown]
 # ## Evidencia de comparación justa
 #
-# `{sha256_particion, sha256_preprocesador}`: va en la semilla, en la búsqueda y en la entrada del summary.
+# `{sha256_particion, sha256_preprocesador}`: va en la semilla, en la búsqueda y en la entrada del summary. La huella
+# de la partición se calcula sobre el **mismo** DataFrame del que salen las matrices (sin releer el parquet), así
+# que describe exactamente los datos con que se entrenó.
 
 # %%
-def _evidencia(rutas: RutasPD) -> dict:
-    """Huellas de la partición y del preprocesador."""
-    particion = pd.read_parquet(rutas.parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # solo id y split
+def _evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
+    """Huellas de la partición de ``df`` y del archivo del preprocesador."""
     return {  # evidencia del núcleo §6
-        "sha256_particion": huella_particion(particion[COLUMNA_ID], particion[COLUMNA_SPLIT]),  # orden del parquet
-        "sha256_preprocesador": huella_archivo(rutas.preprocesador),  # bytes del JSON
+        "sha256_particion": huella_particion(df[COLUMNA_ID], df[COLUMNA_SPLIT]),  # orden del parquet
+        "sha256_preprocesador": huella_archivo(ruta_preprocesador),  # bytes del JSON
     }
 
 
@@ -135,21 +136,34 @@ def _evidencia(rutas: RutasPD) -> dict:
 #
 # $X_s = \text{pre.transform}(\text{filas de } s)$ con el preprocesador **guardado** (`from_dict`, sin `fit`): fue
 # ajustado solo con train por A. $y_s$ = `target` y los ids en el orden del parquet.
+#
+# `_cargar_datos` lee el parquet **una vez** y devuelve el DataFrame junto con las matrices: el experimento usa el
+# DataFrame para la huella de la partición. `cargar_matrices` conserva su firma pública y solo devuelve las matrices.
 
 # %%
-def cargar_matrices(rutas: RutasPD) -> dict:
-    """{split: (X float32, y, ids)} para train, val y test con el preprocesador guardado."""
-    df = pd.read_parquet(rutas.parquet)  # datos de A
-    pre = Preprocesador.from_dict(load_json(rutas.preprocesador))  # sin reajustar
+def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
+    """{split: (X float32, y, ids)} de ``df`` transformado con ``pre`` (sin fit)."""
     matrices = {}  # resultado por split
     for split in SPLITS:  # train, val, test
         parte = df[df[COLUMNA_SPLIT] == split]  # filas del split, en el orden del parquet
         matrices[split] = (  # tripleta del split
             pre.transform(parte),  # X float32 (núcleo §5.2)
             parte[COLUMNA_OBJETIVO].to_numpy(dtype=np.int64),  # y 0/1
-            parte[COLUMNA_ID].to_numpy(dtype=object),  # ids como texto
+            parte[COLUMNA_ID].to_numpy(dtype=object),  # ids tal cual (str en el parquet de A)
         )
     return matrices  # tres splits
+
+
+def _cargar_datos(rutas: RutasPD) -> tuple[pd.DataFrame, dict]:
+    """(DataFrame del parquet, matrices por split) con una sola lectura del parquet."""
+    df = pd.read_parquet(rutas.parquet)  # datos de A
+    pre = Preprocesador.from_dict(load_json(rutas.preprocesador))  # sin reajustar
+    return df, _matrices(df, pre)  # el mismo df sirve para la huella
+
+
+def cargar_matrices(rutas: RutasPD) -> dict:
+    """{split: (X float32, y, ids)} para train, val y test con el preprocesador guardado."""
+    return _cargar_datos(rutas)[1]  # solo las matrices
 
 
 # %% [markdown]
@@ -172,15 +186,16 @@ def evaluar(y, p, metricas=METRICAS) -> dict:
 # %% [markdown]
 # ## Métricas por split
 #
-# `{f"{métrica}_{split}"}` con las PD del modelo en cada split medido (por defecto val y test).
+# `{f"{métrica}_{split}"}` con las PD del modelo en cada split medido (por defecto val y test) y las métricas de
+# `metricas` (por defecto `METRICAS`; B5 puede inyectar otras).
 
 # %%
-def medir(modelo, datos: dict, splits=SPLITS_MEDIDOS) -> dict:
+def medir(modelo, datos: dict, splits=SPLITS_MEDIDOS, metricas=METRICAS) -> dict:
     """{f"{m}_{split}": valor} con ``modelo.predict_proba`` en cada split."""
     resultado = {}  # métricas con nombre
     for split in splits:  # val y test
         X, y, _ = datos[split]  # matrices del split
-        for nombre, valor in evaluar(y, modelo.predict_proba(X)).items():  # métricas del split
+        for nombre, valor in evaluar(y, modelo.predict_proba(X), metricas).items():  # métricas del split
             resultado[f"{nombre}_{split}"] = valor  # p. ej. auc_test
     return resultado  # 5 métricas × splits
 
@@ -305,12 +320,22 @@ def actualizar_pred_test(ruta, ids, y, columna: str, pred) -> None:
 # %% [markdown]
 # ## Archivo de una semilla
 #
-# `{resultados}/semillas/{modelo}_seed{seed}.json` (núcleo §5.4).
+# `{resultados}/semillas/{modelo}_seed{seed}.json` (núcleo §5.4). La semilla es un entero $\ge 0$ (regla única de
+# `src/common/seeds.py`); `_semilla_valida` convierte su `TypeError` en `ValueError` para que el experimento falle
+# siempre con el mismo tipo de error ante una semilla inválida.
 
 # %%
+def _semilla_valida(seed) -> int:
+    """``seeds.validar_entero(seed, minimo=0)`` con su TypeError convertido en ValueError."""
+    try:  # regla única de enteros del proyecto
+        return validar_entero(seed, "seed", minimo=0)  # ValueError si es < 0
+    except TypeError as exc:  # texto, flotante, bool…
+        raise ValueError(str(exc)) from exc  # mismo mensaje, ValueError
+
+
 def escribir_semilla(rutas: RutasPD, modelo: str, seed: int, registro: dict) -> Path:
     """Escribe el registro de una corrida y devuelve su ruta."""
-    seed = validar_entero(seed, "seed")  # entero ≥ 0
+    seed = _semilla_valida(seed)  # entero ≥ 0 (ValueError si no)
     ruta = rutas.resultados / CARPETA_SEMILLAS / f"{modelo}_seed{seed}.json"  # nombre del núcleo §5.4
     return save_json(ruta, registro)  # escritura atómica, sin NaN
 
@@ -331,7 +356,7 @@ def _fila_elegida(filas: list[dict], C: float) -> dict:
     return next(f for f in filas if f["C"] == C)  # la rejilla no tiene duplicados
 
 
-def _registro_semilla(modelo, cfg_log: dict, metricas: dict, seed: int, evidencia: dict) -> dict:
+def _semilla_logistica(modelo, cfg_log: dict, metricas: dict, seed: int, evidencia: dict) -> dict:
     """Registro de la corrida de la logística (núcleo §5.4 + evidencia)."""
     fila = _fila_elegida(modelo.busqueda, modelo.C_elegido)  # ajuste del C elegido
     return {  # claves del núcleo §5.4
@@ -347,7 +372,7 @@ def _registro_semilla(modelo, cfg_log: dict, metricas: dict, seed: int, evidenci
     }
 
 
-def _registro_busqueda(modelo, cfg_log: dict, evidencia: dict) -> dict:
+def _busqueda_logistica(modelo, cfg_log: dict, evidencia: dict) -> dict:
     """Contenido de busqueda_logistica.json."""
     return {  # tabla de la búsqueda
         "criterio": CRITERIO_LOGISTICA,  # log-loss de val
@@ -359,7 +384,7 @@ def _registro_busqueda(modelo, cfg_log: dict, evidencia: dict) -> dict:
     }
 
 
-def _entrada_summary(modelo, cfg_log: dict, metricas: dict, evidencia: dict) -> dict:
+def _summary_logistica(modelo, cfg_log: dict, metricas: dict, evidencia: dict) -> dict:
     """Entrada "logistica" de summary.json."""
     return {  # presupuesto y métricas
         "n_parametros": modelo.n_parametros(),  # complejidad (núcleo §6)
@@ -371,28 +396,45 @@ def _entrada_summary(modelo, cfg_log: dict, metricas: dict, evidencia: dict) -> 
 
 
 # %% [markdown]
+# ## Escrituras comunes a todos los modelos de PD
+#
+# Semilla (`semillas/{modelo}_seed{seed}.json`), entrada del summary (conservando las ajenas) y columna
+# `pred_{modelo}` de `pred_test.parquet` (alineada por id). B5 la reutiliza para el MLP; los archivos propios de la
+# logística (`busqueda_logistica.json` y el joblib) se escriben aparte.
+
+# %%
+def _escribir_resultados(rutas: RutasPD, modelo: str, seed: int, registro: dict, entrada: dict, ids_te, y_te,
+                         p_te) -> None:
+    """Escribe la semilla, la entrada del summary y la columna de pred_test del modelo."""
+    escribir_semilla(rutas, modelo, seed, registro)  # semillas/{modelo}_seed{seed}.json
+    actualizar_summary(rutas.resultados / ARCHIVO_SUMMARY, modelo, entrada)  # conserva las entradas ajenas
+    actualizar_pred_test(rutas.resultados / ARCHIVO_PRED_TEST, ids_te, y_te, PREFIJO_PRED + modelo, p_te)  # por id
+
+
+# %% [markdown]
 # ## Experimento de la logística
 #
-# Carga las matrices, entrena `LogisticaPD` (busca $C$ con val), mide val y test una vez y escribe los 5 archivos:
-# semilla, búsqueda, summary, `pred_test.parquet` y `pd_logistica.joblib`. Devuelve la entrada del summary.
+# Valida la semilla y la config **antes** de leer datos o entrenar; carga las matrices, entrena `LogisticaPD`
+# (busca $C$ con val), mide val y test una vez y escribe los 5 archivos: semilla, búsqueda, summary,
+# `pred_test.parquet` y `pd_logistica.joblib`. Devuelve la entrada del summary.
 
 # %%
 def correr_logistica(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=LogisticaPD, seed: int = 0) -> dict:
     """Entrena y evalúa la logística, escribe sus resultados y devuelve su entrada de summary.json."""
-    cfg_log = validar_cfg_logistica(cfg["logistica"])  # bloque validado (va a la semilla)
-    datos = cargar_matrices(rutas)  # matrices por split
-    evidencia = _evidencia(rutas)  # huellas de la partición y del preprocesador
+    seed = _semilla_valida(seed)  # primero: una semilla inválida no debe costar un entrenamiento
+    cfg_log = _bloque_logistica(cfg)  # bloque validado (va a la semilla); ValueError si falta
+    df, datos = _cargar_datos(rutas)  # una sola lectura del parquet
+    evidencia = _evidencia(df, rutas.preprocesador)  # huellas del mismo df y del preprocesador
     X_tr, y_tr, _ = datos["train"]  # entrenamiento
     X_val, y_val, _ = datos["val"]  # validación (elige C)
+    X_te, y_te, ids_te = datos["test"]  # prueba (se mide una vez)
     modelo = modelo_cls().fit(X_tr, y_tr, X_val, y_val, cfg, seed)  # búsqueda + modelo final
     metricas = medir(modelo, datos)  # val y test
-    escribir_semilla(rutas, MODELO_LOGISTICA, seed, _registro_semilla(modelo, cfg_log, metricas, seed, evidencia))
-    save_json(rutas.resultados / ARCHIVO_BUSQUEDA_LOGISTICA, _registro_busqueda(modelo, cfg_log, evidencia))  # tabla
-    entrada = _entrada_summary(modelo, cfg_log, metricas, evidencia)  # entrada del summary
-    actualizar_summary(rutas.resultados / ARCHIVO_SUMMARY, MODELO_LOGISTICA, entrada)  # conserva las ajenas
-    X_te, y_te, ids_te = datos["test"]  # prueba
-    actualizar_pred_test(rutas.resultados / ARCHIVO_PRED_TEST, ids_te, y_te, PREFIJO_PRED + MODELO_LOGISTICA,
-                         modelo.predict_proba(X_te))  # PD de test por id
+    registro = _semilla_logistica(modelo, cfg_log, metricas, seed, evidencia)  # archivo de la semilla
+    entrada = _summary_logistica(modelo, cfg_log, metricas, evidencia)  # entrada del summary
+    _escribir_resultados(rutas, MODELO_LOGISTICA, seed, registro, entrada, ids_te, y_te,
+                         modelo.predict_proba(X_te))  # escrituras comunes (B5 las reutiliza)
+    save_json(rutas.resultados / ARCHIVO_BUSQUEDA_LOGISTICA, _busqueda_logistica(modelo, cfg_log, evidencia))  # tabla
     rutas.modelos.mkdir(parents=True, exist_ok=True)  # carpeta de modelos
     modelo.guardar(rutas.modelos / ARCHIVO_MODELO_LOGISTICA)  # joblib
     return entrada  # entrada "logistica" del summary
