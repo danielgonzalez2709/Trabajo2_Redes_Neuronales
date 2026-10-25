@@ -1,0 +1,51 @@
+D7 · Verificación de papke1996 (blog 08, Parte D)
+Fecha (UTC): 2026-10-25T17:32:02Z
+Nota: la entrada papke1996 ya existía en blog/references.bib (commit cb4dc14, A8). Esta es una reverificación independiente; no se modificó el .bib.
+
+== 1. Búsqueda Crossref: query.bibliographic ==
+  10.3386/t0147 | Econometric Methods for Fractional Response Variables with an Application to 401(k) Plan Participation Rates |  | {'date-parts': [[1993, 11]]}
+  10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1 | Econometric methods for fractional response variables with an application to 401(k) plan participation rates | Journal of Applied Econometrics | {'date-parts': [[1996, 11]]}
+  10.1016/j.jeconom.2008.05.009 | Panel data methods for fractional response variables with an application to test pass rates | Journal of Econometrics | {'date-parts': [[2008, 7]]}
+
+== 2. Registro Crossref del DOI: 10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1 ==
+  DOI : 10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1
+  title : ['Econometric methods for fractional response variables with an application to 401(k) plan participation rates']
+  container-title : ['Journal of Applied Econometrics']
+  volume : 11
+  issue : 6
+  page : 619-632
+  issued : {'date-parts': [[1996, 11]]}
+  published-print : {'date-parts': [[1996, 11]]}
+  publisher : Wiley
+  ISSN : ['0883-7252', '1099-1255']
+  URL : https://doi.org/10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1
+  author : [('Papke', 'Leslie E.'), ('Wooldridge', 'Jeffrey M.')]
+
+== 3. BibTeX oficial (curl -LH "Accept: application/x-bibtex" https://doi.org/<doi>) ==
+ @article{Papke_1996, title={Econometric methods for fractional response variables with an application to 401(k) plan participation rates}, volume={11}, ISSN={1099-1255}, url={http://dx.doi.org/10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}, DOI={10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1}, number={6}, journal={Journal of Applied Econometrics}, publisher={Wiley}, author={Papke, Leslie E. and Wooldridge, Jeffrey M.}, year={1996}, month=Nov, pages={619–632} }
+
+
+== 4. Entrada actual en blog/references.bib ==
+@article{papke1996,
+  title     = {Econometric methods for fractional response variables with an application to 401(k) plan participation rates},
+  author    = {Papke, Leslie E. and Wooldridge, Jeffrey M.},
+  journal   = {Journal of Applied Econometrics},
+  volume    = {11},
+  number    = {6},
+  pages     = {619--632},
+  year      = {1996},
+  publisher = {Wiley},
+  doi       = {10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}
+}
+
+== 5. Contraste (BibTeX oficial + Crossref vs. references.bib vs. lo pedido) ==
+  autores  : Papke, Leslie E.; Wooldridge, Jeffrey M.  -> coincide
+  año      : 1996 (issued y published-print 1996-11)   -> coincide
+  título   : idéntico                                   -> coincide
+  revista  : Journal of Applied Econometrics            -> coincide
+  volumen  : 11 · número: 6 · páginas: 619-632          -> coincide (en el .bib, "619--632" = guion de rango de LaTeX)
+  DOI      : coincide (los DOI no distinguen mayúsculas; el .bib usa la forma en mayúsculas de la URL oficial)
+  Diferencias de formato frente al BibTeX oficial: clave (Papke_1996 -> papke1996); se omiten ISSN, url y month,
+  igual que en las demás entradas del .bib. Sin discrepancias de contenido.
+  Versión previa: NBER Technical Working Paper 147, DOI 10.3386/t0147 (Crossref, 1993-11); no se usa como entrada.
+Veredicto: CORRECTA.

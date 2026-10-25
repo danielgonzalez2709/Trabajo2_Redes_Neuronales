@@ -77,6 +77,10 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
 
 ### 3.4 Evaluación
 MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. observada; error por banda de LGD.
+- **Bandas de LGD para el error por banda [DECIDIDO, Camila, 25-oct]:** `[0, 0,5]`, `(0,5, 0,8]`, `(0,8, 0,99]`, `(0,99, 1]`
+  (`BANDAS_LGD` en `src/viz/figs_lgd.py`). Son de presentación, no del modelo; la última aísla la masa en LGD = 1.
+- **Referencias constantes [DECIDIDO, Camila, 25-oct]:** media y mediana de la LGD de train, con MAE y RMSE en val y test, en
+  `summary.json` → `referencias` (no son modelos entrenados; no cambian el contrato de `modelos`).
 
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
@@ -89,7 +93,7 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 | D5 ✅ | Demo | D3 | **< 2 min en CPU** | auditor-reproducibilidad | sáb 24 | Camila |
 | D6 ✅ | Figuras: distribuciones, Q-Q, error por banda | D4 | `run.py figures` las regenera | revisor-spec | sáb 24 | Camila |
 | D8 ✅ | Notebook `04_lgd` (núcleo §5.8) | D4, D6 | Corre en < 2 min; cero lógica propia | revisor-spec | dom 25 | Camila |
-| D7 | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | por repartir |
+| D7 🟨 | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Camila |
 
 ## 5. Pruebas de la parte
 `test_lgd.py` (fórmula, recorte, EAD ≤ 0), `test_lgd_mlp.py` (salida en [0, 1], pérdida con objetivo fraccional),
