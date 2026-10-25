@@ -36,6 +36,10 @@ Pruebas añadidas a las 28 del plan aprobado (cada una atrapa un fallo de nuestr
 - ``test_a13_validacion_acepta_casos_validos``: enteros en la rejilla y rejilla desordenada se aceptan (atrapa un
   validador más estricto que la decisión de Andrés).
 - ``test_a14_tiempo_total_cubre_la_busqueda``: ``tiempo_total_s`` del modelo es ≥ la suma de los tiempos de las filas.
+- ``test_a13_validacion_acepta_tupla_y_devuelve_lista`` (fase verde, decisión de Andrés): tupla no vacía válida y
+  copia validada como lista.
+- ``test_a15_predict_rechaza_clases_distintas`` (fase verde): un estimador con ``classes_`` ≠ [0, 1] no predice
+  (atrapa quitar la comprobación de ``classes_``, que ninguna otra prueba ve porque y siempre es 0/1).
 """
 
 import copy  # copias profundas de la config de prueba
@@ -522,13 +526,19 @@ def test_11_ajuste_normal_sin_avisos_de_deprecacion(datos):
 
 
 def test_11_fit_no_altera_los_filtros_globales(datos):
-    """``warnings.filters`` es igual antes y después de un fit (bueno o fallido)."""
-    antes = list(warnings.filters)  # filtros antes
-    _ajustar(datos)  # fit normal
-    assert list(warnings.filters) == antes  # sin cambios
-    with pytest.raises(ConvergenceWarning):  # fit que falla por convergencia
-        _ajustar(datos, _cfg(max_iter=MAX_ITER_CORTO))  # una sola iteración
-    assert list(warnings.filters) == antes  # tampoco cambian tras la falla
+    """``warnings.filters`` es igual antes y después de un fit (bueno o fallido).
+
+    Se parte de un entorno que ignora todo: con los filtros "error" del ``pytestmark`` ya instalados, un
+    ``simplefilter("error", ...)`` global (sin ``catch_warnings`` local) no cambiaría la lista y la prueba no lo vería.
+    """
+    with warnings.catch_warnings():  # filtros temporales de la prueba
+        warnings.simplefilter("ignore")  # entorno distinto de los filtros que pone ajustar_sin_avisos
+        antes = list(warnings.filters)  # filtros antes
+        _ajustar(datos)  # fit normal
+        assert list(warnings.filters) == antes  # sin cambios
+        with pytest.raises(ConvergenceWarning):  # fit que falla por convergencia (error aunque el entorno ignore)
+            _ajustar(datos, _cfg(max_iter=MAX_ITER_CORTO))  # una sola iteración
+        assert list(warnings.filters) == antes  # tampoco cambian tras la falla
 
 
 # --------------------------------------------------------------------------------------------
@@ -549,6 +559,7 @@ def test_12_columna_en_ceros(modelo):
     {"rejilla_C": [float("nan")]},  # NaN
     {"rejilla_C": [float("inf")]},  # inf
     {"rejilla_C": 0.01},  # escalar en lugar de lista
+    {"rejilla_C": ()},  # tupla vacía
     {"rejilla_C": [0.1, 0.1]},  # duplicados
     {"max_iter": 1.0},  # max_iter flotante
     {"max_iter": True},  # max_iter bool
@@ -557,7 +568,7 @@ def test_12_columna_en_ceros(modelo):
     {"tol": float("inf")},  # tol infinita
     {"tol": float("nan")},  # tol NaN
     {"tol": True},  # tol bool
-], ids=["C_bool", "C_texto", "C_nan", "C_inf", "rejilla_escalar", "duplicados", "max_iter_float",
+], ids=["C_bool", "C_texto", "C_nan", "C_inf", "rejilla_escalar", "tupla_vacia", "duplicados", "max_iter_float",
         "max_iter_bool", "max_iter_cero", "tol_cero", "tol_inf", "tol_nan", "tol_bool"])
 def test_13_validacion_extra(cambio):
     """Tipos y rangos inválidos → ValueError (nunca TypeError)."""
@@ -894,7 +905,7 @@ def test_24_correr_logistica_escribe_los_archivos(experimento):
     assert set(entrada) == CLAVES_SUMMARY  # claves del summary
     assert entrada["n_configuraciones_busqueda"] == len(REJILLA_CORTA)  # presupuesto = tamaño de la rejilla
     assert entrada["n_parametros"] == n_cols + 1  # d + 1
-    assert entrada["tiempo_total_s"] > 0  # tiempo registrado
+    assert entrada["tiempo_total_s"] == busqueda["tiempo_total_s"] > 0  # el mismo reloj de todo el fit
     assert set(entrada["metricas"]) == set(semilla["metricas"])  # las mismas métricas
     for nombre, r in entrada["metricas"].items():  # cada resumen
         assert r == {"media": semilla["metricas"][nombre], "desv": 0, "mejor": semilla["metricas"][nombre],
@@ -1171,6 +1182,24 @@ def test_a13_validacion_acepta_casos_validos(cambio):
     """Enteros, rejilla desordenada, un solo valor y max_iter = 1 son válidos."""
     cfg_log = _cfg(**cambio)["logistica"]  # bloque válido
     assert validar_cfg_logistica(cfg_log) == cfg_log  # pasa sin cambios
+
+
+def test_a13_validacion_acepta_tupla_y_devuelve_lista():
+    """Una tupla no vacía es una rejilla válida (como mlp.capas); la copia validada la devuelve como lista."""
+    tupla = tuple(REJILLA_CORTA)  # rejilla como tupla
+    validado = validar_cfg_logistica(_cfg(rejilla_C=tupla)["logistica"])  # valida
+    assert isinstance(validado["rejilla_C"], list)  # lista en la copia
+    assert validado["rejilla_C"] == list(tupla)  # mismos valores, mismo orden
+
+
+def test_a15_predict_rechaza_clases_distintas(datos, tmp_path):
+    """Un estimador cuyas clases no son [0, 1] (p. ej. ajustado con y ∈ {1, 2}) → ValueError al predecir."""
+    X_tr, y_tr, X_val, _ = datos  # desempaca
+    contenido = _contenido_valido(datos)  # diccionario válido
+    contenido["estimador"] = crear_estimador(C_UNICO, MAX_ITER, TOL).fit(X_tr.astype(np.float64), y_tr + 1)  # clases 1, 2
+    joblib.dump(contenido, tmp_path / "clases.joblib")  # archivo a mano
+    with pytest.raises(ValueError):  # la columna 1 de predict_proba no sería P(malo)
+        LogisticaPD.cargar(tmp_path / "clases.joblib").predict_proba(X_val)  # cargar o predecir lo rechazan
 
 
 def test_a14_tiempo_total_cubre_la_busqueda(modelo):
