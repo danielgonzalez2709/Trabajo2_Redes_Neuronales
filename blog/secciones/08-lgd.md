@@ -53,7 +53,6 @@ es mayor que `funded_amnt` en 376 de los 43 236 créditos y nunca menor (Fuente:
 `data/processed/montos.parquet`). Y restamos el principal recibido (`total_rec_prncp`) y no el total
 de pagos (`total_pymnt`, "Payments received to date for total amount funded"), porque este último no separa cuánto de lo
 pagado redujo el principal, que es lo que define la exposición.
-<!-- revisar: autor -->
 
 
 
@@ -66,9 +65,8 @@ pagado redujo el principal, que es lo que define la exposición.
 - **Recuperaciones abiertas (censura).** En los castigos recientes la cobranza puede seguir en curso, de modo que una
   recuperación todavía baja se lee como una pérdida alta (sección 8.2).
 - **Intereses no incluidos.** La EAD solo cuenta principal. Si una recuperación neta cubre además intereses o cargos, puede
-  superar la EAD y la LGD sin recortar queda por debajo de 0: es lo que proponemos para explicar los **32 casos** con LGD
-  negativa antes del recorte, que el recorte lleva a 0. Ningún caso quedó por encima de 1.
-  <!-- revisar: autor (la atribución de los 32 casos a intereses es una explicación compatible, no verificada campo a campo) -->
+  superar la EAD y la LGD sin recortar queda por debajo de 0. Es una explicación posible (no verificada campo a campo) de
+  los **32 casos** con LGD negativa antes del recorte, que el recorte lleva a 0. Ningún caso quedó por encima de 1.
 - **Masa de probabilidad en los extremos.** El 43,6 % de los créditos tiene LGD exactamente igual a 1 (sección 8.2), lo que
   condiciona la elección de la pérdida y de la activación de salida (sección 8.3).
 - **Un supuesto no verificable.** La fórmula supone que lo cobrado después del castigo se registra en `recoveries` y no
@@ -119,7 +117,6 @@ cobranza todavía no hubiera terminado cuando se publicó el conjunto (`alucinac
 una causa probada: no descartamos un cambio en la composición de los créditos ni en el canal de cobranza, y el lado izquierdo
 de la U (2007–2009) necesita otra explicación, porque esas cosechas tuvieron más tiempo para cerrar su cobranza. Sea cual sea la causa, el conjunto de prueba está desplazado hacia LGD = 1 frente
 al de entrenamiento, y eso pesa en la lectura de la sección 8.5.
-<!-- revisar: autor -->
 
 **EAD y plazo.** La [[fig:lgd-ead-plazo]] muestra que la exposición depende mucho del plazo y poco la LGD: la EAD mediana es
 6 544 dólares en los créditos a 36 meses (28 104 créditos) y 15 705 en los de 60 meses (15 132), mientras que la LGD media es
@@ -222,8 +219,8 @@ con tasa de aprendizaje 0,0098 y lotes de 512, con pérdida de validación 0,283
 `configs/lgd/mlp_final.yaml` y `results/data/lgd/hpo_ensayos.json`). La búsqueda casi no discrimina: los cinco mejores
 ensayos quedan entre 0,28376 y 0,28384 con arquitecturas muy distintas (de 16 a 128 neuronas en la primera capa), y el ensayo
 con menor MAE de validación (el 9, con 0,0755) no es el elegido por el criterio. La tasa de aprendizaje elegida queda cerca
-del límite superior del espacio (0,01).
-<!-- revisar: autor (lr cerca del borde del espacio: ¿ampliar el rango o dejarlo como limitación?) -->
+del límite superior del espacio (0,01): no sabemos si un rango más amplio habría elegido un valor mayor. Lo dejamos como
+limitación, porque ampliar el rango rompería la regla de usar el mismo espacio de búsqueda que la PD (Parte B).
 
 ::: tabla lgd-busqueda
 Título: Espacio de búsqueda del MLP de LGD y configuración elegida
@@ -353,7 +350,6 @@ Fuente: Elaboración propia a partir de results/data/lgd/pred_test.parquet (MLP:
 
 En otras palabras, la ventaja de la constante mediana en prueba no la da una mejor comprensión del riesgo, sino que el
 conjunto de prueba se parece más a ese número que al de entrenamiento.
-<!-- revisar: autor -->
 
 ### 8.6 Qué aportó la red en la LGD
 
@@ -365,4 +361,3 @@ prueba por el desplazamiento de su distribución. Lo que sí aportó el diseño 
 sigmoide mantiene toda predicción en (0, 1) (en aritmética exacta) y la entropía cruzada fraccional apunta a la media condicional, que es lo que
 necesita la pérdida esperada de la sección 9. La causa del poco poder predictivo (poca señal en las variables de la
 originación, censura en las cosechas recientes o ambas) queda abierta; la discusión de conjunto está en la sección 10.
-<!-- revisar: autor -->

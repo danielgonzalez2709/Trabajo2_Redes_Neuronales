@@ -93,7 +93,7 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 | D5 ✅ | Demo | D3 | **< 2 min en CPU** | auditor-reproducibilidad | sáb 24 | Camila |
 | D6 ✅ | Figuras: distribuciones, Q-Q, error por banda | D4 | `run.py figures` las regenera | revisor-spec | sáb 24 | Camila |
 | D8 ✅ | Notebook `04_lgd` (núcleo §5.8) | D4, D6 | Corre en < 2 min; cero lógica propia | revisor-spec | dom 25 | Camila |
-| D7 🟨 | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Camila |
+| D7 ✅ | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Camila |
 
 ## 5. Pruebas de la parte
 `test_lgd.py` (fórmula, recorte, EAD ≤ 0), `test_lgd_mlp.py` (salida en [0, 1], pérdida con objetivo fraccional),
