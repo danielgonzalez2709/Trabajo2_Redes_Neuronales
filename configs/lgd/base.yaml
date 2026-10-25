@@ -1,20 +1,9 @@
 # Parte D — LGD (Spec, Parte D §3.3; núcleo §5.3, §5.4, §6). `python run.py lgd --config configs/lgd/base.yaml`
 # (lineal + 30 semillas del MLP) y `python run.py lgd-hpo --config configs/lgd/hpo.yaml` (búsqueda Optuna).
-# D3 define el bloque mlp; D4 añade base_seed, semillas, hpo, salida y modelos.
-# Valores por defecto de partida (no ajustados): la búsqueda de hiperparámetros los reemplaza.
-mlp:
-  capas: [64, 32]
-  activacion: relu          # relu | leaky_relu | tanh
-  dropout: 0.1
-  l2: 1.0e-4                # L2 explícita en la pérdida, l2·Σ‖W‖² sin sesgos (= weight_decay 2·l2 acoplado; no es AdamW)
-  optimizador: adam         # adam | sgd
-  lr: 1.0e-3
-  momento: 0.9              # solo lo usa sgd
-  batch: 256
-  max_epocas: 200
-  paciencia: 10
-  device: auto              # auto | cpu | cuda
-  perdida: bce_fraccional   # bce_fraccional | mse
+# D4 añade base_seed, semillas, hpo, salida y modelos.
+# El bloque mlp vive en mlp_final.yaml: lo reescribe `run.py lgd-hpo` con la mejor configuración y su procedencia
+# (bloque `busqueda`). Los --set mlp.* se aplican después de la herencia, así que siempre ganan.
+hereda: mlp_final.yaml
 # D2 — loans_lgd.parquet y preprocesador_lgd.json (python -m src.lgd.preparar). Variables y percentiles de recorte NO se
 # copian: se leen de la config de la Parte A (claves `features` y `preprocesamiento.percentiles_recorte`).
 datos:
@@ -33,7 +22,7 @@ semillas:
   n: 30                     # configuración final del MLP con base_seed + 0…n−1 (núcleo §6); la lineal se ajusta 1 vez
 hpo:
   n_ensayos: 30             # Optuna TPE (Parte D §3.3); demo: 5
-  usar_mejor: true          # lgd usa salida/mejor_config.json (lo escribe lgd-hpo) si existe; si no, el bloque mlp
+  destino: configs/lgd/mlp_final.yaml   # lgd-hpo reescribe aquí el bloque mlp + busqueda (lo hereda esta config)
   # Mismo espacio que B (B §3.3). Neuronas: una elección por capa. sgd usa mlp.momento (no se busca).
   espacio:
     n_capas: [1, 4]                         # entero, inclusivo
@@ -44,7 +33,7 @@ hpo:
     optimizador: [adam, sgd]
     lr: [1.0e-4, 1.0e-2]                    # log-uniforme
     batch: [256, 512, 1024, 2048]
-salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, mejor_config.json, pred_test, pred_pd_test
+salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, pred_test.parquet, pred_pd_test.parquet
 modelos:
   lineal: models/lgd_lineal.joblib
   mlp: models/lgd_mlp.pt    # semilla con el MAE de test mediano

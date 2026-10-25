@@ -47,7 +47,7 @@ def columnas_contrato(nombres_features: list[str]) -> list[str]:
     return ["id", "issue_d", "split", *nombres_features, *CAMPOS_FORMULA, *COLUMNAS_OBJETIVO]
 
 
-def _rechazar_posteriores(nombres: list[str]) -> None:
+def rechazar_posteriores(nombres: list[str]) -> None:
     """``ValueError`` si alguna variable es un monto posterior al desembolso o derivada de él (núcleo §5.7)."""
     prohibidas = [n for n in nombres if n in POSTERIORES]
     if prohibidas:
@@ -74,7 +74,7 @@ def construir_loans_lgd(loans_pd: pd.DataFrame, montos: pd.DataFrame,
     ``nombres_features``: variables de ``configs/features.yaml`` en su orden. ``ValueError`` si ``id`` no coincide fila a
     fila entre ``loans_pd`` y ``montos`` o si una variable es un monto posterior al desembolso.
     """
-    _rechazar_posteriores(nombres_features)
+    rechazar_posteriores(nombres_features)
     ids_pd = loans_pd["id"].astype(str).to_numpy()
     ids_m = montos["id"].astype(str).to_numpy()
     if len(ids_pd) != len(ids_m) or not (ids_pd == ids_m).all():
@@ -98,7 +98,7 @@ def construir_loans_lgd(loans_pd: pd.DataFrame, montos: pd.DataFrame,
 def ajustar_preprocesador(loans_lgd: pd.DataFrame, features: list[dict],
                           percentiles_recorte: tuple[float, float]) -> Preprocesador:
     """``Preprocesador`` de A ajustado SOLO con las filas ``split == "train"`` de la población LGD."""
-    _rechazar_posteriores([f["nombre"] for f in features])
+    rechazar_posteriores([f["nombre"] for f in features])
     return Preprocesador(percentiles_recorte).fit(loans_lgd[loans_lgd["split"] == "train"], features)
 
 

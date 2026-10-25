@@ -7,7 +7,9 @@ los resultados reales).
 from __future__ import annotations
 
 import hashlib
+import json
 import math
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +23,7 @@ from src.common.preprocesamiento import Preprocesador
 from src.common.results import load_json, save_json
 from src.lgd import experimento as exp
 from src.lgd.metricas import mae, rmse
+from src.lgd.mlp import MLPLGD
 
 RAIZ = Path(__file__).resolve().parents[1]
 FEATURES = [
@@ -56,6 +59,8 @@ def _escribir_datos(raiz: Path) -> None:
     lgd = pd.concat(partes, ignore_index=True)
     z = 0.8 * (lgd["dti"] - 17) / 10 + 0.5 * (lgd["term"] == " 60 months") + rng.normal(0, 0.5, len(lgd))
     lgd["lgd"] = np.clip(1 / (1 + np.exp(-z)), 0, 1)
+    lgd.loc[lgd.index % 10 == 0, "lgd"] = 1.0   # la LGD real tiene masa en 1 y en 0
+    lgd.loc[lgd.index % 10 == 5, "lgd"] = 0.0
     lgd["ead"] = 1000.0
     (raiz / "data/processed").mkdir(parents=True)
     lgd.to_parquet(raiz / "data/processed/loans_lgd.parquet", index=False)
@@ -75,8 +80,29 @@ def raiz(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _cfg(nombre: str = "base.yaml", extra: list[str] | None = None) -> dict:
-    return apply_overrides(load_config(RAIZ / "configs/lgd" / nombre), RAPIDO + (extra or []))
+SIN_BUSQUEDA = {"tipo": "sin_busqueda", "origen": "prueba", "ensayo": None, "n_ensayos": None, "tiempo_s": None,
+                "hash_particion": None, "hash_preprocesador": None, "muestra": None, "fecha": None}
+
+
+def _cfg(nombre: str = "base.yaml", extra: list[str] | None = None, carpeta: Path = RAIZ / "configs/lgd",
+         rapido: list[str] = RAPIDO) -> dict:
+    """Config del repo (o de ``carpeta``) con overrides rápidos. Con la del repo, la procedencia se fija en "sin
+    búsqueda" para no depender de lo que tenga hoy ``configs/lgd/mlp_final.yaml``."""
+    cfg = load_config(carpeta / nombre)
+    if carpeta == RAIZ / "configs/lgd":
+        cfg["busqueda"] = dict(SIN_BUSQUEDA)
+    return apply_overrides(cfg, rapido + (extra or []))
+
+
+def _copiar_configs(raiz: Path) -> Path:
+    """Copia configs/lgd/ a ``raiz`` (con mlp_final "sin búsqueda") para que lgd-hpo lo reescriba ahí."""
+    destino = raiz / "configs/lgd"
+    destino.mkdir(parents=True)
+    for nombre in ("base.yaml", "hpo.yaml", "demo.yaml"):
+        shutil.copy(RAIZ / "configs/lgd" / nombre, destino / nombre)
+    exp.escribir_mlp_final(destino / "mlp_final.yaml", load_config(RAIZ / "configs/lgd/demo.yaml")["mlp"],
+                           dict(SIN_BUSQUEDA))
+    return destino
 
 
 def _sha(ruta: Path) -> str:
@@ -120,8 +146,12 @@ def test_configs_presupuesto_y_espacio():
     assert e["optimizador"] == ["adam", "sgd"]
     assert e["lr"] == [1.0e-4, 1.0e-2]
     assert e["batch"] == [256, 512, 1024, 2048]
-    # D3 sigue intacto
+    # el bloque mlp llega por herencia desde mlp_final.yaml, con su procedencia
     assert base["mlp"]["perdida"] == "bce_fraccional" and "salida" in base["datos"]
+    assert base["mlp"] == load_config(RAIZ / "configs/lgd/mlp_final.yaml")["mlp"]
+    assert base["busqueda"]["tipo"] in ("sin_busqueda", "optuna")
+    assert base["hpo"]["destino"] == "configs/lgd/mlp_final.yaml"
+    assert "demo" in demo["hpo"]["destino"] and demo["busqueda"]["tipo"] == "sin_busqueda"
 
 
 def test_demo_escribe_en_otra_carpeta_y_otros_modelos():
@@ -158,7 +188,7 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
         assert set(exp.METRICAS) <= set(d["metricas"])
 
     s = load_json(salida / "summary.json")
-    assert s == load_json(salida / "summary.json") and s["modelos"].keys() == {"lineal", "mlp"}
+    assert s["modelos"].keys() == {"lineal", "mlp"}
     for m, n in (("lineal", 1), ("mlp", 3)):
         r = s["modelos"][m]
         assert r["n_parametros"] > 0 and r["tiempo_total_s"] > 0
@@ -167,7 +197,8 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
             assert set(r["metricas"][met]) == {"media", "desv", "mejor", "peor", "n"}
             assert r["metricas"][met]["n"] == n
             assert r["metricas"][met]["mejor"] <= r["metricas"][met]["peor"]
-    assert set(s["modelos"]["lineal"]["fuera_de_rango"]) == {"val", "test"}
+    assert set(s["modelos"]["lineal"]["fuera_de_rango"]) == {"val", "test", "pd_test"}
+    assert s["modelos"]["lineal"]["fuera_de_rango"]["pd_test"]["n"] == N_PD_TEST
     assert s["hash_particion"] and s["hash_preprocesador"]
     assert resumen == s
 
@@ -179,11 +210,26 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     assert list(ppd.columns) == ["id", "pred_lineal", "pred_mlp"] and len(ppd) == N_PD_TEST
     assert ppd["id"].str.startswith("pd-").all()
 
-    # el MLP guardado es el de la semilla mediana y reproduce pred_test
-    from src.lgd.mlp import MLPLGD
+    # semilla mediana leída de semillas/*.json; el modelo guardado es esa semilla y reproduce pred_test
+    corridas = sorted((load_json(p)["metricas"]["mae_test"], load_json(p)["seed"])
+                      for p in (salida / "semillas").glob("mlp_seed*.json"))
+    esperada = corridas[(len(corridas) - 1) // 2][1]
+    assert s["modelos"]["mlp"]["semilla_mediana"] == esperada
     mlp = MLPLGD.cargar(raiz / cfg["modelos"]["mlp"])
-    assert mlp.seed_ == s["modelos"]["mlp"]["semilla_mediana"]
+    assert mlp.seed_ == esperada
+    datos = exp.cargar_datos(cfg, raiz)
+    np.testing.assert_allclose(mlp.predict(datos["X"]["test"]), pt["pred_mlp"].to_numpy(), rtol=0, atol=1e-7)
     assert (raiz / cfg["modelos"]["lineal"]).is_file()
+
+    # hashes recalculados aquí
+    df = pd.read_parquet(raiz / "data/processed/loans_lgd.parquet")
+    h_part = hashlib.sha256("\n".join(df["id"].astype(str) + "," + df["split"]).encode("utf-8")).hexdigest()
+    pre = load_json(raiz / "models/preprocesador_lgd.json")
+    h_pre = hashlib.sha256(json.dumps(pre, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                           .encode("utf-8")).hexdigest()
+    assert s["hash_particion"] == h_part and s["hash_preprocesador"] == h_pre
+    for p in (salida / "semillas").glob("*.json"):
+        assert load_json(p)["hash_particion"] == h_part and load_json(p)["hash_preprocesador"] == h_pre
 
 
 def test_misma_semilla_mismas_metricas(tmp_path: Path):
@@ -219,28 +265,147 @@ def test_muestra_estratificada_por_split(raiz: Path):
     assert exp.cargar_datos(cfg, raiz)["ids"]["test"].tolist() == datos["ids"]["test"].tolist()
 
 
+# ---------------------------------------------------------------------------------------------- hashes y semillas
+def test_hash_particion_cambia_con_el_split():
+    df = pd.DataFrame({"id": ["a", "b", "c"], "split": ["train", "val", "test"]})
+    esperado = hashlib.sha256("a,train\nb,val\nc,test".encode("utf-8")).hexdigest()
+    assert exp.hash_particion(df) == esperado
+    otro = df.assign(split=["train", "train", "test"])
+    assert exp.hash_particion(otro) != esperado
+
+
+def test_hash_preprocesador_es_el_json_canonico():
+    d = {"b": 1, "a": [1.5, "ñ"]}
+    esperado = hashlib.sha256('{"a":[1.5,"ñ"],"b":1}'.encode("utf-8")).hexdigest()
+    assert exp.hash_preprocesador(d) == esperado
+
+
+def test_semilla_mediana_a_mano():
+    c = [{"seed": 10, "mae_test": 0.3}, {"seed": 11, "mae_test": 0.1}, {"seed": 12, "mae_test": 0.2}]
+    assert exp._semilla_mediana(c) == 12
+    # n par → mediana inferior: orden 0.1 (11), 0.2 (12), 0.3 (10), 0.4 (13) → posición 1 → 12
+    assert exp._semilla_mediana(c + [{"seed": 13, "mae_test": 0.4}]) == 12
+    # empate → la semilla menor
+    assert exp._semilla_mediana([{"seed": 5, "mae_test": 0.2}, {"seed": 3, "mae_test": 0.2},
+                                 {"seed": 4, "mae_test": 0.2}]) == 4
+    assert exp._semilla_mediana([{"seed": 9, "mae_test": 0.2}, {"seed": 3, "mae_test": 0.2}]) == 3
+
+
+def test_base_seed_mas_k(raiz: Path):
+    cfg = _cfg(extra=["base_seed=7", "semillas.n=3"])
+    exp.entrenar_semillas(cfg, raiz)
+    nombres = sorted(p.name for p in (raiz / cfg["salida"] / "semillas").glob("*.json"))
+    assert nombres == ["lineal_seed7.json", "mlp_seed7.json", "mlp_seed8.json", "mlp_seed9.json"]
+    assert [load_json(raiz / cfg["salida"] / "semillas" / f"mlp_seed{k}.json")["seed"] for k in (7, 8, 9)] == [7, 8, 9]
+
+
+def test_muestra_que_vacia_un_split_es_error():
+    df = pd.DataFrame({"id": [str(i) for i in range(104)], "split": ["train"] * 100 + ["val"] * 2 + ["test"] * 2})
+    with pytest.raises(ValueError, match="datos.muestra.*vac"):
+        exp._muestrear(df, 5, 0)
+
+
 # ---------------------------------------------------------------------------------------------- búsqueda
-def test_buscar_y_luego_entrenar_con_la_mejor(raiz: Path):
-    cfg = _cfg(extra=["hpo.n_ensayos=3", "semillas.n=1"])
-    exp.buscar(cfg, raiz)
+def test_buscar_reescribe_mlp_final_y_lgd_lo_hereda(raiz: Path):
+    carpeta = _copiar_configs(raiz)
+    cfg = _cfg("hpo.yaml", ["hpo.n_ensayos=3", "semillas.n=1"], carpeta)
+    h = exp.buscar(cfg, raiz)
     salida = raiz / cfg["salida"]
-    h = load_json(salida / "hpo_ensayos.json")
+    assert load_json(salida / "hpo_ensayos.json") == json.loads(json.dumps(h))
     assert len(h["ensayos"]) == 3 and h["n_ensayos"] == 3
     for e in h["ensayos"]:
         assert {"numero", "parametros", "valor_val", "mae_val", "tiempo_s", "estado"} <= set(e)
     assert h["hash_particion"] and h["hash_preprocesador"] and h["semilla_muestreador"] == cfg["base_seed"]
-    mejor = load_json(salida / "mejor_config.json")
-    completos = [e for e in h["ensayos"] if e["estado"] == "COMPLETE"]
-    assert mejor["valor_val"] == min(e["valor_val"] for e in completos)
-    for clave in ("capas", "activacion", "dropout", "l2", "optimizador", "lr", "batch"):
-        assert clave in mejor["mlp"]
+    assert h["tiempo_total_s"] == pytest.approx(sum(e["tiempo_s"] for e in h["ensayos"]))
 
-    s = exp.entrenar_semillas(cfg, raiz)
+    texto = (carpeta / "mlp_final.yaml").read_text(encoding="utf-8")
+    assert "lgd-hpo" in texto.splitlines()[0] and "No se edita a mano" in texto
+    final = load_config(carpeta / "mlp_final.yaml")
+    completos = [e for e in h["ensayos"] if e["estado"] == "COMPLETE"]
+    mejor = min(completos, key=lambda e: e["valor_val"])
+    b = final["busqueda"]
+    assert b["tipo"] == "optuna" and b["ensayo"] == mejor["numero"] and b["n_ensayos"] == 3
+    assert b["tiempo_s"] == pytest.approx(h["tiempo_total_s"])
+    assert b["hash_particion"] == h["hash_particion"] and b["muestra"] is None
+    for clave, valor in mejor["parametros"].items():
+        assert final["mlp"][clave] == valor
+
+    # run.py lgd con base.yaml (que hereda el mlp_final reescrito), sin ningún --set mlp.*
+    cfg_lgd = _cfg("base.yaml", ["semillas.n=1"], carpeta, rapido=["datos.muestra=null"])
+    assert cfg_lgd["mlp"] == final["mlp"]
+    s = exp.entrenar_semillas(cfg_lgd, raiz)
     assert s["modelos"]["mlp"]["n_configuraciones_busqueda"] == 3
-    assert s["modelos"]["mlp"]["tiempo_total_s"] >= h["tiempo_total_s"]
+    assert s["modelos"]["mlp"]["tiempo_busqueda_s"] == pytest.approx(h["tiempo_total_s"])
+    # Presupuesto de cómputo total (núcleo §6): búsqueda + semillas.
+    mlp = s["modelos"]["mlp"]
+    assert mlp["tiempo_busqueda_s"] > 0
+    assert mlp["tiempo_total_s"] == pytest.approx(mlp["tiempo_busqueda_s"] + mlp["tiempo_semillas_s"])
     semilla = load_json(salida / "semillas" / f"mlp_seed{cfg['base_seed']}.json")
-    for clave, valor in mejor["mlp"].items():
+    for clave, valor in mejor["parametros"].items():
         assert semilla["config"]["mlp"][clave] == valor
+
+
+def test_set_mlp_gana_sobre_la_busqueda(raiz: Path):
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=2"], carpeta), raiz)
+    final = load_config(carpeta / "mlp_final.yaml")
+    assert final["mlp"]["capas"] != [64, 32]  # si la búsqueda diera [64, 32] la prueba no diría nada
+    cfg = _cfg("base.yaml", ["semillas.n=1", "mlp.capas=[64, 32]", "mlp.dropout=0.3"], carpeta)
+    s = exp.entrenar_semillas(cfg, raiz)
+    semilla = load_json(raiz / cfg["salida"] / "semillas" / f"mlp_seed{cfg['base_seed']}.json")
+    assert semilla["config"]["mlp"]["capas"] == [64, 32] and semilla["config"]["mlp"]["dropout"] == 0.3
+    n_entradas = MLPLGD.cargar(raiz / cfg["modelos"]["mlp"]).arquitectura_["n_entradas"]
+    esperado = (n_entradas * 64 + 64) + (64 * 32 + 32) + (32 + 1)
+    assert semilla["n_parametros"] == esperado == s["modelos"]["mlp"]["n_parametros"]
+
+
+@pytest.mark.parametrize("clave, valor", [("hash_particion", "otro"), ("hash_preprocesador", "otro"),
+                                          ("muestra", 100)])
+def test_procedencia_de_otros_datos_es_error(raiz: Path, clave, valor):
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg("base.yaml", ["semillas.n=1", f"busqueda.{clave}={valor}"], carpeta)
+    with pytest.raises(ValueError, match=clave):
+        exp.entrenar_semillas(cfg, raiz)
+
+
+def test_busqueda_con_muestra_y_final_sin_muestra_es_error(raiz: Path):
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1", "datos.muestra=200"], carpeta), raiz)
+    with pytest.raises(ValueError, match="muestra"):
+        exp.entrenar_semillas(_cfg("base.yaml", ["semillas.n=1"], carpeta), raiz)
+
+
+def test_ensayo_fallido_queda_fail(raiz: Path, monkeypatch):
+    carpeta = _copiar_configs(raiz)
+    original = MLPLGD.fit
+    llamadas = {"n": 0}
+
+    def fit_que_falla_una_vez(self, *a, **k):
+        llamadas["n"] += 1
+        if llamadas["n"] == 2:
+            raise RuntimeError("divergió (simulado)")
+        return original(self, *a, **k)
+
+    monkeypatch.setattr(MLPLGD, "fit", fit_que_falla_una_vez)
+    h = exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=3"], carpeta), raiz)
+    estados = [e["estado"] for e in h["ensayos"]]
+    assert estados == ["COMPLETE", "FAIL", "COMPLETE"]
+    assert h["ensayos"][1]["valor_val"] is None
+    assert h["mejor"]["numero"] in (0, 2)
+
+
+def test_todos_los_ensayos_fallan_es_error(raiz: Path, monkeypatch):
+    carpeta = _copiar_configs(raiz)
+
+    def siempre_falla(self, *a, **k):
+        raise RuntimeError("divergió (simulado)")
+
+    monkeypatch.setattr(MLPLGD, "fit", siempre_falla)
+    antes = (carpeta / "mlp_final.yaml").read_text(encoding="utf-8")
+    with pytest.raises(RuntimeError, match="ningún ensayo"):
+        exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=2"], carpeta), raiz)
+    assert (carpeta / "mlp_final.yaml").read_text(encoding="utf-8") == antes
 
 
 def test_buscar_es_reproducible(tmp_path: Path):
@@ -249,21 +414,10 @@ def test_buscar_es_reproducible(tmp_path: Path):
         r = tmp_path / str(i)
         r.mkdir()
         _escribir_datos(r)
-        cfg = _cfg(extra=["hpo.n_ensayos=2"])
-        exp.buscar(cfg, r)
-        params.append([e["parametros"] for e in load_json(r / cfg["salida"] / "hpo_ensayos.json")["ensayos"]])
+        carpeta = _copiar_configs(r)
+        cfg = _cfg("hpo.yaml", ["hpo.n_ensayos=2"], carpeta)
+        params.append([e["parametros"] for e in exp.buscar(cfg, r)["ensayos"]])
     assert params[0] == params[1]
-
-
-def test_mejor_config_de_otros_datos_es_error(raiz: Path):
-    cfg = _cfg(extra=["hpo.n_ensayos=1", "semillas.n=1"])
-    exp.buscar(cfg, raiz)
-    ruta = raiz / cfg["salida"] / "mejor_config.json"
-    d = load_json(ruta)
-    d["hash_preprocesador"] = "otro"
-    save_json(ruta, d)
-    with pytest.raises(ValueError, match="hash"):
-        exp.entrenar_semillas(cfg, raiz)
 
 
 # ---------------------------------------------------------------------------------------------- CLI y demo
@@ -293,3 +447,5 @@ def test_cli_lgd_hpo(raiz: Path, monkeypatch, capsys):
     assert "Tiempo de ejecución" in capsys.readouterr().out
     demo = load_config(RAIZ / "configs/lgd/demo.yaml")
     assert len(load_json(raiz / demo["salida"] / "hpo_ensayos.json")["ensayos"]) == 2
+    assert load_config(raiz / demo["hpo"]["destino"])["busqueda"]["tipo"] == "optuna"
+    assert not (raiz / "configs/lgd/mlp_final.yaml").exists()
