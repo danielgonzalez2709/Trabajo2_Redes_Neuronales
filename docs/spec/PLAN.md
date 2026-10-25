@@ -1,4 +1,4 @@
-# PLAN — tablero global (Spec v0.10)
+# PLAN — tablero global (Spec v0.12)
 
 > Una línea por tarea. El detalle (aceptación, verificador, especificación) está en la spec de cada parte
 > (`docs/spec/partes/`). Pipeline por tarea: **implementador → revisor-spec → revisor-calidad → (+ verificador) → PR → puente**.

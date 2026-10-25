@@ -3,7 +3,7 @@
 | Dato | Fuente | URL | Fecha de descarga | SHA-256 | Tamaño | Quién | Notas |
 |---|---|---|---|---|---|---|---|
 | `loan/loan.csv` (créditos de Lending Club) | Kaggle, "Credit Risk Analysis" (ranadeep) | https://www.kaggle.com/datasets/ranadeep/credit-risk-dataset | 2026-10-23 | `f01652b585e7f355d8749d0814b40068030241d201c6a31e6c9a3cb736eecccb` | 441 771 600 bytes | Daniel | 887 379 registros, 74 variables, `issue_d` de 2007-06 a 2015-12 (medido en `data/processed/resumen_datos.json`). **No se versiona** (excede el límite de GitHub). |
-| `LCDataDictionary.xlsx` (diccionario de variables) | Mismo conjunto de Kaggle | ídem | 2026-10-23 | `6197339f12576ac7b56b281b4aca8dd47adb40f62b482794006f0073dd4a3654` | 20 995 bytes | Daniel | Hojas `LoanStats` (80 filas), `browseNotes`, `RejectStats`. Fuente de todas las definiciones citadas en `configs/features.yaml`. |
+| `LCDataDictionary.xlsx` (diccionario de variables) | Mismo conjunto de Kaggle | ídem | 2026-10-23 | `6197339f12576ac7b56b281b4aca8dd47adb40f62b482794006f0073dd4a3654` | 20 995 bytes | Daniel | Hojas `LoanStats` (80 filas), `browseNotes`, `RejectStats`. Fuente de todas las definiciones citadas en `configs/features.yaml`. Copia literal de la hoja `LoanStats` versionada en `data/processed/diccionario_loanstats.csv` (la genera `scripts/preparar_datos.py`). |
 
 ## Cómo reconstruir `data/processed/`
 1. Descargar el conjunto desde la URL (requiere sesión en Kaggle) y descomprimirlo en `data/raw/credit-risk-dataset/`

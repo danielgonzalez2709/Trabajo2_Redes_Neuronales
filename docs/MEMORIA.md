@@ -11,9 +11,9 @@
 ## 📍 Estado actual
 | | |
 |---|---|
-| Última actualización | 2026-10-24 |
-| Fase | **Parte A en `main`** (PR #1), **reparto B+C en `main`** (PR #2) y **E5/E6/E7/E11 + Spec v0.10 en `main`** (PR #3). Ruleset de `main` activo. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 🟨 (faltan citas del diccionario) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1b descriptivo y D4 Optuna + 30 semillas sobre `loans_lgd.parquet`; Daniel pasa `LCDataDictionary.xlsx` (Kaggle) para cerrar D1. D4 entrega `pred_test.parquet` con columnas `pred_<modelo>` **y** `lgd/pred_pd_test.parquet` (LGD de todo el test, §5.4 v0.10). Camila: E1 (app). Daniel: confirmar H-01 y H-02 |
+| Última actualización | 2026-10-25 |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario versionado y etiquetas en español (PR #4–#5). Spec v0.12. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 ✅ (citas de `diccionario_loanstats.csv`), D4 🟨 (código y demo; RECHAZADO en 1.ª ronda: `mejor_config.json` pisaba `--set mlp.*`) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4. C (Juan José): C1–C2. D (Camila y José): D4 ronda 2 y luego la corrida completa (30 ensayos + 30 semillas) → `pred_pd_test.parquet` para E5; D1b, D5, D6, D8, D7. Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -64,6 +64,13 @@ mar 27 6 p. m. entrega.
 Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos del mundo real, H-05 Matemáticas, Parte D; H-03 y H-04 en `dev/andres`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — Revisión de lo que B, C, D y E consumen de la Parte A, desde una copia limpia de `main` sin datos crudos:
+  todo se carga y funciona. Hueco corregido (Spec v0.12): `categorias_es` en `features.yaml` y `etiquetas_categorias` en el
+  JSON de la app (las categorías salían en inglés); avisar a Juan José (exportador) y Camila (app). Siddiqi: 2.ª ed., 2017.
+- **2026-10-25** — Spec v0.11: `data/processed/diccionario_loanstats.csv` (copia literal del diccionario, hoja LoanStats) para
+  que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
+- **2026-10-24** — PR #3 fusionado (10:26 p. m.): `montos.parquet` y contratos v0.10 en `main`, que Camila necesitaba para D1/D2;
+  E5, blog 00 y 11–13, notebook 00 y el proyecto del video.
 - **2026-10-24** — D2 (Camila): `loans_lgd.parquet` (43 236: train 14 419 / val 14 836 / test 13 981), `preprocesador_lgd.json`
   y `resumen_objetivo.json` con `python -m src.lgd.preparar`; revisor-spec y revisor-calidad aprueban. D1: cifras confirmadas
   por el cazador; faltan las 5 citas del diccionario de Kaggle (`TODO(dato-faltante)`).

@@ -3,6 +3,8 @@
 # Solo entran variables conocidas en la originación (núcleo §5.7) y que una persona pueda llenar en el formulario.
 # cita_diccionario: texto literal de LCDataDictionary.xlsx, hoja LoanStats (descargado de Kaggle el 23-oct-2026).
 # Excluidas y por qué: ver docs/spec/partes/A-datos.md §3.4 y la sección 02 del blog.
+# categorias_es (solo categóricas): etiqueta en español de cada código para la app. Es una traducción del código, no una
+# definición: el significado sigue siendo el del diccionario. La app no ofrece OTRA (es interna del preprocesador).
 features:
   - nombre: loan_amnt
     tipo: num
@@ -22,6 +24,9 @@ features:
     en_app: true
     etiqueta_es: Plazo
     ayuda_es: Número de cuotas mensuales (36 o 60).
+    categorias_es:
+      "36 months": 36 meses
+      "60 months": 60 meses
   - nombre: emp_length
     tipo: cat
     disponible_en_originacion: true
@@ -31,6 +36,19 @@ features:
     en_app: true
     etiqueta_es: Antigüedad en el empleo
     ayuda_es: Años en tu empleo actual.
+    categorias_es:
+      "< 1 year": Menos de 1 año
+      "1 year": 1 año
+      "2 years": 2 años
+      "3 years": 3 años
+      "4 years": 4 años
+      "5 years": 5 años
+      "6 years": 6 años
+      "7 years": 7 años
+      "8 years": 8 años
+      "9 years": 9 años
+      "10+ years": 10 años o más
+      "DESCONOCIDO": No lo reporto
   - nombre: home_ownership
     tipo: cat
     disponible_en_originacion: true
@@ -40,6 +58,12 @@ features:
     en_app: true
     etiqueta_es: Vivienda
     ayuda_es: Si alquilas, eres propietario o pagas una hipoteca.
+    categorias_es:
+      "RENT": Arriendo
+      "OWN": Propia
+      "MORTGAGE": Hipoteca
+      "OTHER": Otra
+      "NONE": Ninguna
   - nombre: annual_inc
     tipo: num
     disponible_en_originacion: true
@@ -58,6 +82,21 @@ features:
     en_app: true
     etiqueta_es: Destino del préstamo
     ayuda_es: Para qué vas a usar el dinero.
+    categorias_es:
+      "debt_consolidation": Consolidar deudas
+      "credit_card": Tarjeta de crédito
+      "home_improvement": Mejoras a la vivienda
+      "major_purchase": Compra grande
+      "small_business": Pequeña empresa
+      "car": Carro
+      "medical": Gastos médicos
+      "moving": Mudanza
+      "vacation": Vacaciones
+      "wedding": Boda
+      "house": Vivienda
+      "educational": Educación
+      "renewable_energy": Energía renovable
+      "other": Otro
   - nombre: dti
     tipo: num
     disponible_en_originacion: true

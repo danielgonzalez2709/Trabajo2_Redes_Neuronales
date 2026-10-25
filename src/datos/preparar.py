@@ -32,6 +32,16 @@ def columnas_crudas(features: list[dict]) -> list[str]:
     return cols
 
 
+def exportar_diccionario(xlsx: Path, hoja: str, destino: Path) -> pd.DataFrame:
+    """Copia literal de una hoja del diccionario de Kaggle a CSV (UTF-8): mismas filas, mismo texto, columnas
+    `variable` y `descripcion`. Solo se quitan los espacios sobrantes del nombre de la variable (el diccionario trae
+    `total_rev_hi_lim` con un espacio de no separación al final); la descripción no se toca."""
+    hoja_df = pd.read_excel(xlsx, sheet_name=hoja, dtype=str)
+    dic = pd.DataFrame({"variable": hoja_df.iloc[:, 0].str.strip(), "descripcion": hoja_df.iloc[:, 1]})
+    dic.to_csv(destino, index=False, encoding="utf-8")
+    return dic
+
+
 def _tasas_por(df: pd.DataFrame, clave: str) -> dict:
     return {str(k): float(v) for k, v in df.groupby(clave)["target"].mean().items()}
 
@@ -103,4 +113,7 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
         },
     }
     save_json(salida / "resumen_datos.json", resumen)
+    if "diccionario" in cfg:
+        exportar_diccionario(raiz / cfg["crudo"]["diccionario"], cfg["diccionario"]["hoja"],
+                             salida / cfg["diccionario"]["archivo"])
     return resumen
