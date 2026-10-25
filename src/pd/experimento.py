@@ -61,6 +61,7 @@ ARCHIVO_MODELO_LOGISTICA = "pd_logistica.joblib"  # modelo guardado (núcleo §5
 CRITERIO_LOGISTICA = "logloss_val"  # criterio de la búsqueda de C
 DEVICE_LOGISTICA = "cpu"  # sklearn entrena en CPU
 PREFIJO_PRED = "pred_"  # columna de cada modelo en pred_test.parquet
+PERMISOS_ARCHIVO = 0o644  # rw-r--r--: los mismos que deja save_json en los JSON (src/common/results.py)
 
 
 # %% [markdown]
@@ -264,6 +265,8 @@ def actualizar_summary(ruta, modelo: str, entrada: dict) -> None:
 # ## Escritura atómica de un parquet
 #
 # Se escribe en un temporal de la misma carpeta y se mueve con `os.replace`: el destino nunca queda a medias.
+# `mkstemp` crea el temporal con permisos 0o600 y `os.replace` los conserva, así que al final se fijan en 0o644
+# (`PERMISOS_ARCHIVO`), como hace `save_json` con los JSON: el resultado debe quedar legible (en Windows es inocuo).
 
 # %%
 def _escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
@@ -274,6 +277,7 @@ def _escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
     try:  # si algo falla, se borra el temporal
         df.to_parquet(temporal, index=False)  # escribe el temporal
         os.replace(temporal, ruta)  # movimiento atómico
+        os.chmod(ruta, PERMISOS_ARCHIVO)  # el temporal nació en 0o600: se deja legible como los JSON
     except BaseException:  # cualquier falla, incluida una interrupción
         with contextlib.suppress(FileNotFoundError):  # el temporal pudo no existir
             os.remove(temporal)  # limpia

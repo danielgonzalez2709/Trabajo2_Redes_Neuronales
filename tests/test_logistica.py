@@ -54,12 +54,16 @@ Pruebas añadidas a las 28 del plan aprobado (cada una atrapa un fallo de nuestr
 - ``test_a25_medir_usa_las_metricas_inyectadas``: ``medir`` pasa ``metricas`` a ``evaluar`` (DIP, para B5).
 - ``test_a26_escribir_semilla_valida_la_semilla``: ``escribir_semilla`` (pública, la usará B5) rechaza seed = −1 o
   ``"0"`` con ValueError y sin escribir (``correr_logistica`` ya valida antes, así que solo esta prueba lo ve).
+- ``test_a27_pred_test_queda_legible``: ``pred_test.parquet`` queda con permisos 0o644 como los JSON de ``save_json``
+  (``mkstemp`` crea el temporal en 0o600 y ``os.replace`` los conserva; hallazgo de la corrida real).
 """
 
 import copy  # copias profundas de la config de prueba
 import hashlib  # SHA-256 de referencia para las huellas
 import itertools  # reloj falso que avanza a paso fijo
+import os  # permisos del archivo y sistema operativo
 import re  # 64 dígitos hexadecimales de las huellas
+import stat  # S_IMODE: bits de permisos
 import warnings  # filtros de avisos antes y después del fit
 from pathlib import Path  # rutas de los archivos de prueba
 
@@ -167,6 +171,7 @@ CLAVES_BUSQUEDA = {"criterio", "filas", "C_elegido", "en_borde", "tiempo_total_s
 CLAVES_SUMMARY = {"n_parametros", "n_configuraciones_busqueda", "tiempo_total_s", "metricas", "evidencia"}  # summary
 CLAVES_RESUMEN = {"media", "desv", "mejor", "peor", "n"}  # resumen de una métrica (núcleo §5.4)
 PASO_RELOJ = 0.5  # avance del reloj falso por llamada
+PERMISOS_LEGIBLES = 0o644  # rw-r--r--: los mismos que deja save_json en los JSON
 ENTRADA_MLP = {"n_parametros": 1, "nota": "entrada ajena"}  # entrada de otro modelo que debe sobrevivir
 
 
@@ -1317,3 +1322,13 @@ def test_a26_escribir_semilla_valida_la_semilla(seed, tmp_path):
     with pytest.raises(ValueError):  # semilla inválida
         escribir_semilla(rutas, "logistica", seed, {"modelo": "logistica"})  # registro mínimo
     assert not rutas.resultados.exists()  # no se escribió nada
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows no usa los bits de permisos POSIX")  # solo POSIX
+def test_a27_pred_test_queda_legible(tmp_path):
+    """pred_test.parquet queda con permisos 0o644 al crearlo y al reemplazarlo (no 0o600 del temporal)."""
+    ruta = tmp_path / "pred_test.parquet"  # archivo de prueba
+    actualizar_pred_test(ruta, IDS_PRED, Y_PRED, "pred_mlp", P_MLP)  # crea
+    assert stat.S_IMODE(os.stat(ruta).st_mode) == PERMISOS_LEGIBLES  # legible al crearlo
+    actualizar_pred_test(ruta, IDS_PRED, Y_PRED, "pred_logistica", P_LOG)  # reemplaza
+    assert stat.S_IMODE(os.stat(ruta).st_mode) == PERMISOS_LEGIBLES  # y al reemplazarlo
