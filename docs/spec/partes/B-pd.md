@@ -37,6 +37,7 @@
 `LogisticRegression` con penalización L2 sobre el preprocesamiento común. Búsqueda de `C` en una rejilla logarítmica declarada
 (p. ej. 10 valores) usando validación; el número de configuraciones va a `summary.json`. Determinista con `lbfgs`: se reporta una
 corrida y se explica por qué su desviación entre semillas es 0.
+- Decisiones de B3 [DECIDIDO, Andrés, 25-oct; Spec v0.11]: rejilla de **13** valores de 10⁻⁴ a 10² cada medio orden de magnitud (`configs/pd/base.yaml`, sin duplicados: `n_configuraciones_busqueda = len(rejilla_C)`); criterio = log-loss de validación (`log_loss(..., labels=[0, 1])`), AUC de val al lado; argmin estricto y, en empate exacto, el **menor C**; el modelo final queda entrenado solo con train (sin refit con train + val); `lbfgs`, `max_iter = 1000`, `tol = 1e-6`, un `ConvergenceWarning` es error; sin `class_weight`, `penalty` ni `multi_class`; X en float64. El objetivo de sklearn es (1/n)·Σ BCE + ‖w‖²/(2·C·n) con el intercepto sin penalizar (λ = 1/(C·n) en la L2 de §3.2). `epocas` del JSON de la semilla = iteraciones de lbfgs. `desv` muestral (n = 1 → 0, núcleo §5.4). `en_borde` avisa si C elegido es el mínimo o el máximo. joblib guarda `version_sklearn` y `cargar` falla si no coincide.
 
 ### 3.2 MLP (núcleo §5.3)
 - `Linear → activación → Dropout` repetido; salida `Linear(·, 1)` con logit; pérdida `BCEWithLogitsLoss` (estable).
