@@ -1,0 +1,46 @@
+# Parte D — LGD (Spec, Parte D §3.3; núcleo §5.3, §5.4, §6). `python run.py lgd --config configs/lgd/base.yaml`
+# (lineal + 30 semillas del MLP) y `python run.py lgd-hpo --config configs/lgd/hpo.yaml` (búsqueda Optuna).
+# D4 añade base_seed, semillas, hpo, salida y modelos.
+# El bloque mlp vive en mlp_final.yaml: lo reescribe `run.py lgd-hpo` con la mejor configuración y su procedencia
+# (bloque `busqueda`). Los --set mlp.* se aplican después de la herencia, así que siempre ganan.
+hereda: mlp_final.yaml
+# D2 — loans_lgd.parquet y preprocesador_lgd.json (python -m src.lgd.preparar). Variables y percentiles de recorte NO se
+# copian: se leen de la config de la Parte A (claves `features` y `preprocesamiento.percentiles_recorte`).
+datos:
+  config_datos: configs/datos.yaml
+  loans_pd: data/processed/loans_pd.parquet
+  montos: data/processed/montos.parquet
+  salida:
+    loans_lgd: data/processed/loans_lgd.parquet
+    preprocesador: models/preprocesador_lgd.json
+    resumen: results/data/lgd/resumen_objetivo.json
+  muestra: null             # D4: n total de créditos LGD (submuestreo estratificado por split con base_seed); null = todos
+# D4 — experimento (src/lgd/experimento.py). Entradas: datos.salida.loans_lgd, datos.salida.preprocesador (tal cual, sin
+# reajustar) y el test de datos.loans_pd.
+base_seed: 0                # semilla efectiva = base_seed + k (núcleo §4.1); también semilla de la búsqueda
+semillas:
+  n: 30                     # configuración final del MLP con base_seed + 0…n−1 (núcleo §6); la lineal se ajusta 1 vez
+hpo:
+  n_ensayos: 30             # Optuna TPE (Parte D §3.3); demo: 5
+  destino: configs/lgd/mlp_final.yaml   # lgd-hpo reescribe aquí el bloque mlp + busqueda (lo hereda esta config)
+  # Mismo espacio que B (B §3.3). Neuronas: una elección por capa. sgd usa mlp.momento (no se busca).
+  espacio:
+    n_capas: [1, 4]                         # entero, inclusivo
+    neuronas: [16, 32, 64, 128, 256]        # categórico, por capa
+    activacion: [relu, leaky_relu, tanh]
+    dropout: [0.0, 0.5]                     # uniforme
+    l2: [1.0e-6, 1.0e-2]                    # log-uniforme (en D: l2·Σ‖W‖², ver mlp.l2)
+    optimizador: [adam, sgd]
+    lr: [1.0e-4, 1.0e-2]                    # log-uniforme
+    batch: [256, 512, 1024, 2048]
+salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, pred_test.parquet, pred_pd_test.parquet
+modelos:
+  lineal: models/lgd_lineal.joblib
+  mlp: models/lgd_mlp.pt    # semilla con el MAE de test mediano
+# D1b — descriptivo de la LGD observada y después del preprocesamiento (python -m src.lgd.descriptivo; Parte D §3.2b).
+# Solo datos: las figuras (D6) se dibujan desde este JSON. El umbral de monotonía se lee de la config de A
+# (eda.umbral_monotonia de datos.config_datos), no se copia.
+descriptivo:
+  salida: results/data/lgd/descriptivo.json
+  n_bins_histograma: 20     # bins iguales en [0, 1] para la LGD (total y por split)
+  cuantiles: [0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99]

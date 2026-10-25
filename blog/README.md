@@ -51,6 +51,13 @@ Fuente: Elaboración propia a partir de data/processed/resumen_datos.json.
 | `eda-tasa-variables` | `eda-tasa-variables.png` | Tasa de malos por decil o categoría de cada variable (train) | A |
 | `post-psi` | `post-psi.png` | PSI de cada variable frente a train | A |
 | `post-correlacion` | `post-correlacion.png` | Correlaciones entre variables numéricas transformadas | A |
+| `lgd-histograma` | `lgd-histograma.png` | Histograma de la LGD observada por conjunto y masa exacta en 0 y en 1 | D |
+| `lgd-por-anio` | `lgd-por-anio.png` | % con LGD = 1 y LGD media por año de originación | D |
+| `lgd-ead-plazo` | `lgd-ead-plazo.png` | EAD por plazo y por año, y LGD media por plazo | D |
+| `lgd-distribucion-predicha` | `lgd-distribucion-predicha.png` | LGD predicha (lineal y MLP) frente a la observada en test | D |
+| `lgd-qq` | `lgd-qq.png` | Q-Q de la LGD predicha frente a la observada en test | D |
+| `lgd-error-por-banda` | `lgd-error-por-banda.png` | MAE por banda de LGD observada en test (lineal, MLP, constante mediana) | D |
+| `lgd-semillas` | `lgd-semillas.png` | MAE de test de las 30 semillas del MLP frente a la lineal y las constantes | D |
 
 ## Bibliografía
 Toda entrada de `references.bib` se copia del BibTeX oficial del DOI (`https://doi.org/<doi>` con

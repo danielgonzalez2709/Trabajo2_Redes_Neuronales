@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2) y Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3, 24-oct 10:26 p. m.). Spec v0.12 · `dev/andres` (PR #6 abierto, lo revisa Daniel): B1 métricas ✅, B2 MLP + entrenar ✅ y B3 logística ✅; resultados reales de la logística en `results/data/pd/` y `models/pd_logistica.joblib`; Spec v0.13 (L2) y v0.14 (B3) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1–D3. Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02. Andrés (tras el PR): B4 (Optuna) y B5. Juan José: C3 ya puede usar `models/pd_logistica.joblib` (`LogisticaPD.cargar`, `predict_logit`, `coeficientes()`) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **D en `dev/camila`:** D1–D8 ✅. D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5. C (Juan José): C1–C2; C3 ya puede usar `models/pd_logistica.joblib`. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -32,6 +32,9 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- LGD (Camila, 24-oct): población = Charged Off (2 estados); EAD ≤ 0 o NA → excluir y contar; diferencia entre particiones
+  (LGD = 1: train 26 %, test 63 %) se acepta y documenta ("consistente con censura"); `preprocesador_lgd.json` = el de A
+  ajustado solo con el train de la población LGD (D §3.2).
 - Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
@@ -71,10 +74,19 @@ mar 27 6 p. m. entrega.
 7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
    Para C/E: la PD de Python sale de X float32 → float64; vigilar la paridad < 1e-6 si la app preprocesa en float64.
 
+8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
+   PR de `dev/camila`: declarar `src/common/cli.py` (`lgd`, `lgd-hpo`, `figures`) y `configs/sustentacion.yaml` (demo `lgd`).
+
 ## 🎯 Cacería (resumen)
-Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 7 (H-01, H-05, H-06, H-07, H-09 Código; H-02 Datos; H-08 Matemáticas) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 8 (H-01, H-05, H-06, H-07, H-09 Código; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
+- **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
+- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos
+  "monótona" siempre (caso `pub_rec`). D5 ✅ (auditor, clon sin red).
+- **2026-10-25** — D4 (Camila): TPE 30/30 + 30 semillas. Test: MLP MAE 0,07708 ± 0,00059 (14 593 parám.), lineal 0,07712 (49);
+  la mediana constante gana (0,06986). Rechazado 1.ª ronda (`mejor_config.json` pisaba `--set`); arreglado con `mlp_final.yaml`.
 - **2026-10-25** — Revisión de lo que B, C, D y E consumen de la Parte A, desde una copia limpia de `main` sin datos crudos:
   todo se carga y funciona. Hueco corregido (Spec v0.12): `categorias_es` en `features.yaml` y `etiquetas_categorias` en el
   JSON de la app (las categorías salían en inglés); avisar a Juan José (exportador) y Camila (app). Siddiqi: 2.ª ed., 2017.
@@ -82,6 +94,8 @@ Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 7 (H-01, H-05, H-0
   que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
 - **2026-10-24** — PR #3 fusionado (10:26 p. m.): `montos.parquet` y contratos v0.10 en `main`, que Camila necesitaba para D1/D2;
   E5, blog 00 y 11–13, notebook 00 y el proyecto del video.
+- **2026-10-24** — D2 (Camila): `loans_lgd.parquet` (43 236), `preprocesador_lgd.json` y `resumen_objetivo.json` (`python -m src.lgd.preparar`).
+- **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional); rechazado 1.ª ronda (NaN en silencio); candidato H-10.
 - **2026-10-24** — PR #2 fusionado: Spec v0.9, Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B,
   Juan José C). Los contratos de la E[L] de `dev/daniel` pasan a ser la v0.10.
 - **2026-10-24** — Blog 00 (resumen, sin cifras de modelos todavía) y notebook 00 de la sustentación: demos de `run.py` en

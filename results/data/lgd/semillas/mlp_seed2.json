@@ -1,0 +1,42 @@
+{
+  "modelo": "mlp",
+  "seed": 2,
+  "config": {
+    "mlp": {
+      "capas": [
+        128,
+        64
+      ],
+      "activacion": "tanh",
+      "dropout": 0.05426572640095942,
+      "l2": 0.003340334194956007,
+      "optimizador": "adam",
+      "lr": 0.009801607304582592,
+      "momento": 0.9,
+      "batch": 512,
+      "max_epocas": 200,
+      "paciencia": 10,
+      "device": "auto",
+      "perdida": "bce_fraccional"
+    }
+  },
+  "metricas": {
+    "mae_val": 0.07634475578946072,
+    "rmse_val": 0.09245052353081734,
+    "mae_test": 0.07672757512503287,
+    "rmse_test": 0.08511511380082964
+  },
+  "n_parametros": 14593,
+  "tiempo_s": 0.5892790000070818,
+  "device": "cpu",
+  "epocas": 26,
+  "n": {
+    "train": 14419,
+    "val": 14836,
+    "test": 13981
+  },
+  "muestra": null,
+  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
+  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
+  "mejor_epoca": 16
+}
