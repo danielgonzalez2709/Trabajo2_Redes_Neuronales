@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.10. **B1 métricas ✅ y B2 MLP + entrenar ✅ en `dev/andres`** (sin push ni PR; Andrés revisa B2) |
-| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés: B3 (logística) y B4 (Optuna); Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.11. **B1 métricas ✅, B2 MLP + entrenar ✅ y B3 logística ✅ en `dev/andres`** (sin push ni PR); resultados reales de la logística ya en `results/data/pd/` y `models/pd_logistica.joblib` |
+| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés: B4 (Optuna) y B5. Juan José: C1/C2, y C3 ya puede usar `models/pd_logistica.joblib` (`LogisticaPD.cargar`, `predict_logit`, `coeficientes()`). B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -32,6 +32,10 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- B3 (Andrés, 25-oct; Spec v0.11, B-pd §3.1): rejilla de 13 C (10⁻⁴…10², sin duplicados); criterio log-loss de val, empate →
+  menor C; sin refit con train+val; ConvergenceWarning = error; campo `evidencia` (SHA-256 de partición y preprocesador)
+  en todos los JSON de resultados; `desv` muestral (n = 1 → 0); métricas `{auc,gini,ks,brier,logloss}_{val,test}`;
+  `epocas` de la logística = iteraciones de lbfgs; joblib con `version_sklearn`; `en_borde` en la búsqueda.
 - B2 (Andrés, 24/25-oct): L2 = (λ/2)‖W‖² ≡ `weight_decay = mlp.l2`, sin L2 en sesgos (Spec v0.10, B-pd §3.2);
   `min_delta = 0`; `mlp.pos_weight = 1` obligatorio; pérdida no finita → `FloatingPointError`; épocas desde 1; se aceptan
   las pruebas extra (documentadas en `tests/test_mlp.py`) y las funciones auxiliares fuera de las firmas del plan.
@@ -55,14 +59,26 @@ mar 27 6 p. m. entrega.
 ## ⏳ Pendientes (decisiones)
 0. **Al abrir el PR de `dev/andres`** (B1 + B2), declarar: (a) añade `src/common/torch_utils.py` y `src/common/metricas.py`
    (compartidos); (b) Spec v0.10 corrige B-pd §3.2 (L2 = (λ/2)‖W‖², H-08): avisar a Daniel y pedirle que confirme el origen
-   de H-08; (c) `iterar_minilotes(n, batch, rng, device)` recibe `device`: avisar a D (Camila y José).
+   de H-08; (c) `iterar_minilotes(n, batch, rng, device)` recibe `device`: avisar a D (Camila y José); (d) B3 y Spec v0.11:
+   el campo `evidencia` también aplica a los JSON de la LGD (§5.4): avisar a D; C3 puede usar el modelo de la logística.
+2. Para B5: conectar `run.py pd` (imprimir la config resuelta y el tiempo total, núcleo §4.1) reutilizando
+   `escribir_semilla`, `actualizar_summary`, `actualizar_pred_test`, `resumir` y las huellas de `src/pd/experimento.py`.
+   Después de B5: refactor `TODO(refactor-post-B5)` (validadores duplicados de `mlp.py`, `logistica.py`, `experimento.py`).
+3. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
+   Para C/E: la PD de Python sale de X float32 → float64; vigilar la paridad < 1e-6 si la app preprocesa en float64.
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 6 (H-01, H-05, H-06, H-07 Código; H-02 Datos; H-08 Matemáticas) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 7 (H-01, H-05, H-06, H-07, H-09 Código; H-02 Datos; H-08 Matemáticas) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — B3 (Andrés): `src/pd/logistica.py` (`LogisticaPD` según `ModeloPD`, búsqueda de C con la log-loss de
+  val) y `src/pd/experimento.py` (`correr_logistica`, huellas, `resumir`, escritores que no borran lo ajeno);
+  `configs/pd/base.yaml`; Spec v0.11. 124 pruebas rápidas + 1 lenta; 47 de 48 mutantes mueren (1 equivalente).
+  revisor-spec, revisor-calidad (2 revisiones) y verificador-matematico APROBADO; 4 rondas de mejoras. Corrida real: C
+  elegido 3,16e-3, 49 parámetros, 13 configuraciones; AUC test 0,670, KS 0,247, Brier 0,187 (PD media de test 0,187 frente
+  a una tasa observada de 0,262; tasas de malos: train 0,163, val 0,230, test 0,262). Candidato H-09 (prueba débil).
 - **2026-10-25** — B2 (Andrés): `src/pd/mlp.py` (red Linear→φ→Dropout con salida logit, `MLPPD` según `ModeloPD`),
   `src/pd/entrenar.py` (bucle genérico, minilotes reproducibles, parada temprana con restauración, L2 por grupos) y
   `src/common/torch_utils.py`; `tests/test_mlp.py` con 91 pruebas que matan 47 mutantes. Percent format, una celda por
