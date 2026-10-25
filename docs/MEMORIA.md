@@ -11,10 +11,10 @@
 ## 📍 Estado actual
 | | |
 |---|---|
-| Última actualización | 2026-10-24 |
-| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.9. **B1 métricas ✅ en `dev/andres`** (sin push; Andrés revisa) |
-| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés arranca B1/B2 y Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
-| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
+| Última actualización | 2026-10-25 |
+| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.10. **B1 métricas ✅ y B2 MLP + entrenar ✅ en `dev/andres`** (sin push ni PR; Andrés revisa B2) |
+| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés: B3 (logística) y B4 (Optuna); Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
 ## 👥 Equipo
@@ -32,6 +32,9 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- B2 (Andrés, 24/25-oct): L2 = (λ/2)‖W‖² ≡ `weight_decay = mlp.l2`, sin L2 en sesgos (Spec v0.10, B-pd §3.2);
+  `min_delta = 0`; `mlp.pos_weight = 1` obligatorio; pérdida no finita → `FloatingPointError`; épocas desde 1; se aceptan
+  las pruebas extra (documentadas en `tests/test_mlp.py`) y las funciones auxiliares fuera de las firmas del plan.
 - Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
@@ -50,13 +53,22 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
+0. **Al abrir el PR de `dev/andres`** (B1 + B2), declarar: (a) añade `src/common/torch_utils.py` y `src/common/metricas.py`
+   (compartidos); (b) Spec v0.10 corrige B-pd §3.2 (L2 = (λ/2)‖W‖², H-08): avisar a Daniel y pedirle que confirme el origen
+   de H-08; (c) `iterar_minilotes(n, batch, rng, device)` recibe `device`: avisar a D (Camila y José).
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 6 (H-01, H-05, H-06, H-07 Código; H-02 Datos; H-08 Matemáticas) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — B2 (Andrés): `src/pd/mlp.py` (red Linear→φ→Dropout con salida logit, `MLPPD` según `ModeloPD`),
+  `src/pd/entrenar.py` (bucle genérico, minilotes reproducibles, parada temprana con restauración, L2 por grupos) y
+  `src/common/torch_utils.py`; `tests/test_mlp.py` con 91 pruebas que matan 47 mutantes. Percent format, una celda por
+  función, un comentario por línea. revisor-spec APROBADO; revisor-calidad RECHAZADO 3 veces y APROBADO en la 4.ª;
+  verificador-matematico APROBADO. Candidatos H-05, H-06 (míos), H-07 (implementador) y H-08 (Spec: λ‖W‖² ≠ weight_decay;
+  Spec v0.10). Sin push: Andrés revisa el código antes.
 - **2026-10-24** — B1 (Andrés): `src/common/metricas.py` en percent format (fórmula antes de cada función; AUC, Gini, KS,
   Brier, ROC con TPR/FPR aparte, calibración por cuantiles; dependencias inyectadas) + `test_metricas.py` (63 pruebas de caja
   negra contra sklearn/scipy). TDD con 2 rondas: revisor-spec, revisor-calidad y verificador-matematico APROBADO (27

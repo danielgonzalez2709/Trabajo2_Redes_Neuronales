@@ -6,7 +6,7 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 0 | 0 |
+| Matemáticas | 1 (H-08) | 0 |
 | Código | 6 (H-01, H-03, H-04, H-05, H-06, H-07) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
@@ -198,3 +198,23 @@ falsas se registran como candidatos.
    historial sí es mutable". Alternativa no aplicada: guardar `tuple(historial)`.
 6. **Lección aprendida:** "inmutable" de un contenedor congelado no se extiende a sus campos mutables; un comentario
    también es una afirmación que se verifica.
+
+### H-08 — "Penalizar λ‖W‖² en la pérdida equivale al `weight_decay` de Adam/SGD"
+- **Estado:** candidato (origen por confirmar con Daniel)
+- **Categoría:** Matemáticas
+- **Parte:** B
+- **Herramienta y modelo:** por confirmar. El Spec v0.1 lo generó el puente con Claude (MEMORIA, 19-oct); la línea entra
+  al historial en la v0.4 (commit b562895, 22-oct) · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
+  `verificador-matematico` (B2)
+1. **Prompt (literal):** por confirmar (el que produjo la v0.1–v0.4 del Spec). Verificación: `prompts/B2.md`, sección
+   "9. verificador-matematico".
+2. **Respuesta relevante de la IA:** `docs/spec/partes/B-pd.md` §3.2 (hasta v0.9): "el código debe hacer L2 (término
+   λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente)".
+3. **Cómo sospechamos:** al verificar la celda de L2 de `src/pd/entrenar.py`, que usa (λ/2)‖W‖².
+4. **Evidencia:** ∇(λ‖W‖²) = 2λW, mientras que `weight_decay = λ` suma λW al gradiente: lo equivalente es (λ/2)‖W‖².
+   Numéricamente (5 pasos, scripts en el scratchpad de la sesión): `weight_decay = λ` y "+(λ/2)‖W‖²" dan los mismos pesos
+   (dif. máx. 2,8e-17 con SGD y 5,6e-17 con Adam); con "+λ‖W‖²" difieren (6,1e-3 con SGD y 5,5e-2 con Adam).
+5. **Corrección:** Spec v0.10 (25-oct, Andrés): B-pd §3.2 dice (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en los sesgos.
+   El código ya seguía esta convención (decisión de Andrés, 24-oct). El blog 04 (B8) debe escribir (λ/2)‖W‖².
+6. **Lección aprendida:** "equivalente" entre una penalización y un hiperparámetro de la librería se verifica derivando el
+   gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.

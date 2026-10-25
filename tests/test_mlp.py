@@ -6,6 +6,30 @@ nuestras firmas, nuestras decisiones (L2 sin sesgos, parada temprana con mejora 
 ``FloatingPointError``, logit sin sigmoide) y el determinismo esperado en CPU (núcleo §7.1).
 
 Datos: sintéticos, generados aquí con una logística conocida (núcleo §0 regla 8: solo para desarrollar).
+
+Pruebas añadidas a las 20 del plan aprobado (Andrés las aceptó el 25-oct). Cada una atrapa un error que ninguna otra
+prueba atrapa; en las rondas de B2 se comprobó con mutantes (``alucinaciones/prompts/B2.md``):
+
+- ``test_resolver_device_cuda_sin_gpu``: pedir ``cuda`` sin GPU no cae a CPU en silencio.
+- ``test_a_tensor_rechaza_ndim_invalido``: escalares, 3-D y 2-D con ``columna=True`` no pasan.
+- ``test_contar_parametros_solo_entrenables``: los parámetros congelados no cuentan (núcleo §5.3: "entrenables").
+- ``test_fit_valida_la_config``: ``fit`` llama a ``validar_cfg_mlp`` (sin eso, entrenaría con ``dropout = 1``, que
+  PyTorch acepta y apaga todas las neuronas).
+- ``test_iterar_minilotes_cubre_todo`` y ``test_iterar_minilotes_depende_del_rng``: no se pierde el último lote
+  incompleto y el orden se baraja con el rng de la corrida (hallazgo H-06).
+- ``test_parada_temprana_reinicia_la_cuenta``: la paciencia vuelve a cero tras una mejora.
+- ``test_entrenar_rechaza_datos_vacios``: un conjunto vacío da ``ValueError`` y no un ``ZeroDivisionError``.
+- ``test_epoca_entrenamiento_media_ponderada``: la pérdida de la época pondera cada lote por su tamaño.
+- ``test_entrenar_restaura_mejores_pesos_por_max_epocas``: también se restaura al agotar las épocas.
+- ``test_evaluar_perdida_sin_dropout``: la pérdida de validación se mide sin dropout (hallazgo H-06).
+- ``test_resultado_del_fit``: ``resultado`` es coherente con el historial (lo usan B4 y B5).
+- ``test_fit_no_muta_la_config``: B4 y B5 reutilizan la misma config entre ensayos y semillas.
+- ``test_fit_en_cpu_activa_el_determinismo``: la prueba de semillas no lo ve, porque estas operaciones ya son
+  deterministas en CPU.
+- ``test_construir_perdida_pondera_la_clase_positiva``: ``pos_weight`` llega a la pérdida.
+- ``test_fit_rechaza_objetivo_invalido`` y ``test_fit_rechaza_x_val_con_otras_columnas``: entradas mal formadas.
+- ``test_refit_fallido_no_altera_el_modelo``: un ``fit`` que falla deja intacto el modelo anterior.
+- ``test_fit_con_val_de_una_sola_clase``: prueba de humo con desbalance extremo en validación.
 """
 
 import copy  # copias de CFG_PRUEBA: ninguna prueba muta la constante
