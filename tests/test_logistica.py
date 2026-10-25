@@ -43,7 +43,8 @@ Pruebas añadidas a las 28 del plan aprobado (cada una atrapa un fallo de nuestr
 - ``test_a16_tiempo_total_del_fit``: ``tiempo_total_s`` es ≥ la suma de los tiempos de las filas y sale del reloj
   inyectado en ``LogisticaPD`` (un paso exacto del reloj falso).
 - ``test_a17_cfg_sin_bloque_logistica``: cfg sin la clave ``logistica`` o que no es dict → ValueError (no KeyError ni
-  TypeError) en ``fit`` y en ``correr_logistica``, sin tocar los datos.
+  TypeError) en ``bloque_logistica``, ``fit`` y ``correr_logistica``, sin tocar los datos; con el bloque, devuelve
+  la copia validada.
 - ``test_a18_correr_logistica_valida_la_semilla``: seed = −1 o ``"0"`` → ValueError antes de entrenar y sin archivos.
 - ``test_a19_pred_test_rechaza_ids_repetidos``: un id repetido haría ambigua la alineación por id → ValueError.
 - ``test_a20_resumir_rechaza_metrica_sin_sentido``: una métrica sin sentido declarado → ValueError (no un KeyError).
@@ -101,6 +102,7 @@ from src.pd.logistica import (  # modelo de referencia y sus piezas
     CLAVES_LOGISTICA,  # claves exactas del bloque logistica
     LogisticaPD,  # el modelo que cumple ModeloPD
     ajustar_sin_avisos,  # ajuste con avisos como error
+    bloque_logistica,  # bloque logistica de la config completa
     buscar_C,  # búsqueda de C con validación
     crear_estimador,  # fábrica del estimador de sklearn
     elegir_indice,  # regla de elección (pura)
@@ -1238,7 +1240,12 @@ def test_a17_cfg_sin_bloque_logistica(datos, tmp_path):
     X_tr, y_tr, X_val, y_val = datos  # desempaca
     rutas = RutasPD(tmp_path / "no_existe.parquet", tmp_path / "no_existe.json", tmp_path / "res",
                     tmp_path / "mod")  # rutas inexistentes: si se leyeran, el error sería otro
+    cfg_ok = _cfg()  # config válida
+    assert bloque_logistica(cfg_ok) == cfg_ok["logistica"]  # mismo contenido
+    assert bloque_logistica(cfg_ok) is not cfg_ok["logistica"]  # pero es la copia validada
     for cfg in ({"mlp": {}}, [CFG_PRUEBA["logistica"]], None):  # sin bloque, lista, None
+        with pytest.raises(ValueError):  # la función pública
+            bloque_logistica(cfg)  # config inválida
         with pytest.raises(ValueError):  # fit
             LogisticaPD().fit(X_tr, y_tr, X_val, y_val, cfg, SEMILLA_MODELO)  # config inválida
         with pytest.raises(ValueError):  # experimento

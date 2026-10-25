@@ -36,7 +36,7 @@ from src.common.metricas import auc, brier, gini, ks  # métricas comunes (B1)
 from src.common.preprocesamiento import Preprocesador  # preprocesador común (núcleo §5.2)
 from src.common.results import load_json, save_json  # JSON sin NaN y escritura atómica (núcleo §5.4)
 from src.common.seeds import validar_entero  # semilla entera ≥ 0
-from src.pd.logistica import LogisticaPD, _bloque_logistica, esta_en_borde, logloss  # modelo de referencia
+from src.pd.logistica import LogisticaPD, bloque_logistica, esta_en_borde, logloss  # modelo de referencia
 
 __all__ = [  # interfaz pública acordada (tarea B3); lo demás es interno
     "RutasPD", "RUTAS_PD", "huella_particion", "huella_archivo", "cargar_matrices",  # datos y evidencia
@@ -327,6 +327,10 @@ def actualizar_pred_test(ruta, ids, y, columna: str, pred) -> None:
 # `{resultados}/semillas/{modelo}_seed{seed}.json` (núcleo §5.4). La semilla es un entero $\ge 0$ (regla única de
 # `src/common/seeds.py`); `_semilla_valida` convierte su `TypeError` en `ValueError` para que el experimento falle
 # siempre con el mismo tipo de error ante una semilla inválida.
+#
+# TODO(refactor-post-B5): es la tercera copia del envoltorio TypeError → ValueError de `validar_entero` (las otras
+# dos son `_entero_config` de `src/pd/mlp.py` y de `src/pd/logistica.py`); al cerrar B5 se unifican en un módulo
+# común.
 
 # %%
 def _semilla_valida(seed) -> int:
@@ -400,11 +404,13 @@ def _summary_logistica(modelo, cfg_log: dict, metricas: dict, evidencia: dict) -
 
 
 # %% [markdown]
-# ## Escrituras comunes a todos los modelos de PD
+# ## Escrituras de un modelo con una sola corrida
 #
 # Semilla (`semillas/{modelo}_seed{seed}.json`), entrada del summary (conservando las ajenas) y columna
-# `pred_{modelo}` de `pred_test.parquet` (alineada por id). B5 la reutiliza para el MLP; los archivos propios de la
-# logística (`busqueda_logistica.json` y el joblib) se escriben aparte.
+# `pred_{modelo}` de `pred_test.parquet` (alineada por id): la composición para un modelo de **una** corrida, como
+# la logística. B5 no la reutiliza tal cual (el MLP escribe 30 semillas, pero un solo summary y una sola columna de
+# `pred_test`, la de la semilla mediana): usa `escribir_semilla`, `actualizar_summary` y `actualizar_pred_test` por
+# separado. Los archivos propios de la logística (`busqueda_logistica.json` y el joblib) se escriben aparte.
 
 # %%
 def _escribir_resultados(rutas: RutasPD, modelo: str, seed: int, registro: dict, entrada: dict, ids_te, y_te,
@@ -426,7 +432,7 @@ def _escribir_resultados(rutas: RutasPD, modelo: str, seed: int, registro: dict,
 def correr_logistica(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=LogisticaPD, seed: int = 0) -> dict:
     """Entrena y evalúa la logística, escribe sus resultados y devuelve su entrada de summary.json."""
     seed = _semilla_valida(seed)  # primero: una semilla inválida no debe costar un entrenamiento
-    cfg_log = _bloque_logistica(cfg)  # bloque validado (va a la semilla); ValueError si falta
+    cfg_log = bloque_logistica(cfg)  # bloque validado (va a la semilla); ValueError si falta
     df, datos = _cargar_datos(rutas)  # una sola lectura del parquet
     evidencia = _evidencia(df, rutas.preprocesador)  # huellas del mismo df y del preprocesador
     X_tr, y_tr, _ = datos["train"]  # entrenamiento

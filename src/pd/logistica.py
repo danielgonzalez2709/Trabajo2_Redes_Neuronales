@@ -43,7 +43,7 @@ from src.common.metricas import auc  # AUC de validación, registrada al lado de
 from src.common.seeds import validar_entero  # regla única de enteros del proyecto (sin modificar)
 
 __all__ = [  # interfaz pública acordada (tarea B3); lo demás es interno
-    "CLAVES_LOGISTICA", "validar_cfg_logistica",  # config
+    "CLAVES_LOGISTICA", "validar_cfg_logistica", "bloque_logistica",  # config
     "crear_estimador", "logloss", "ajustar_sin_avisos",  # piezas inyectables
     "elegir_indice", "esta_en_borde", "buscar_C",  # búsqueda
     "LogisticaPD",  # el modelo que cumple ModeloPD (núcleo §5.3)
@@ -64,7 +64,9 @@ CLAVES_ARCHIVO = ("estimador", "C_elegido", "busqueda", "n_entradas", "version_s
 # - **real:** número real y finito (nunca bool ni texto); $\pm\infty$ y NaN no son valores válidos.
 #
 # TODO(refactor-post-B5): estos dos validadores duplican los privados de `src/pd/mlp.py` (no se importa nada
-# privado de otro módulo); al cerrar B5 se mueven a un módulo común.
+# privado de otro módulo); al cerrar B5 se mueven a un módulo común. El envoltorio TypeError → ValueError de
+# `validar_entero` tiene **tres** copias: `_entero_config` de `src/pd/mlp.py`, `_entero_config` de este módulo y
+# `_semilla_valida` de `src/pd/experimento.py`; se unifican en ese mismo refactor.
 
 # %%
 def _entero_config(valor, nombre: str, minimo: int) -> int:
@@ -147,12 +149,13 @@ def validar_cfg_logistica(cfg_log: dict) -> dict:
 # %% [markdown]
 # ## Bloque `logistica` de la config completa
 #
-# `fit` y `correr_logistica` reciben la config **completa** (núcleo §5.3) y leen `cfg["logistica"]`. Una config que
+# `fit` y `correr_logistica` reciben la config **completa** (núcleo §5.3) y leen `cfg["logistica"]` con esta función
+# pública (la usan dos módulos, así que no es privada). Una config que
 # no es diccionario o que no trae el bloque es una falla de config → `ValueError` (no `KeyError` ni `TypeError`),
 # igual que cualquier otra regla de `validar_cfg_logistica`.
 
 # %%
-def _bloque_logistica(cfg) -> dict:
+def bloque_logistica(cfg) -> dict:
     """Copia validada de ``cfg["logistica"]``; ValueError si cfg no es dict o no trae el bloque."""
     if not isinstance(cfg, dict) or "logistica" not in cfg:  # config sin el bloque de la logística
         raise ValueError("La config debe ser un diccionario con el bloque 'logistica'")  # falla de config
@@ -358,7 +361,7 @@ def _validar_datos(X_tr, y_tr, X_val, y_val) -> int:
 #
 # ### `fit`
 #
-# 1. Valida la config (`_bloque_logistica(cfg)`, copia sin mutar) y los datos.
+# 1. Valida la config (`bloque_logistica(cfg)`, copia sin mutar) y los datos.
 # 2. Convierte X a `float64` (la precisión del ajuste; float32 y float64 con los mismos valores dan lo mismo).
 # 3. Llama a `buscar` con la copia validada y asigna el estado **solo al final**: si algo falla, un modelo ya
 #    entrenado sigue igual.
@@ -411,7 +414,7 @@ class LogisticaPD:
     def fit(self, X_tr, y_tr, X_val, y_val, cfg: dict, seed: int) -> "LogisticaPD":
         """Busca C con ``cfg["logistica"]`` (``seed`` se ignora: lbfgs es determinista); devuelve el modelo."""
         inicio = self._reloj()  # reloj de todo el fit
-        cfg_log = _bloque_logistica(cfg)  # copia validada: cfg queda intacta
+        cfg_log = bloque_logistica(cfg)  # copia validada: cfg queda intacta
         n_entradas = _validar_datos(X_tr, y_tr, X_val, y_val)  # falla antes de tocar el estado
         X_tr64 = np.asarray(X_tr, dtype=np.float64)  # precisión del ajuste
         X_val64 = np.asarray(X_val, dtype=np.float64)  # misma precisión en val
