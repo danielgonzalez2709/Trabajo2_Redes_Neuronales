@@ -1,0 +1,7 @@
+# Parte D — búsqueda del MLP de LGD: `python run.py lgd-hpo --config configs/lgd/hpo.yaml` (Parte D §3.3).
+# Escribe results/data/lgd/hpo_ensayos.json y reescribe configs/lgd/mlp_final.yaml (hpo.destino), que hereda base.yaml;
+# luego `python run.py lgd --config configs/lgd/base.yaml` entrena las 30 semillas con esa mejor configuración.
+# Para pruebas rápidas, usar --set hpo.destino=<carpeta temporal> para no reescribir el mlp_final.yaml versionado.
+hereda: base.yaml
+hpo:
+  n_ensayos: 30

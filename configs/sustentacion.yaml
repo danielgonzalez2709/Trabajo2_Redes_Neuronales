@@ -18,7 +18,7 @@ demos:
     parte: D
     subcomando: lgd
     config: configs/lgd/demo.yaml
-    salida_temporal: null
+    salida_temporal: salida
   scorecard:
     parte: C
     subcomando: scorecard

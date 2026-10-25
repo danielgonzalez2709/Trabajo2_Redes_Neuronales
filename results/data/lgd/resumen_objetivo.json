@@ -1,0 +1,56 @@
+{
+  "n_total": 237695,
+  "n_poblacion": 43236,
+  "poblacion_por_estado": {
+    "Charged Off": 42475,
+    "Does not meet the credit policy. Status:Charged Off": 761
+  },
+  "excluidos_por_estado": {
+    "Default": 832,
+    "Late (31-120 days)": 6900
+  },
+  "otros_estados": {
+    "Fully Paid": 184739,
+    "Does not meet the credit policy. Status:Fully Paid": 1988
+  },
+  "n_ead_no_positiva": 0,
+  "na_por_campo": {
+    "funded_amnt": 0,
+    "total_rec_prncp": 0,
+    "recoveries": 0,
+    "collection_recovery_fee": 0
+  },
+  "n_fee_mayor_que_recoveries": 0,
+  "n_recoveries_cero_con_fee": 0,
+  "n_recoveries_positivas_fuera_poblacion": 0,
+  "n_lgd_valida": 43236,
+  "n_lgd_sin_recorte_menor_0": 32,
+  "n_lgd_sin_recorte_mayor_1": 0,
+  "n_lgd_igual_0": 36,
+  "n_lgd_igual_1": 18865,
+  "lgd_mediana": 0.9550601703897867,
+  "lgd_media": 0.9263487271246055,
+  "lgd_por_split": {
+    "train": {
+      "n": 14419,
+      "media": 0.9168608093111873,
+      "mediana": 0.9431801269669556,
+      "fraccion_lgd_1": 0.25882516124557875,
+      "fraccion_lgd_0": 0.0013870587419377212
+    },
+    "val": {
+      "n": 14836,
+      "media": 0.9178513856904217,
+      "mediana": 0.884483229570109,
+      "fraccion_lgd_1": 0.42895659207333514,
+      "fraccion_lgd_0": 0.0004718252898355352
+    },
+    "test": {
+      "n": 13981,
+      "media": 0.9451508760745537,
+      "mediana": 1.0,
+      "fraccion_lgd_1": 0.6272083541949789,
+      "fraccion_lgd_0": 0.0006437307774837279
+    }
+  }
+}

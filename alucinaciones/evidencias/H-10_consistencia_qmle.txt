@@ -1,0 +1,6 @@
+y = 0.00 -> argmin μ = 0.00000
+y = 0.17 -> argmin μ = 0.17000
+y = 0.50 -> argmin μ = 0.50000
+y = 0.93 -> argmin μ = 0.93000
+y = 1.00 -> argmin μ = 1.00000
+QMLE con y ~ Beta: coeficientes [-0.4997, 1.2023] (verdaderos [-0.5, 1.2])

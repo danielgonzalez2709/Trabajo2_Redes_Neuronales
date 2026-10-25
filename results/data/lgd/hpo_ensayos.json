@@ -1,0 +1,761 @@
+{
+  "n_ensayos": 30,
+  "muestreador": "TPESampler",
+  "semilla_muestreador": 0,
+  "semilla_ensayos": 0,
+  "criterio": "mínima pérdida de validación del propio MLP (media de mlp.perdida en val, mejor época); MAE de val al lado [PROPUESTO por el orquestador]",
+  "espacio": {
+    "n_capas": [
+      1,
+      4
+    ],
+    "neuronas": [
+      16,
+      32,
+      64,
+      128,
+      256
+    ],
+    "activacion": [
+      "relu",
+      "leaky_relu",
+      "tanh"
+    ],
+    "dropout": [
+      0.0,
+      0.5
+    ],
+    "l2": [
+      1e-06,
+      0.01
+    ],
+    "optimizador": [
+      "adam",
+      "sgd"
+    ],
+    "lr": [
+      0.0001,
+      0.01
+    ],
+    "batch": [
+      256,
+      512,
+      1024,
+      2048
+    ]
+  },
+  "mlp_base": {
+    "capas": [
+      64,
+      32
+    ],
+    "activacion": "relu",
+    "dropout": 0.1,
+    "l2": 0.0001,
+    "optimizador": "adam",
+    "lr": 0.001,
+    "momento": 0.9,
+    "batch": 256,
+    "max_epocas": 200,
+    "paciencia": 10,
+    "device": "auto",
+    "perdida": "bce_fraccional"
+  },
+  "tiempo_total_s": 32.5218260831316,
+  "n": {
+    "train": 14419,
+    "val": 14836,
+    "test": 13981
+  },
+  "muestra": null,
+  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
+  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
+  "mejor": {
+    "numero": 27,
+    "valor_val": 0.2837579548358917,
+    "mae_val": 0.07613315967975787,
+    "parametros": {
+      "capas": [
+        128,
+        64
+      ],
+      "activacion": "tanh",
+      "dropout": 0.05426572640095942,
+      "l2": 0.003340334194956007,
+      "optimizador": "adam",
+      "lr": 0.009801607304582592,
+      "batch": 512
+    }
+  },
+  "ensayos": [
+    {
+      "numero": 0,
+      "parametros": {
+        "capas": [
+          16,
+          64,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.4350060741234096,
+        "l2": 0.008212461922256876,
+        "optimizador": "adam",
+        "lr": 0.0036396393567863917,
+        "batch": 2048
+      },
+      "valor_val": 0.2839212715625763,
+      "mae_val": 0.07611352324552037,
+      "tiempo_s": 0.7797906249761581,
+      "estado": "COMPLETE",
+      "epocas": 16,
+      "mejor_epoca": 6,
+      "device": "cpu"
+    },
+    {
+      "numero": 1,
+      "parametros": {
+        "capas": [
+          64,
+          256,
+          128
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.06446314882742665,
+        "l2": 1.8268942281532334e-05,
+        "optimizador": "sgd",
+        "lr": 0.0007537078298264387,
+        "batch": 256
+      },
+      "valor_val": 0.2843833863735199,
+      "mae_val": 0.0761867267986785,
+      "tiempo_s": 8.295028291002382,
+      "estado": "COMPLETE",
+      "epocas": 200,
+      "mejor_epoca": 199,
+      "device": "cpu"
+    },
+    {
+      "numero": 2,
+      "parametros": {
+        "capas": [
+          32,
+          256,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.019593896127160337,
+        "l2": 1.3527821070347645e-05,
+        "optimizador": "sgd",
+        "lr": 0.00017276487008217891,
+        "batch": 2048
+      },
+      "valor_val": 0.30320897698402405,
+      "mae_val": 0.08623535572676255,
+      "tiempo_s": 4.432614416000433,
+      "estado": "COMPLETE",
+      "epocas": 200,
+      "mejor_epoca": 200,
+      "device": "cpu"
+    },
+    {
+      "numero": 3,
+      "parametros": {
+        "capas": [
+          256,
+          128,
+          128
+        ],
+        "activacion": "tanh",
+        "dropout": 0.4810942725587191,
+        "l2": 9.885817165390822e-06,
+        "optimizador": "sgd",
+        "lr": 0.001394773898807281,
+        "batch": 512
+      },
+      "valor_val": 0.28408578038215637,
+      "mae_val": 0.07585504604453291,
+      "tiempo_s": 3.607629249978345,
+      "estado": "COMPLETE",
+      "epocas": 79,
+      "mejor_epoca": 69,
+      "device": "cpu"
+    },
+    {
+      "numero": 4,
+      "parametros": {
+        "capas": [
+          128,
+          256,
+          16
+        ],
+        "activacion": "relu",
+        "dropout": 0.21438435047288307,
+        "l2": 3.482541150827932e-06,
+        "optimizador": "sgd",
+        "lr": 0.0015196568166072376,
+        "batch": 512
+      },
+      "valor_val": 0.28418317437171936,
+      "mae_val": 0.07602936340661744,
+      "tiempo_s": 5.909006749978289,
+      "estado": "COMPLETE",
+      "epocas": 200,
+      "mejor_epoca": 199,
+      "device": "cpu"
+    },
+    {
+      "numero": 5,
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          16,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.4877607525014429,
+        "l2": 0.0026498016706379504,
+        "optimizador": "sgd",
+        "lr": 0.002883906161101797,
+        "batch": 512
+      },
+      "valor_val": 0.28414177894592285,
+      "mae_val": 0.07626224175373253,
+      "tiempo_s": 1.5178670420427807,
+      "estado": "COMPLETE",
+      "epocas": 57,
+      "mejor_epoca": 47,
+      "device": "cpu"
+    },
+    {
+      "numero": 6,
+      "parametros": {
+        "capas": [
+          128
+        ],
+        "activacion": "tanh",
+        "dropout": 0.2886142943020838,
+        "l2": 8.944813408783465e-06,
+        "optimizador": "adam",
+        "lr": 0.0011783263946828998,
+        "batch": 512
+      },
+      "valor_val": 0.28413164615631104,
+      "mae_val": 0.07595710567011743,
+      "tiempo_s": 0.34402837499510497,
+      "estado": "COMPLETE",
+      "epocas": 15,
+      "mejor_epoca": 5,
+      "device": "cpu"
+    },
+    {
+      "numero": 7,
+      "parametros": {
+        "capas": [
+          32
+        ],
+        "activacion": "tanh",
+        "dropout": 0.1558979409970513,
+        "l2": 0.000610061973433681,
+        "optimizador": "adam",
+        "lr": 0.00011203596437082348,
+        "batch": 512
+      },
+      "valor_val": 0.2841491401195526,
+      "mae_val": 0.0757577719382049,
+      "tiempo_s": 0.9188459169818088,
+      "estado": "COMPLETE",
+      "epocas": 116,
+      "mejor_epoca": 106,
+      "device": "cpu"
+    },
+    {
+      "numero": 8,
+      "parametros": {
+        "capas": [
+          16,
+          256,
+          32,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.012831359027265787,
+        "l2": 6.758966622072014e-06,
+        "optimizador": "adam",
+        "lr": 0.0008455724970313275,
+        "batch": 1024
+      },
+      "valor_val": 0.283931702375412,
+      "mae_val": 0.07632104731760282,
+      "tiempo_s": 0.47372404200723395,
+      "estado": "COMPLETE",
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "device": "cpu"
+    },
+    {
+      "numero": 9,
+      "parametros": {
+        "capas": [
+          32,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.05014697113274891,
+        "l2": 1.1633717625636615e-06,
+        "optimizador": "adam",
+        "lr": 0.0037179695110280985,
+        "batch": 512
+      },
+      "valor_val": 0.28477513790130615,
+      "mae_val": 0.0754913956738962,
+      "tiempo_s": 0.43121287500252947,
+      "estado": "COMPLETE",
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "device": "cpu"
+    },
+    {
+      "numero": 10,
+      "parametros": {
+        "capas": [
+          16,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.2418454888895233,
+        "l2": 0.001024441074442336,
+        "optimizador": "adam",
+        "lr": 0.0003188199864439434,
+        "batch": 2048
+      },
+      "valor_val": 0.2841399908065796,
+      "mae_val": 0.07572977595303743,
+      "tiempo_s": 0.6908231250126846,
+      "estado": "COMPLETE",
+      "epocas": 118,
+      "mejor_epoca": 108,
+      "device": "cpu"
+    },
+    {
+      "numero": 11,
+      "parametros": {
+        "capas": [
+          16,
+          64,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.2326236659438197,
+        "l2": 0.0006862885373206385,
+        "optimizador": "adam",
+        "lr": 0.008999232017136814,
+        "batch": 512
+      },
+      "valor_val": 0.2838841676712036,
+      "mae_val": 0.07618017487154109,
+      "tiempo_s": 0.36761791695607826,
+      "estado": "COMPLETE",
+      "epocas": 23,
+      "mejor_epoca": 13,
+      "device": "cpu"
+    },
+    {
+      "numero": 12,
+      "parametros": {
+        "capas": [
+          16,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.1261312736638854,
+        "l2": 0.003829380166095931,
+        "optimizador": "adam",
+        "lr": 0.004480894077069548,
+        "batch": 512
+      },
+      "valor_val": 0.2838265299797058,
+      "mae_val": 0.07617615152879553,
+      "tiempo_s": 0.2119513340294361,
+      "estado": "COMPLETE",
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "device": "cpu"
+    },
+    {
+      "numero": 13,
+      "parametros": {
+        "capas": [
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.1034233234725924,
+        "l2": 0.0003236040677465922,
+        "optimizador": "adam",
+        "lr": 0.001828067307868154,
+        "batch": 512
+      },
+      "valor_val": 0.2839893698692322,
+      "mae_val": 0.07560739758612021,
+      "tiempo_s": 0.18135637504747137,
+      "estado": "COMPLETE",
+      "epocas": 27,
+      "mejor_epoca": 17,
+      "device": "cpu"
+    },
+    {
+      "numero": 14,
+      "parametros": {
+        "capas": [
+          16,
+          32,
+          256,
+          32
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.2017255777888174,
+        "l2": 0.00017015234638622753,
+        "optimizador": "adam",
+        "lr": 0.009087070294663224,
+        "batch": 2048
+      },
+      "valor_val": 0.28389137983322144,
+      "mae_val": 0.07571191181156635,
+      "tiempo_s": 0.45947704097488895,
+      "estado": "COMPLETE",
+      "epocas": 25,
+      "mejor_epoca": 15,
+      "device": "cpu"
+    },
+    {
+      "numero": 15,
+      "parametros": {
+        "capas": [
+          16,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.24753893987340436,
+        "l2": 2.305126757471255e-05,
+        "optimizador": "adam",
+        "lr": 0.008013003276767757,
+        "batch": 512
+      },
+      "valor_val": 0.2842619717121124,
+      "mae_val": 0.07594969388859195,
+      "tiempo_s": 0.17105783300939947,
+      "estado": "COMPLETE",
+      "epocas": 16,
+      "mejor_epoca": 6,
+      "device": "cpu"
+    },
+    {
+      "numero": 16,
+      "parametros": {
+        "capas": [
+          32
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.15029463864763842,
+        "l2": 0.007208967782853636,
+        "optimizador": "adam",
+        "lr": 0.0009017840371340839,
+        "batch": 512
+      },
+      "valor_val": 0.2839404046535492,
+      "mae_val": 0.07583610871030201,
+      "tiempo_s": 0.45644412498222664,
+      "estado": "COMPLETE",
+      "epocas": 67,
+      "mejor_epoca": 57,
+      "device": "cpu"
+    },
+    {
+      "numero": 17,
+      "parametros": {
+        "capas": [
+          16,
+          16
+        ],
+        "activacion": "relu",
+        "dropout": 0.10775117133513287,
+        "l2": 0.002942208213210397,
+        "optimizador": "adam",
+        "lr": 0.0025296021015071514,
+        "batch": 512
+      },
+      "valor_val": 0.2839200496673584,
+      "mae_val": 0.07569918214892433,
+      "tiempo_s": 0.16975812503369525,
+      "estado": "COMPLETE",
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "device": "cpu"
+    },
+    {
+      "numero": 18,
+      "parametros": {
+        "capas": [
+          16,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.17403174001904081,
+        "l2": 0.002278750333095742,
+        "optimizador": "adam",
+        "lr": 0.00974199058045894,
+        "batch": 1024
+      },
+      "valor_val": 0.28380343317985535,
+      "mae_val": 0.07607210010983124,
+      "tiempo_s": 0.18539083295036107,
+      "estado": "COMPLETE",
+      "epocas": 19,
+      "mejor_epoca": 9,
+      "device": "cpu"
+    },
+    {
+      "numero": 19,
+      "parametros": {
+        "capas": [
+          128,
+          64,
+          256
+        ],
+        "activacion": "tanh",
+        "dropout": 0.19376796788255146,
+        "l2": 0.0040100446612530835,
+        "optimizador": "adam",
+        "lr": 0.006231670637759168,
+        "batch": 1024
+      },
+      "valor_val": 0.2838938534259796,
+      "mae_val": 0.0761968770160526,
+      "tiempo_s": 0.4913370840367861,
+      "estado": "COMPLETE",
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "device": "cpu"
+    },
+    {
+      "numero": 20,
+      "parametros": {
+        "capas": [
+          16,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.29247555157288224,
+        "l2": 0.006388631266010507,
+        "optimizador": "adam",
+        "lr": 0.00878026133347563,
+        "batch": 256
+      },
+      "valor_val": 0.2838444411754608,
+      "mae_val": 0.07622524602982961,
+      "tiempo_s": 0.23415895801736042,
+      "estado": "COMPLETE",
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "device": "cpu"
+    },
+    {
+      "numero": 21,
+      "parametros": {
+        "capas": [
+          16,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.25264024148541336,
+        "l2": 0.0006403838218346132,
+        "optimizador": "adam",
+        "lr": 0.0031862556934883694,
+        "batch": 256
+      },
+      "valor_val": 0.28395745158195496,
+      "mae_val": 0.07603808788779516,
+      "tiempo_s": 0.5302715409779921,
+      "estado": "COMPLETE",
+      "epocas": 32,
+      "mejor_epoca": 22,
+      "device": "cpu"
+    },
+    {
+      "numero": 22,
+      "parametros": {
+        "capas": [
+          16,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.38405584549785166,
+        "l2": 0.00484431195424817,
+        "optimizador": "adam",
+        "lr": 0.004804173782544042,
+        "batch": 256
+      },
+      "valor_val": 0.2838667929172516,
+      "mae_val": 0.07593100100576466,
+      "tiempo_s": 0.2130152500467375,
+      "estado": "COMPLETE",
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "device": "cpu"
+    },
+    {
+      "numero": 23,
+      "parametros": {
+        "capas": [
+          16,
+          32
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.09238954016986094,
+        "l2": 0.0005721891902678914,
+        "optimizador": "adam",
+        "lr": 0.0038194928660678124,
+        "batch": 512
+      },
+      "valor_val": 0.2842046916484833,
+      "mae_val": 0.07578991856401511,
+      "tiempo_s": 0.13660916703520343,
+      "estado": "COMPLETE",
+      "epocas": 15,
+      "mejor_epoca": 5,
+      "device": "cpu"
+    },
+    {
+      "numero": 24,
+      "parametros": {
+        "capas": [
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.23872422560703824,
+        "l2": 0.0044316960568415885,
+        "optimizador": "adam",
+        "lr": 0.0022066795809679136,
+        "batch": 256
+      },
+      "valor_val": 0.2839052081108093,
+      "mae_val": 0.07573776772516355,
+      "tiempo_s": 0.28277970902854577,
+      "estado": "COMPLETE",
+      "epocas": 18,
+      "mejor_epoca": 8,
+      "device": "cpu"
+    },
+    {
+      "numero": 25,
+      "parametros": {
+        "capas": [
+          32,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.15906061611921501,
+        "l2": 0.0008624478764202996,
+        "optimizador": "adam",
+        "lr": 0.009527732770516722,
+        "batch": 1024
+      },
+      "valor_val": 0.2837693691253662,
+      "mae_val": 0.07605268702111465,
+      "tiempo_s": 0.10526279103942215,
+      "estado": "COMPLETE",
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "device": "cpu"
+    },
+    {
+      "numero": 26,
+      "parametros": {
+        "capas": [
+          32,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.19302175316430475,
+        "l2": 0.00017615629111605976,
+        "optimizador": "adam",
+        "lr": 0.006727682972109497,
+        "batch": 1024
+      },
+      "valor_val": 0.2841466963291168,
+      "mae_val": 0.07589188017372299,
+      "tiempo_s": 0.17324979096883908,
+      "estado": "COMPLETE",
+      "epocas": 16,
+      "mejor_epoca": 6,
+      "device": "cpu"
+    },
+    {
+      "numero": 27,
+      "parametros": {
+        "capas": [
+          128,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.05426572640095942,
+        "l2": 0.003340334194956007,
+        "optimizador": "adam",
+        "lr": 0.009801607304582592,
+        "batch": 512
+      },
+      "valor_val": 0.2837579548358917,
+      "mae_val": 0.07613315967975787,
+      "tiempo_s": 0.4076372080016881,
+      "estado": "COMPLETE",
+      "epocas": 18,
+      "mejor_epoca": 8,
+      "device": "cpu"
+    },
+    {
+      "numero": 28,
+      "parametros": {
+        "capas": [
+          32,
+          16,
+          32
+        ],
+        "activacion": "tanh",
+        "dropout": 0.1143871305971903,
+        "l2": 0.004146887277529992,
+        "optimizador": "adam",
+        "lr": 0.009313255867417011,
+        "batch": 1024
+      },
+      "valor_val": 0.28383979201316833,
+      "mae_val": 0.0761481421737395,
+      "tiempo_s": 0.1489183340454474,
+      "estado": "COMPLETE",
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "device": "cpu"
+    },
+    {
+      "numero": 29,
+      "parametros": {
+        "capas": [
+          32
+        ],
+        "activacion": "tanh",
+        "dropout": 0.1473992429480974,
+        "l2": 0.001571294687723826,
+        "optimizador": "adam",
+        "lr": 0.004506153127120552,
+        "batch": 1024
+      },
+      "valor_val": 0.2839299440383911,
+      "mae_val": 0.07585125175898046,
+      "tiempo_s": 0.19496195897227153,
+      "estado": "COMPLETE",
+      "epocas": 36,
+      "mejor_epoca": 26,
+      "device": "cpu"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+# Parte D — DEMO (< 2 min en CPU): `python run.py lgd --config configs/lgd/demo.yaml`.
+# Escribe en results/data/lgd_demo/ y models/*_demo* (ignorados por git): nunca toca los resultados reales ni
+# configs/lgd/mlp_final.yaml. Muestra, semillas y épocas reducidas solo para que corra rápido; NO son los resultados
+# reportados. El bloque mlp se fija aquí completo (valores de partida de D3 con menos épocas) para que la demo no
+# dependa del resultado de la búsqueda real.
+hereda: base.yaml
+datos:
+  muestra: 20000
+semillas:
+  n: 3
+hpo:
+  n_ensayos: 5              # demo de la búsqueda: python run.py lgd-hpo --config configs/lgd/demo.yaml
+  destino: results/data/lgd_demo/mlp_final.yaml
+mlp:
+  capas: [64, 32]
+  activacion: relu
+  dropout: 0.1
+  l2: 1.0e-4
+  optimizador: adam
+  lr: 1.0e-3
+  momento: 0.9
+  batch: 256
+  max_epocas: 30
+  paciencia: 5
+  device: auto
+  perdida: bce_fraccional
+busqueda:
+  tipo: sin_busqueda
+  origen: "demo: valores de partida de D3 (no usa la búsqueda)"
+  ensayo: null
+  n_ensayos: null
+  tiempo_s: null
+  hash_particion: null
+  hash_preprocesador: null
+  muestra: null
+  fecha: null
+salida: results/data/lgd_demo
+modelos:
+  lineal: models/lgd_lineal_demo.joblib
+  mlp: models/lgd_mlp_demo.pt

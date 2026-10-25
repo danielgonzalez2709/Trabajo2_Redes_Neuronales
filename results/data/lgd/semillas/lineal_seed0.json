@@ -1,0 +1,45 @@
+{
+  "modelo": "lineal",
+  "seed": 0,
+  "config": {
+    "modelo": "LinearRegression"
+  },
+  "metricas": {
+    "mae_val": 0.07586765511393369,
+    "rmse_val": 0.0927625978896879,
+    "mae_test": 0.0771234125677071,
+    "rmse_test": 0.0865914142786151
+  },
+  "n_parametros": 49,
+  "tiempo_s": 0.013536250044126064,
+  "device": "cpu",
+  "epocas": null,
+  "n": {
+    "train": 14419,
+    "val": 14836,
+    "test": 13981
+  },
+  "muestra": null,
+  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
+  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
+  "fuera_de_rango": {
+    "val": {
+      "debajo_de_0": 0,
+      "encima_de_1": 0,
+      "total": 0,
+      "n": 14836
+    },
+    "test": {
+      "debajo_de_0": 0,
+      "encima_de_1": 0,
+      "total": 0,
+      "n": 13981
+    },
+    "pd_test": {
+      "debajo_de_0": 0,
+      "encima_de_1": 0,
+      "total": 0,
+      "n": 74154
+    }
+  }
+}
