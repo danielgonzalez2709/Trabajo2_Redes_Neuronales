@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.8** — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.9** — 2026-10-24 (reparto de la pareja B+C: Andrés la Parte B, Juan José la Parte C, §1.1 y §13; Andrés) · 0.8 — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -64,8 +64,8 @@ cacería 15 %, video individual 5 % (individual), sustentación 30 % (individual
 | Parte | Alcance (enunciado) | Spec | Responsables |
 |---|---|---|---|
 | **A — Datos y caso de uso** | §Datos, P1.1, P1.2, partición temporal de P1.5, preprocesador común; después: bibliografía verificada y coordinación de la grabación del video | `partes/A-datos.md` | **Daniel** |
-| **B — PD** | P1.3, P1.4, P1.5 (métricas), 30 semillas de PD | `partes/B-pd.md` | **Andrés y Juan José** |
-| **C — Scorecard y variables de riesgo** | P1.6, P1.7, cierre de hipótesis, exportación a la app | `partes/C-scorecard.md` | **Andrés y Juan José** |
+| **B — PD** | P1.3, P1.4, P1.5 (métricas), 30 semillas de PD | `partes/B-pd.md` | **Andrés** |
+| **C — Scorecard y variables de riesgo** | P1.6, P1.7, cierre de hipótesis, exportación a la app | `partes/C-scorecard.md` | **Juan José** |
 | **D — LGD** | P2.1–P2.4, 30 semillas de LGD | `partes/D-lgd.md` | **Camila y José** |
 | **E — Integración y producto (puente)** | Infraestructura, P2.5 (E[L]), app, despliegue, blog, video, CI, revisión de PR, clon limpio | `partes/E-producto.md` | **Daniel y Camila** (Camila: frontend de la app) |
 
@@ -76,12 +76,13 @@ Pulgarin Agudelo, **Juan José** González Morales.
 |---|---|---|
 | Daniel | A, E (infraestructura, E[L], blog, video, revisión de PR) | `dev/daniel` |
 | Camila | D, E (frontend de la app) | `dev/camila` |
-| Andrés | B, C | `dev/andres` |
-| Juan José | B, C | `dev/juanjose` |
+| Andrés | B | `dev/andres` |
+| Juan José | C | `dev/juanjose` |
 | José | D | `dev/jose` |
 
 **Parejas:** cada pareja reparte entre sus dos integrantes las tareas de su spec (columna "Quién" de la tabla de tareas) **hoy,
 jueves 22**, de modo que dos personas no editen los mismos archivos a la vez. Lo que no se reparta es de los dos.
+La pareja B+C repartió por parte completa (24-oct): **Andrés la Parte B y Juan José la Parte C**.
 
 **Obligaciones de todo responsable de parte:** su sección del blog con los fundamentos matemáticos de su parte, ≥ 1 hallazgo genuino
 de la cacería, su video individual, y estar en capacidad de explicar **todo** el trabajo (fichas del `tutor-sustentacion`).
@@ -462,7 +463,7 @@ Si un hito se atrasa, quien lo recibe sigue con los sintéticos y avisa al puent
 ---
 
 ## 13. Pendientes
-1. Reparto de tareas dentro de cada pareja (B+C: Andrés y Juan José; D: Camila y José; E: Daniel y Camila) — **hoy, jue 22**.
+1. Reparto de tareas dentro de cada pareja (D: Camila y José; E: Daniel y Camila) — **hoy, jue 22**. B+C ya repartió (24-oct, §1.1).
 2. Aprobación de los [PROPUESTO] de §3 — hoy.
 3. Variables del modelo y de la app — Parte A, vie 23 en la mañana.
 4. Cortes de la partición temporal — Parte A, vie 23 al mediodía.

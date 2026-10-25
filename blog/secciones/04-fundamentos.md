@@ -1,1 +1,1 @@
-<!-- Responsable: Andrés y Juan José (B). Enunciado (Anexo del núcleo): neurona, MLP, activaciones, pérdida por máxima verosimilitud, retropropagación, optimizador, regularización. Guía de sintaxis: blog/README.md -->
+<!-- Responsable: Andrés (B). Enunciado (Anexo del núcleo): neurona, MLP, activaciones, pérdida por máxima verosimilitud, retropropagación, optimizador, regularización. Guía de sintaxis: blog/README.md -->
