@@ -1,0 +1,15 @@
+# Parte D — LGD (Spec, Parte D §3.3; núcleo §5.3). D3 solo define el bloque mlp; el resto lo añade D4.
+# Valores por defecto de partida (no ajustados): la búsqueda de hiperparámetros los reemplaza.
+mlp:
+  capas: [64, 32]
+  activacion: relu          # relu | leaky_relu | tanh
+  dropout: 0.1
+  l2: 1.0e-4                # penalización explícita l2·Σ‖W‖² sobre los pesos (no los sesgos); ver src/lgd/mlp.py
+  optimizador: adam         # adam | sgd
+  lr: 1.0e-3
+  momento: 0.9              # solo lo usa sgd
+  batch: 256
+  max_epocas: 200
+  paciencia: 10
+  device: auto              # auto | cpu | cuda
+  perdida: bce_fraccional   # bce_fraccional | mse
