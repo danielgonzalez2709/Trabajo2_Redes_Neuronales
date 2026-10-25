@@ -1,0 +1,62 @@
+[
+  {
+    "nombre": "loan_amnt",
+    "etiqueta_es": "Monto solicitado (USD)"
+  },
+  {
+    "nombre": "term",
+    "etiqueta_es": "Plazo"
+  },
+  {
+    "nombre": "emp_length",
+    "etiqueta_es": "Antigüedad en el empleo"
+  },
+  {
+    "nombre": "home_ownership",
+    "etiqueta_es": "Vivienda"
+  },
+  {
+    "nombre": "annual_inc",
+    "etiqueta_es": "Ingreso anual (USD)"
+  },
+  {
+    "nombre": "purpose",
+    "etiqueta_es": "Destino del préstamo"
+  },
+  {
+    "nombre": "dti",
+    "etiqueta_es": "Deuda mensual sobre ingreso mensual (%)"
+  },
+  {
+    "nombre": "delinq_2yrs",
+    "etiqueta_es": "Moras de 30+ días en los últimos 2 años"
+  },
+  {
+    "nombre": "antiguedad_credito_anios",
+    "etiqueta_es": "Años de historial crediticio"
+  },
+  {
+    "nombre": "inq_last_6mths",
+    "etiqueta_es": "Consultas de crédito en los últimos 6 meses"
+  },
+  {
+    "nombre": "open_acc",
+    "etiqueta_es": "Líneas de crédito abiertas"
+  },
+  {
+    "nombre": "pub_rec",
+    "etiqueta_es": "Registros públicos negativos"
+  },
+  {
+    "nombre": "revol_bal",
+    "etiqueta_es": "Saldo en tarjetas de crédito (USD)"
+  },
+  {
+    "nombre": "revol_util",
+    "etiqueta_es": "Uso de tus cupos rotativos (%)"
+  },
+  {
+    "nombre": "total_acc",
+    "etiqueta_es": "Total de líneas de crédito en tu historial"
+  }
+]

@@ -4,11 +4,20 @@ crudo:
   diccionario: data/raw/credit-risk-dataset/LCDataDictionary.xlsx
   fecha_descarga: "2026-10-23"
   url: https://www.kaggle.com/datasets/ranadeep/credit-risk-dataset
+# Copia versionada de la hoja LoanStats del diccionario (texto literal), para que todas las partes citen el significado de
+# las variables sin el crudo (núcleo §0.5 y §5.1).
+diccionario:
+  hoja: LoanStats
+  archivo: diccionario_loanstats.csv
 features: configs/features.yaml
 # Análisis de sensibilidad con grade e int_rate (Daniel, 23-oct): se guardan aparte, nunca en loans_pd.parquet.
 sensibilidad:
   features: configs/features_sensibilidad.yaml
   archivo: sensibilidad_lc.parquet
+# Montos posteriores al desembolso (núcleo §5.1 y §5.7): solo para la LGD (D) y el contraste de la E[L] (E).
+montos:
+  archivo: montos.parquet
+  columnas: [loan_status, funded_amnt, total_rec_prncp, recoveries, collection_recovery_fee]
 salida:
   carpeta: data/processed
   preprocesador: models/preprocesador_pd.json

@@ -36,8 +36,10 @@ def entorno(tmp_path: Path) -> tuple[dict, Path]:
         "inq_last_6mths": rng.integers(0, 5, n), "open_acc": rng.integers(1, 20, n),
         "pub_rec": rng.integers(0, 2, n), "revol_bal": rng.uniform(0, 30000, n),
         "revol_util": rng.uniform(0, 100, n), "total_acc": rng.integers(5, 40, n),
-        "recoveries": 0.0,  # columna que no debe llegar al parquet
+        "recoveries": rng.uniform(0, 500, n),  # no debe llegar a loans_pd: solo a montos.parquet
         "grade": rng.choice(list("ABCDEFG"), n), "int_rate": rng.uniform(5, 25, n),
+        "funded_amnt": rng.uniform(1000, 35000, n), "total_rec_prncp": rng.uniform(0, 1000, n),
+        "collection_recovery_fee": rng.uniform(0, 10, n),
     })
     (tmp_path / "raw").mkdir()
     crudo.to_csv(tmp_path / "raw" / "loan.csv", index=False)
@@ -49,6 +51,8 @@ def entorno(tmp_path: Path) -> tuple[dict, Path]:
         "crudo": {"csv": "raw/loan.csv", "url": "u", "fecha_descarga": "2026-10-23"},
         "features": "configs/features.yaml",
         "sensibilidad": {"features": "configs/features_sensibilidad.yaml", "archivo": "sens.parquet"},
+        "montos": {"archivo": "montos.parquet",
+                   "columnas": ["loan_status", "funded_amnt", "total_rec_prncp", "recoveries", "collection_recovery_fee"]},
         "salida": {"carpeta": "processed", "preprocesador": "models/pre.json"},
         "particion": {"train_hasta": "2012-12-31", "val_hasta": "2013-12-31", "test_hasta": "2014-12-31"},
         "preprocesamiento": {"percentiles_recorte": [1.0, 99.0]},
@@ -67,7 +71,7 @@ def test_esquema_del_parquet_y_resumen(entorno):
     assert df["issue_d"].max() <= pd.Timestamp("2014-12-31")
     assert "recoveries" not in df.columns and "loan_status" not in df.columns
     assert resumen["n_modelado"] == len(df) == sum(resumen["n_por_split"].values())
-    assert resumen["n_registros_crudo"] == 400 and resumen["n_variables_crudo"] == 22
+    assert resumen["n_registros_crudo"] == 400 and resumen["n_variables_crudo"] == 25
     assert load_json(raiz / "processed" / "resumen_datos.json") == resumen
     # tipos del contrato §5.1
     assert df["id"].map(type).eq(str).all() and pd.api.types.is_datetime64_any_dtype(df["issue_d"])
@@ -102,3 +106,15 @@ def test_sensibilidad_aparte_y_alineada(entorno):
     assert list(sens.columns) == ["id", "grade", "int_rate"]
     assert sens["id"].equals(df["id"])
     assert not {"grade", "int_rate"} & set(df.columns)
+
+
+def test_montos_aparte_y_alineados(entorno):
+    """Montos posteriores al desembolso: archivo propio, mismas filas que loans_pd y nunca dentro de él (núcleo §5.7)."""
+    cfg, raiz = entorno
+    preparar(cfg, raiz)
+    df = pd.read_parquet(raiz / "processed" / "loans_pd.parquet")
+    montos = pd.read_parquet(raiz / "processed" / "montos.parquet")
+    assert list(montos.columns) == ["id", "loan_status", "funded_amnt", "total_rec_prncp", "recoveries",
+                                    "collection_recovery_fee"]
+    assert montos["id"].equals(df["id"])
+    assert not set(montos.columns[1:]) & set(df.columns)

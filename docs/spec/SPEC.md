@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.11** — 2026-10-25 (B3: §5.4 añade `busqueda_logistica.json` y el campo `evidencia` en los JSON de resultados; §6 define las dos huellas SHA-256 de la columna "Evidencia"; B-pd §3.1 fija rejilla, criterio, desempate, sin refit y desviación muestral; para que B5 reutilice el mismo esquema y la comparación sea verificable; Andrés) · 0.10 — 2026-10-25 (B-pd §3.2: L2 = (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en sesgos; corrige λ‖W‖², hallazgo H-08; Andrés) · 0.9 — 2026-10-24 (reparto de la pareja B+C: Andrés la Parte B, Juan José la Parte C, §1.1 y §13; Andrés) · 0.8 — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.14** — 2026-10-25 (B3: §5.4 añade `busqueda_logistica.json` y el campo `evidencia` en los JSON de resultados; §6 define las dos huellas SHA-256 de la columna "Evidencia"; B-pd §3.1 fija rejilla, criterio, desempate, sin refit y desviación muestral; para que B5 reutilice el mismo esquema y la comparación sea verificable; afecta a D (campo `evidencia` en los JSON de la LGD); Andrés; numerada 0.11 en `dev/andres`, se renumera al integrar `main`) · 0.13 — 2026-10-25 (B-pd §3.2: L2 = (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en sesgos; corrige λ‖W‖², hallazgo H-08; Andrés; numerada 0.10 en `dev/andres`) · 0.12 — 2026-10-25 (`categorias_es` en `features.yaml` (§5.1) y `etiquetas_categorias` en las entradas del JSON de la app (§5.5): la app mostraba los códigos en inglés; afecta a C (exportador) y E (app); Siddiqi 2.ª ed. 2017 verificada; Daniel) · 0.11 — 2026-10-25 (`data/processed/diccionario_loanstats.csv` en §5.1: copia literal versionada del diccionario para citar variables sin el crudo; la pidió Camila para D1; Daniel) · 0.10 — 2026-10-24 (contratos para la E[L]: `montos.parquet` en §5.1; columnas `pred_<modelo>` de `pred_test.parquet` y LGD predicha para todo el test en §5.4; afecta a B y D; Daniel; se numera 0.10 porque el reparto B+C de Andrés ya era la 0.9) · 0.9 — 2026-10-24 (reparto de la pareja B+C: Andrés la Parte B, Juan José la Parte C, §1.1 y §13; Andrés) · 0.8 — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -42,7 +42,8 @@ Si una parte necesita cambiar un contrato, abre un PR que modifique este archivo
    [PENDIENTE]/[PROPUESTO]: **escalan** al humano que los dirige. Solo los humanos cambian el Spec.
 4. **Prohibido inventar datos, constantes, significados de variables, referencias o resultados.** Si falta algo:
    `TODO(dato-faltante)` / `TODO(cita)` y se reporta. Un dato inventado es peor que uno faltante.
-5. El significado de cada variable se cita del **diccionario de Kaggle** (`LCDataDictionary`), nunca de una IA.
+5. El significado de cada variable se cita del **diccionario de Kaggle** (`LCDataDictionary`), nunca de una IA. Copia literal
+   versionada de la hoja LoanStats: `data/processed/diccionario_loanstats.csv` (§5.1).
 6. Todo prompt enviado a una IA (incluidos los de los subagentes) se guarda **literal** en `alucinaciones/prompts/` (§9).
 7. Toda cifra del blog sale de un archivo de `results/` o `data/processed/` y se puede regenerar con un comando.
 8. **Los datos sintéticos (§5.6) son solo para desarrollar.** Ninguna cifra, figura o conclusión del blog sale de ellos.
@@ -207,9 +208,11 @@ jupyter lab notebooks/                                            # abrir los no
 |---|---|
 | `data/processed/loans_pd.parquet` | Una fila por crédito con objetivo definido (sin NA): `id` (str), `issue_d` (fecha), `anio_origen` (int), `target` (int 0/1), `split` ∈ {`train`, `val`, `test`}, y las variables crudas de `configs/features.yaml` **antes** de transformar |
 | `data/processed/sensibilidad_lc.parquet` | **Solo para el análisis de sensibilidad (B10):** `id`, `grade`, `int_rate`, mismas filas y mismo orden que `loans_pd.parquet` (unir por `id`). Variables definidas en `configs/features_sensibilidad.yaml` (`adicionales`). Nunca entran al modelo principal ni a la app |
+| `data/processed/diccionario_loanstats.csv` | **Diccionario de variables** (A, v0.11): copia literal de la hoja LoanStats de `LCDataDictionary.xlsx`, columnas `variable` y `descripcion` (UTF-8). Es la fuente de toda `cita_diccionario`; una prueba comprueba que las citas de `features.yaml` coinciden letra por letra |
+| `data/processed/montos.parquet` | **Montos posteriores al desembolso** (A, v0.10): `id`, `loan_status`, `funded_amnt`, `total_rec_prncp`, `recoveries`, `collection_recovery_fee`; mismas filas y orden que `loans_pd.parquet`. Solo para construir la LGD (D) y para la EAD y el contraste de la E[L] (E). **Nunca como variables de un modelo** (§5.7) |
 | `data/processed/loans_lgd.parquet` | Subconjunto elegible para LGD (definido en la Parte D): `id`, `issue_d`, `split`, variables de `features.yaml`, campos de la fórmula de LGD [VERIFICAR nombres en el diccionario], `ead` (float), `lgd` (float en [0, 1]), `lgd_sin_recorte` (float) |
 | `data/processed/resumen_datos.json` | `{archivo_crudo, sha256, fecha_descarga, n_registros_crudo, n_variables_crudo, periodo {min, max}, conteo_por_loan_status, n_por_split, tasa_malos_por_split, tasa_malos_por_anio, fraccion_na_por_anio}` + campos adicionales que usa el blog: `url`, `n_objetivo_na`, `n_resueltos_posteriores_a_test`, `particion` (cortes), `n_modelado`, `n_por_anio`, `variables`, `faltantes_por_variable_train` |
-| `configs/features.yaml` | Lista de variables: `{nombre, tipo: num|cat, disponible_en_originacion: true, justificacion, cita_diccionario, transformacion, en_app: bool, etiqueta_es, ayuda_es}` |
+| `configs/features.yaml` | Lista de variables: `{nombre, tipo: num|cat, disponible_en_originacion: true, justificacion, cita_diccionario, transformacion, en_app: bool, etiqueta_es, ayuda_es}`; las categóricas añaden `categorias_es: {código: etiqueta}` (v0.12) |
 
 `loans_lgd.parquet` lo escribe D (con el preprocesador de A); el resto, A.
 
@@ -267,10 +270,14 @@ results/data/{pd|lgd}/summary.json      # por modelo: n_parametros, n_configurac
 results/data/pd/busqueda_logistica.json # búsqueda de C (B3): criterio, filas [{C, logloss_val, auc_val, n_iter, tiempo_s}],
                                         #   C_elegido, en_borde, tiempo_total_s, evidencia
 results/data/{pd|lgd}/hpo_ensayos.json  # cada ensayo: parámetros, métrica de validación, tiempo, estado
-results/data/{pd|lgd}/pred_test.parquet # id, y, predicción por modelo (semilla con la métrica mediana)
+results/data/{pd|lgd}/pred_test.parquet # columnas: id (str), y, pred_<modelo> (float; p. ej. pred_logistica, pred_mlp)
+                                        #   con la semilla de la métrica mediana. PD: todo el test. LGD: el test de la LGD.
+results/data/lgd/pred_pd_test.parquet   # LGD predicha para TODOS los créditos de test de loans_pd (no solo los
+                                        #   incumplidos): id, pred_<modelo>. La necesita la E[L] (Parte E).
 results/data/scorecard/scorecard.json   # {base, odds_base, pdo, factor, offset, puntos_por_variable, distribucion_scores}
 results/data/scorecard/hipotesis.json   # H-k: enunciado, evidencia EDA, evidencia SHAP, veredicto
 results/data/el/summary.json            # E[L] total, por banda de puntaje, contraste con la pérdida observada
+results/data/el/el_test.parquet         # por crédito de test: id, target, pd, lgd, ead, el, perdida_observada
 ```
 JSON en UTF-8, sangría 2, sin NaN/inf (`save_json` del Trabajo 1). `evidencia` = `{sha256_particion, sha256_preprocesador}` (§6). En `summary.json`, `desv` es la desviación muestral s = √(Σ(xᵢ − x̄)²/(n − 1)); con n = 1 no está definida y se escribe 0 por convención; `mejor`/`peor` según el sentido de la métrica (AUC, Gini, KS: máx; Brier, log-loss: mín). Nombres de métricas: `{auc,gini,ks,brier,logloss}_{val,test}`. Modelos en `models/`: `pd_logistica.joblib`, `pd_mlp.pt`,
 `lgd_lineal.joblib`, `lgd_mlp.pt`, `preprocesador_pd.json`, `preprocesador_lgd.json`.
@@ -285,7 +292,8 @@ JSON en UTF-8, sangría 2, sin NaN/inf (`save_json` del Trabajo 1). `evidencia` 
   "entradas": [            // orden del formulario; solo las de features.yaml con en_app: true
     {"nombre": "<variable>", "tipo": "num", "etiqueta_es": "...", "ayuda_es": "...", "min": 0, "max": 0, "paso": 1,
      "valor_defecto": 0},
-    {"nombre": "<variable>", "tipo": "cat", "etiqueta_es": "...", "categorias": ["..."], "valor_defecto": "..."}
+    {"nombre": "<variable>", "tipo": "cat", "etiqueta_es": "...", "categorias": ["..."], "valor_defecto": "...",
+     "etiquetas_categorias": {"<código>": "<etiqueta en español>"}}   // de categorias_es (v0.12); OTRA no se ofrece
   ],
   "preprocesamiento": { /* Preprocesador.to_dict() */ },
   "red": { "capas": [ {"W": [[/* salida × entrada, igual que torch.nn.Linear.weight */]], "b": [], "activacion": "relu"} ],

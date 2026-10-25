@@ -32,6 +32,16 @@ def columnas_crudas(features: list[dict]) -> list[str]:
     return cols
 
 
+def exportar_diccionario(xlsx: Path, hoja: str, destino: Path) -> pd.DataFrame:
+    """Copia literal de una hoja del diccionario de Kaggle a CSV (UTF-8): mismas filas, mismo texto, columnas
+    `variable` y `descripcion`. Solo se quitan los espacios sobrantes del nombre de la variable (el diccionario trae
+    `total_rev_hi_lim` con un espacio de no separación al final); la descripción no se toca."""
+    hoja_df = pd.read_excel(xlsx, sheet_name=hoja, dtype=str)
+    dic = pd.DataFrame({"variable": hoja_df.iloc[:, 0].str.strip(), "descripcion": hoja_df.iloc[:, 1]})
+    dic.to_csv(destino, index=False, encoding="utf-8")
+    return dic
+
+
 def _tasas_por(df: pd.DataFrame, clave: str) -> dict:
     return {str(k): float(v) for k, v in df.groupby(clave)["target"].mean().items()}
 
@@ -42,10 +52,13 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     nombres = [f["nombre"] for f in features]
     adicionales = load_config(raiz / cfg["sensibilidad"]["features"])["adicionales"] if "sensibilidad" in cfg else []
     nombres_sens = [f["nombre"] for f in adicionales]
+    # Montos posteriores al desembolso: SOLO para construir la LGD (Parte D) y contrastar la E[L] (Parte E), nunca como
+    # variables de un modelo (núcleo §5.7). Van en su propio archivo.
+    columnas_montos = list(cfg["montos"]["columnas"]) if "montos" in cfg else []
     ruta_csv = raiz / cfg["crudo"]["csv"]
 
     n_variables = len(pd.read_csv(ruta_csv, nrows=0).columns)
-    crudo = leer_crudo(ruta_csv, columnas_crudas(features) + nombres_sens)
+    crudo = leer_crudo(ruta_csv, list(dict.fromkeys(columnas_crudas(features) + nombres_sens + columnas_montos)))
     crudo["target"] = construir_objetivo(crudo["loan_status"])
     crudo["anio_origen"] = crudo["issue_d"].dt.year
 
@@ -61,6 +74,7 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     df["target"] = df["target"].astype("int8")
     df["id"] = df["id"].astype(str)
     sensibilidad = df[["id", *nombres_sens]].reset_index(drop=True)
+    montos = df[["id", *[c for c in columnas_montos if c != "id"]]].reset_index(drop=True)
     df = df[["id", "issue_d", "anio_origen", "target", "split", *nombres]].reset_index(drop=True)
 
     pre = Preprocesador(tuple(cfg["preprocesamiento"]["percentiles_recorte"]))
@@ -71,6 +85,8 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
     df.to_parquet(salida / "loans_pd.parquet", index=False, compression="zstd")
     if nombres_sens:  # variables de Lending Club: archivo aparte, para que no entren por error al modelo principal
         sensibilidad.to_parquet(salida / cfg["sensibilidad"]["archivo"], index=False, compression="zstd")
+    if columnas_montos:
+        montos.to_parquet(salida / cfg["montos"]["archivo"], index=False, compression="zstd")
     save_json(raiz / cfg["salida"]["preprocesador"], pre.to_dict())
 
     resumen = {
@@ -97,4 +113,7 @@ def preparar(cfg: dict, raiz: Path = Path(".")) -> dict:
         },
     }
     save_json(salida / "resumen_datos.json", resumen)
+    if "diccionario" in cfg:
+        exportar_diccionario(raiz / cfg["crudo"]["diccionario"], cfg["diccionario"]["hoja"],
+                             salida / cfg["diccionario"]["archivo"])
     return resumen

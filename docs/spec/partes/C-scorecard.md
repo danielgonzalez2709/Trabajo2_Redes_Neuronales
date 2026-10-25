@@ -55,7 +55,8 @@ concluyente**, con tabla en el blog.
 
 ### 3.5 Exportación (`run.py export`)
 `pd_model.json` y `casos_paridad.json` exactamente según núcleo §5.5: W con forma salida × entrada, percentiles del score sobre
-test, entradas de `features.yaml` con `en_app: true`.
+test, entradas de `features.yaml` con `en_app: true`. En las categóricas, `categorias` sin `OTRA` y `etiquetas_categorias`
+copiado de `categorias_es` (núcleo §5.5, v0.12).
 
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |

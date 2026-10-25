@@ -22,13 +22,13 @@ falsas se registran como candidatos.
 | V-02 | El plan Hobby de Vercel es gratis y para uso personal/no comercial | Términos y precios oficiales de Vercel | ⬜ |
 | V-03 | Neon Postgres tiene un plan gratis en el Marketplace de Vercel | Documentación de Vercel/Neon | ⬜ |
 | V-04 | Render (plan gratis) duerme los servicios tras un periodo sin uso | Documentación de Render | ⬜ |
-| V-05 | Remotion es gratis para individuos y equipos pequeños | Licencia oficial de Remotion | ⬜ |
-| V-06 | Los créditos recientes ya resueltos sesgan la tasa de malos hacia arriba | Experimento A4 (tasa de malos y fracción de NA por año) | ⬜ |
+| V-05 | Remotion es gratis para individuos y equipos pequeños | Licencia oficial de Remotion | ✅ 24-oct: el LICENSE.md oficial da la licencia gratis a "an individual", "a for-profit organization with up to 3 employees" y "a non-profit or not-for-profit organization"; un video de curso hecho por estudiantes queda cubierto |
+| V-06 | Los créditos recientes ya resueltos sesgan la tasa de malos hacia arriba | Experimento A4 (tasa de malos y fracción de NA por año) | ✅ 23-oct: consistente con los datos. Sin desenlace: 7 % (2012), 46 % (2013), 69 % (2014), 93 % (2015); tasa de malos de los resueltos: 16,7 % → 23,0 % → 26,2 % → 25,5 % (`resumen_datos.json`). Además, al incumplir seguía pendiente el 80 % del monto en test frente al 64 % en train (incumplimientos más tempranos) |
 | V-07 | `AdamW` aplica weight decay desacoplado, que no equivale a L2 con Adam | Loshchilov & Hutter + documentación de PyTorch | ⬜ |
-| V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ⬜ |
+| V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ✅ 23-oct: `issue_d` de 2007-06 a 2015-12 |
 | V-09 | La EAD al castigo = `funded_amnt` − `total_rec_prncp`, y LGD = 1 − (`recoveries` − `collection_recovery_fee`)/EAD | Diccionario de Kaggle + casos reales (D1) | ⬜ |
 | V-10 | Material for MkDocs está en mantenimiento con correcciones hasta el 5-nov-2026 (dato del Trabajo 1) | Anuncio oficial del proyecto | ⬜ |
-| V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ✅ 23-oct: las 14 candidatas (estas + Rumelhart, Kingma & Ba, Srivastava, Brier, Hanley & McNeil, Ferrari & Cribari-Neto, Yurdakul & Naranjo) existen y sus DOI/URL resuelven al trabajo esperado (`evidencias/A8_verificacion_bib.*`). Matices, no alucinaciones: Kingma & Ba y Loshchilov & Hutter tienen DOI de arXiv con año 2014 y 2017 (los años 2015 y 2019 son de ICLR, sin DOI); Siddiqi: Crossref 2016 en línea, 2017 impreso. Autores de Bergstra y Srivastava confirmados en las páginas oficiales |
+| V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ✅ 23-oct: las 14 candidatas (estas + Rumelhart, Kingma & Ba, Srivastava, Brier, Hanley & McNeil, Ferrari & Cribari-Neto, Yurdakul & Naranjo) existen y sus DOI/URL resuelven al trabajo esperado (`evidencias/A8_verificacion_bib.*`). Matices, no alucinaciones: Kingma & Ba y Loshchilov & Hutter tienen DOI de arXiv con año 2014 y 2017 (los años 2015 y 2019 son de ICLR, sin DOI); Siddiqi: Crossref 2016 en línea, 2017 impreso. Autores de Bergstra y Srivastava confirmados en las páginas oficiales. 25-oct: Siddiqi es la 2.ª edición (enero de 2017) según la página de Wiley; Crossref la registra como edición 1, error de metadatos de Crossref y no de la IA |
 
 ---
 
@@ -214,7 +214,7 @@ falsas se registran como candidatos.
 4. **Evidencia:** ∇(λ‖W‖²) = 2λW, mientras que `weight_decay = λ` suma λW al gradiente: lo equivalente es (λ/2)‖W‖².
    Numéricamente (5 pasos, scripts en el scratchpad de la sesión): `weight_decay = λ` y "+(λ/2)‖W‖²" dan los mismos pesos
    (dif. máx. 2,8e-17 con SGD y 5,6e-17 con Adam); con "+λ‖W‖²" difieren (6,1e-3 con SGD y 5,5e-2 con Adam).
-5. **Corrección:** Spec v0.10 (25-oct, Andrés): B-pd §3.2 dice (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en los sesgos.
+5. **Corrección:** Spec v0.13 (25-oct, Andrés; numerada 0.10 en `dev/andres`): B-pd §3.2 dice (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en los sesgos.
    El código ya seguía esta convención (decisión de Andrés, 24-oct). El blog 04 (B8) debe escribir (λ/2)‖W‖².
 6. **Lección aprendida:** "equivalente" entre una penalización y un hiperparámetro de la librería se verifica derivando el
    gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
