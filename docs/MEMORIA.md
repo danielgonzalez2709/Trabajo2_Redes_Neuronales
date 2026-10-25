@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-24 |
-| Fase | **Parte A en `main`** (PR #1 fusionado el 24-oct, 10:44 a. m.). Ruleset de `main` activo. B, C y D arrancan con datos reales. Spec v0.8 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B: B1–B4 (Optuna de noche). C: C1–C2. D: D1–D3. Camila: E1 (app). Daniel: E5/E6/E7, revisar PR, confirmar H-01 y H-02 |
+| Fase | **Parte A en `main`** (PR #1) y **reparto B+C en `main`** (PR #2: Andrés B, Juan José C). Ruleset de `main` activo. Spec v0.10 |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1–D3. Camila: E1 (app). Daniel: PR de `dev/daniel` (E5, E6, E7, E11; Spec v0.10), confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -21,8 +21,8 @@
 | Parte | Spec | Quién |
 |---|---|---|
 | A — Datos y caso de uso | `docs/spec/partes/A-datos.md` | Daniel |
-| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés y Juan José |
-| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Andrés y Juan José |
+| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés |
+| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Juan José |
 | D — LGD | `docs/spec/partes/D-lgd.md` | Camila y José |
 | E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel y Camila (Camila: frontend de la app) |
 
@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
 - Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona**. Ruleset
@@ -51,19 +52,21 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
-1. Reparto de tareas dentro de cada pareja.
+1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-24** — PR #2 fusionado: Spec v0.9, Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B,
+  Juan José C). Los contratos de la E[L] de `dev/daniel` pasan a ser la v0.10.
 - **2026-10-24** — Blog 00 (resumen, sin cifras de modelos todavía) y notebook 00 de la sustentación: demos de `run.py` en
   carpetas temporales, la celda de modificación exige escribir la predicción antes, 3 predicciones de la Parte A verificadas.
   `configs/sustentacion.yaml`: cada parte registra ahí su demo. 192 pruebas.
 - **2026-10-24** — E6: proyecto Remotion en `video/` con las 9 escenas del guion (clips como marcadores). E7 parcial: blog 11–13.
   V-05 (licencia de Remotion) verificada.
-- **2026-10-24** — E5: `src/el/` + `run.py el` listos con pruebas (falta la PD de B y la LGD de D). Spec v0.9: `montos.parquet`
+- **2026-10-24** — E5: `src/el/` + `run.py el` listos con pruebas (falta la PD de B y la LGD de D). Spec v0.10: `montos.parquet`
   (EAD y recuperaciones, solo para LGD y E[L]), columnas `pred_<modelo>` y `lgd/pred_pd_test.parquet` (LGD de todo el test).
   Dato: al incumplir seguía pendiente en promedio el 80 % del monto en test (64 % en train).
 - **2026-10-24** — PR #1 (Parte A, 17 commits) fusionado en `main`; CI `pruebas` en verde en Linux; ruleset activo.

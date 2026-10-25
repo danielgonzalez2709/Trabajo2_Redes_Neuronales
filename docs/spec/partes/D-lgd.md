@@ -36,7 +36,7 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
 `Default` y `Late (31-120 days)` todavía no terminan su cobranza: se excluyen de la LGD y se documenta.
 
 ### 3.2 Variable objetivo [PROPUESTO — verificar cada campo en el diccionario]
-- Los campos ya están en `data/processed/montos.parquet` (núcleo §5.1, v0.9): no hace falta leer el CSV crudo. Unir con
+- Los campos ya están en `data/processed/montos.parquet` (núcleo §5.1, v0.10): no hace falta leer el CSV crudo. Unir con
   `loans_pd.parquet` por `id`.
 - Además de `pred_test.parquet`, entregar `results/data/lgd/pred_pd_test.parquet` con la LGD predicha para **todos** los
   créditos de test de `loans_pd` (núcleo §5.4): la E[L] la necesita para cada crédito, no solo para los incumplidos.

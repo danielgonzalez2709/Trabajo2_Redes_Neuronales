@@ -1,4 +1,4 @@
-# PLAN — tablero global (Spec v0.9)
+# PLAN — tablero global (Spec v0.10)
 
 > Una línea por tarea. El detalle (aceptación, verificador, especificación) está en la spec de cada parte
 > (`docs/spec/partes/`). Pipeline por tarea: **implementador → revisor-spec → revisor-calidad → (+ verificador) → PR → puente**.
@@ -9,7 +9,7 @@
 → C5 export real (sáb 24, noche) → E4 app final (dom 25) → E7 blog (lun 26).
 **Nadie espera:** antes de cada entrega se trabaja con los datos sintéticos (núcleo §5.6) o con el JSON de juguete.
 
-| Día | A — Datos (Daniel) | B — PD (Andrés, Juan José) | C — Scorecard (Andrés, Juan José) | D — LGD (Camila, José) | E — Producto (Daniel, Camila) |
+| Día | A — Datos (Daniel) | B — PD (Andrés) | C — Scorecard (Juan José) | D — LGD (Camila, José) | E — Producto (Daniel, Camila) |
 |---|---|---|---|---|---|
 | **Jue 22** | ✅ A1 descarga y conteos · ✅ A2 objetivo | Lee su spec; prepara entorno | Lee su spec; prepara entorno | Lee su spec; descarga el CSV | ✅ **E0** infraestructura (entorno, CI, run.py, blog, notebooks) + ruleset de `main` (sáb 24) |
 | **Vie 23** | ✅ A3 variables (Daniel aprueba las 15) · ✅ A4 partición ≤2012/2013/2014 (Daniel) · ✅ **A5 datos reales (en `main` el sáb 24, 10:44 a. m., PR #1)** | ⬜ B1 métricas · ⬜ B2 MLP + entrenar (mediodía) · ⬜ B3 logística · ⬜ **B4 Optuna de noche** | ⬜ C1 scorecard · ⬜ **C2 exportador + JSON de juguete** | ⬜ D1 objetivo LGD · ⬜ D3 lineal + MLP · ⬜ D2 parquet LGD (noche) | ⬜ E1 esqueleto de app + Vercel (Camila) · ✅ E10 `run.py notebooks` + plantilla · guion del video · revisión de PR |

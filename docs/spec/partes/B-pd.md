@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Responsables | **Andrés y Juan José (comparten B y C)** |
-| Ramas personales | `dev/andres`, `dev/juanjose` |
+| Responsables | **Andrés** (reparto de la pareja, 24-oct; Juan José hace la Parte C) |
+| Rama personal | `dev/andres` |
 | Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
 | Lee del núcleo | §0, §3, §4.1, §5.1, §5.2, §5.3, §5.4, §6, §7.1 · **Anexo (enunciado):** Parte 1, tareas 3–5; Regla de comparación justa; Discusión; Entregables 1 (fundamentación matemática) y 3 |
 | Arranca sin esperar | Sí: métricas y MLP con datos sintéticos (núcleo §5.6) desde el jueves 22 |
@@ -68,16 +68,16 @@ corrida y se explica por qué su desviación entre semillas es 0.
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
-| B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | por repartir |
-| B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | por repartir |
-| B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | por repartir |
-| B4 | Optuna del MLP (con datos reales, de noche) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | por repartir |
-| B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | por repartir |
-| B6 | Demo | B2, B3 | **< 2 min en CPU medido** | auditor-reproducibilidad | sáb 24 | por repartir |
-| B7 | Figuras: ROC, KS, calibración, cajas por semilla | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 | por repartir |
-| B9 | Notebook `02_pd` (núcleo §5.8) | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código | revisor-spec | dom 25 | por repartir |
-| B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | por repartir |
-| B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | por repartir |
+| B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | Andrés |
+| B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | Andrés |
+| B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | Andrés |
+| B4 | Optuna del MLP (con datos reales, de noche) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
+| B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | Andrés |
+| B6 | Demo | B2, B3 | **< 2 min en CPU medido** | auditor-reproducibilidad | sáb 24 | Andrés |
+| B7 | Figuras: ROC, KS, calibración, cajas por semilla | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 | Andrés |
+| B9 | Notebook `02_pd` (núcleo §5.8) | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código | revisor-spec | dom 25 | Andrés |
+| B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | Andrés |
+| B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Andrés |
 
 (E0 = esqueleto del puente, jue 22.)
 
