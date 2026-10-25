@@ -47,14 +47,10 @@ from src.common.torch_utils import (  # utilidades compartidas de PyTorch
 )
 from src.pd.entrenar import OPTIMIZADORES, construir_optimizador, entrenar  # bucle genérico y optimizadores
 
-__all__ = [  # interfaz pública acordada (tarea B2)
-    "ACTIVACIONES",
-    "CLAVES_MLP",
-    "validar_cfg_mlp",
-    "construir_red",
-    "contar_parametros",
-    "construir_perdida",
-    "MLPPD",
+__all__ = [  # interfaz pública acordada (tarea B2); lo demás es interno
+    "ACTIVACIONES", "CLAVES_MLP", "validar_cfg_mlp",  # lo que B4 necesita para armar el espacio de búsqueda
+    "construir_red", "contar_parametros", "construir_perdida",  # fábricas reutilizables e inyectables
+    "MLPPD",  # el modelo que cumple ModeloPD (núcleo §5.3)
 ]
 
 
@@ -94,7 +90,7 @@ CLAVES_MLP = (  # claves obligatorias del bloque mlp de PD: las 11 de §5.3 + po
 # %% [markdown]
 # ## Validación del bloque `mlp`: tipos numéricos
 #
-# Dos predicados gemelos para los valores de la config:
+# Un validador de enteros y un predicado de reales para los valores de la config:
 #
 # - **entero:** se reutiliza `seeds.validar_entero` (int de Python o de numpy, nunca bool); su `TypeError` se
 #   convierte en `ValueError`, porque toda falla de `validar_cfg_mlp` es `ValueError`;
@@ -150,8 +146,8 @@ def _validar_capas(capas) -> None:
 # %% [markdown]
 # ## Validación del bloque `mlp`: rangos numéricos
 #
-# Un valor real debe ser finito y cumplir su condición (tabla de `validar_cfg_mlp`); los contadores (`batch`,
-# `max_epocas`, `paciencia`) deben ser enteros $\ge 1$.
+# Un valor real debe ser finito y cumplir su condición (tabla de `validar_cfg_mlp`). Los contadores enteros
+# (`batch`, `max_epocas`, `paciencia`) se validan directamente con `_entero_config`.
 
 # %%
 def _validar_rango(cfg_mlp: dict, clave: str, condicion, descripcion: str) -> None:
@@ -160,10 +156,6 @@ def _validar_rango(cfg_mlp: dict, clave: str, condicion, descripcion: str) -> No
     if not _es_real(valor) or not condicion(valor):  # finito y dentro del rango
         raise ValueError(f"mlp.{clave} debe ser {descripcion}; se recibió {valor!r}")  # fuera de rango
 
-
-def _validar_entero_positivo(cfg_mlp: dict, clave: str) -> None:
-    """ValueError si ``cfg_mlp[clave]`` no es un entero ≥ 1."""
-    _entero_config(cfg_mlp[clave], f"mlp.{clave}", minimo=1)  # misma regla que los enteros del proyecto
 
 
 # %% [markdown]
@@ -202,17 +194,17 @@ def _validar_opcion(cfg_mlp: dict, clave: str, opciones) -> None:
 def validar_cfg_mlp(cfg_mlp: dict) -> dict:
     """Valida el bloque ``mlp`` de PD (tabla de arriba) y devuelve una copia profunda; cualquier falla → ValueError."""
     _validar_claves(cfg_mlp)  # primero las claves: las demás reglas las indexan
-    _validar_capas(cfg_mlp["capas"])
+    _validar_capas(cfg_mlp["capas"])  # una anchura inválida rompería construir_red con un error poco claro
     _validar_rango(cfg_mlp, "dropout", lambda v: 0 <= v < 1, "un número en [0, 1)")  # p = 1 apagaría todo
     _validar_rango(cfg_mlp, "l2", lambda v: v >= 0, "un número >= 0")  # λ = 0 = sin L2
     _validar_rango(cfg_mlp, "lr", lambda v: v > 0, "un número > 0")  # lr = 0 no movería los pesos
     _validar_rango(cfg_mlp, "momento", lambda v: v >= 0, "un número >= 0")  # 0 = SGD sin momento
     _validar_rango(cfg_mlp, "pos_weight", lambda v: v > 0, "un número > 0")  # 0 anularía a los malos
-    for clave in ("batch", "max_epocas", "paciencia"):  # contadores
-        _validar_entero_positivo(cfg_mlp, clave)
-    _validar_opcion(cfg_mlp, "activacion", ACTIVACIONES)
-    _validar_opcion(cfg_mlp, "optimizador", OPTIMIZADORES)
-    _validar_opcion(cfg_mlp, "device", DEVICES_VALIDOS)
+    for clave in ("batch", "max_epocas", "paciencia"):  # contadores: un 0 o un 2.5 no tienen sentido
+        _entero_config(cfg_mlp[clave], f"mlp.{clave}", minimo=1)  # misma regla que los enteros del proyecto
+    _validar_opcion(cfg_mlp, "activacion", ACTIVACIONES)  # si no, KeyError tardío en construir_red
+    _validar_opcion(cfg_mlp, "optimizador", OPTIMIZADORES)  # 'adamw' se rechaza: no es L2 (Parte B §6)
+    _validar_opcion(cfg_mlp, "device", DEVICES_VALIDOS)  # se valida aquí aunque resolver_device repita la regla
     return copy.deepcopy(cfg_mlp)  # copia: quien la use no altera la del llamador
 
 
@@ -327,10 +319,10 @@ class MLPPD:
         construir_perdida=construir_perdida,
         entrenar=entrenar,
     ):
-        self._construir_red = construir_red
-        self._construir_optimizador = construir_optimizador
-        self._construir_perdida = construir_perdida
-        self._entrenar = entrenar
+        self._construir_red = construir_red  # inyectable: las pruebas pasan _Captura para inspeccionar la red
+        self._construir_optimizador = construir_optimizador  # inyectable: B4 podría probar otro agrupamiento
+        self._construir_perdida = construir_perdida  # inyectable: la sensibilidad de pos_weight no toca la clase
+        self._entrenar = entrenar  # inyectable: el bucle genérico se puede sustituir en pruebas
         self._red = None  # None = sin entrenar ni cargar
         self._cfg_mlp = None  # bloque mlp con que se entrenó (se guarda con el modelo)
         self._n_entradas = None  # columnas que espera predict
@@ -341,66 +333,68 @@ class MLPPD:
     def _verificar_entrenado(self) -> None:
         """RuntimeError si el modelo aún no tiene red (ni fit ni cargar)."""
         if self._red is None:  # predecir con pesos aleatorios sería un error silencioso
-            raise RuntimeError("El modelo no está entrenado: llame a fit() o a cargar() antes")
+            raise RuntimeError("El modelo no está entrenado: llame a fit() o a cargar() antes")  # uso, no datos
 
     @staticmethod
     def _verificar_matriz(X, n_columnas: int, nombre: str) -> None:
         """ValueError si X no es 2-D con ``n_columnas`` columnas."""
         forma = np.shape(X)  # sin copiar los datos
         if len(forma) != 2 or forma[1] != n_columnas:  # evita un error críptico de matmul más adelante
-            raise ValueError(f"{nombre} debe tener forma (n, {n_columnas}); se recibió {forma}")
+            raise ValueError(f"{nombre} debe tener forma (n, {n_columnas}); se recibió {forma}")  # dato, no uso
 
     @staticmethod
     def _verificar_objetivo(y, n: int, nombre: str) -> None:
         """ValueError si y no es un vector 0/1 de longitud ``n``."""
-        y = np.asarray(y)
+        y = np.asarray(y)  # acepta listas o Series: se comparan como arreglo
         if y.shape != (n,):  # una etiqueta por fila de X
-            raise ValueError(f"{nombre} debe tener forma ({n},); se recibió {y.shape}")
+            raise ValueError(f"{nombre} debe tener forma ({n},); se recibió {y.shape}")  # (n, 1) también se rechaza
         if not np.all((y == 0) | (y == 1)):  # un NaN tampoco es 0 ni 1
-            raise ValueError(f"{nombre} debe contener solo 0 y 1")
+            raise ValueError(f"{nombre} debe contener solo 0 y 1")  # la BCE aceptaría un 2 sin quejarse
 
     def _validar_datos(self, X_tr, y_tr, X_val, y_val) -> int:
         """Valida los cuatro arreglos sin tocar el estado del modelo; devuelve el número de columnas."""
         if np.ndim(X_tr) != 2:  # X_tr fija las columnas: debe ser una matriz
-            raise ValueError(f"X_tr debe ser 2-D; se recibió la forma {np.shape(X_tr)}")
+            raise ValueError(f"X_tr debe ser 2-D; se recibió la forma {np.shape(X_tr)}")  # sin columnas no hay red
         n_entradas = int(np.shape(X_tr)[1])  # variable local: el modelo previo no cambia si algo falla
         self._verificar_matriz(X_val, n_entradas, "X_val")  # mismas columnas que train
-        self._verificar_objetivo(y_tr, np.shape(X_tr)[0], "y_tr")
-        self._verificar_objetivo(y_val, np.shape(X_val)[0], "y_val")
-        return n_entradas
+        self._verificar_objetivo(y_tr, np.shape(X_tr)[0], "y_tr")  # etiquetas de train contra las filas de X_tr
+        self._verificar_objetivo(y_val, np.shape(X_val)[0], "y_val")  # y las de val contra X_val
+        return n_entradas  # fit lo asigna al modelo solo si todo sale bien
 
     # --- entrenamiento -----------------------------------------------------------------------------------------
     def fit(self, X_tr, y_tr, X_val, y_val, cfg: dict, seed: int) -> "MLPPD":
         """Entrena con ``cfg["mlp"]`` y la semilla ``seed``; devuelve el propio modelo."""
         cfg_mlp = validar_cfg_mlp(cfg["mlp"])  # copia validada: cfg queda intacta
         n_entradas = self._validar_datos(X_tr, y_tr, X_val, y_val)  # falla antes de tocar el estado
-        device = resolver_device(cfg_mlp["device"])
+        device = resolver_device(cfg_mlp["device"])  # 'auto' se resuelve aquí, una vez por fit
         activar_determinismo(device)  # misma semilla y dispositivo → mismas métricas (núcleo §7.1)
         rng = fijar_semillas(seed)  # antes de construir la red: la inicialización sale de seed
-        red = self._construir_red(n_entradas, cfg_mlp["capas"], cfg_mlp["activacion"], cfg_mlp["dropout"]).to(device)
+        red = self._construir_red(  # la arquitectura sale entera de la config (--set mlp.capas=...)
+            n_entradas, cfg_mlp["capas"], cfg_mlp["activacion"], cfg_mlp["dropout"]  # n_entradas viene de los datos
+        ).to(device)  # los parámetros viven donde están los datos
         optimizador = self._construir_optimizador(red, cfg_mlp)  # L2 solo en los pesos
         perdida = self._construir_perdida(cfg_mlp["pos_weight"], device)  # BCE sobre logits
-        resultado = self._entrenar(
-            red,
-            perdida,
-            optimizador,
-            a_tensor(X_tr, device),
+        resultado = self._entrenar(  # bucle genérico: no sabe que es PD
+            red,  # al volver, con los pesos de la mejor época
+            perdida,  # BCE con logits: la red no lleva Sigmoid
+            optimizador,  # ya trae la L2 en sus grupos de parámetros
+            a_tensor(X_tr, device),  # float32 y sin NaN: el preprocesador ya imputó (núcleo §5.2)
             a_tensor(y_tr, device, columna=True),  # (n, 1): la forma de la salida Linear(·, 1)
-            a_tensor(X_val, device),
+            a_tensor(X_val, device),  # val solo decide la parada: nunca entrena
             a_tensor(y_val, device, columna=True),  # (n, 1), igual que en train
-            batch=cfg_mlp["batch"],
-            max_epocas=cfg_mlp["max_epocas"],
-            paciencia=cfg_mlp["paciencia"],
+            batch=cfg_mlp["batch"],  # lo valida de nuevo entrenar (genérico, lo usa D)
+            max_epocas=cfg_mlp["max_epocas"],  # tope; la paciencia puede parar antes
+            paciencia=cfg_mlp["paciencia"],  # épocas sin mejora estricta antes de detener
             rng=rng,  # el mismo rng que sembró fijar_semillas: baraja los minilotes
         )
         self._red, self._cfg_mlp, self._n_entradas = red, cfg_mlp, n_entradas  # todo el estado, solo al final
-        self._device, self._resultado = device, resultado
+        self._device, self._resultado = device, resultado  # predict usará el mismo dispositivo del fit
         return self  # encadenable: MLPPD().fit(...)
 
     # --- predicción --------------------------------------------------------------------------------------------
     def predict_logit(self, X) -> np.ndarray:
         """Logit log(p / (1 − p)) de cada fila, numpy float64 (n,); una sola pasada en eval() y no_grad."""
-        self._verificar_entrenado()
+        self._verificar_entrenado()  # antes que las columnas: sin fit no hay n_entradas
         self._verificar_matriz(X, self._n_entradas, "X")  # mismas columnas que en fit
         self._red.eval()  # dropout = identidad al predecir
         with torch.no_grad():  # inferencia: sin grafo
@@ -413,27 +407,27 @@ class MLPPD:
     # --- información -------------------------------------------------------------------------------------------
     def n_parametros(self) -> int:
         """Parámetros entrenables de la red."""
-        self._verificar_entrenado()
-        return contar_parametros(self._red)
+        self._verificar_entrenado()  # sin red no hay arquitectura que contar
+        return contar_parametros(self._red)  # la regla de comparación justa reporta este número
 
     @property
     def resultado(self):
         """ResultadoEntrenamiento del último fit (no se guarda en disco)."""
         if self._resultado is None:  # modelo sin fit en esta sesión (p. ej. recién cargado)
-            raise RuntimeError("No hay resultado de entrenamiento: el modelo no se entrenó con fit()")
-        return self._resultado
+            raise RuntimeError("No hay resultado de entrenamiento: el modelo no se entrenó con fit()")  # no None
+        return self._resultado  # inmutable: se puede compartir sin copiar
 
     # --- persistencia ------------------------------------------------------------------------------------------
     def guardar(self, ruta) -> None:
         """Guarda ``{"state_dict" en CPU, "config" (bloque mlp), "n_entradas"}`` con ``torch.save``."""
-        self._verificar_entrenado()
+        self._verificar_entrenado()  # un archivo sin pesos no serviría a la app ni a figures
         estado = {k: v.detach().cpu() for k, v in self._red.state_dict().items()}  # en CPU: cargable sin GPU
-        paquete = {
-            "state_dict": estado,
+        paquete = {  # solo tensores y tipos simples: así lo admite torch.load(weights_only=True)
+            "state_dict": estado,  # pesos de la mejor época
             "config": copy.deepcopy(self._cfg_mlp),  # la de entrenamiento, con su device original
-            "n_entradas": self._n_entradas,
+            "n_entradas": self._n_entradas,  # columnas: cargar reconstruye la red sin los datos
         }
-        torch.save(paquete, Path(ruta))
+        torch.save(paquete, Path(ruta))  # pickle restringido; se lee con weights_only=True
 
     @classmethod
     def cargar(cls, ruta) -> "MLPPD":
@@ -441,9 +435,11 @@ class MLPPD:
         paquete = torch.load(Path(ruta), map_location="cpu", weights_only=True)  # no ejecuta código arbitrario
         n_entradas = int(paquete["n_entradas"])  # una sola conversión, usada abajo
         cfg_mlp = validar_cfg_mlp(paquete["config"])  # config de entrenamiento: no se sobrescribe su device
-        modelo = cls()
-        red = modelo._construir_red(n_entradas, cfg_mlp["capas"], cfg_mlp["activacion"], cfg_mlp["dropout"])
+        modelo = cls()  # fábricas por defecto: el archivo no guarda código
+        red = modelo._construir_red(  # misma arquitectura que en el entrenamiento
+            n_entradas, cfg_mlp["capas"], cfg_mlp["activacion"], cfg_mlp["dropout"]  # todo sale del archivo
+        )
         red.load_state_dict(paquete["state_dict"])  # falla si la arquitectura no coincide con los pesos
-        modelo._red, modelo._cfg_mlp, modelo._n_entradas = red, cfg_mlp, n_entradas
+        modelo._red, modelo._cfg_mlp, modelo._n_entradas = red, cfg_mlp, n_entradas  # mismo estado que tras fit
         modelo._device = torch.device("cpu")  # dispositivo de inferencia (puede diferir del de entrenamiento)
-        return modelo
+        return modelo  # listo para predecir; sin resultado (no se guarda en disco)

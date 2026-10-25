@@ -32,7 +32,6 @@
 import copy  # copia profunda del state_dict de la mejor época
 import math  # isfinite e inf para la parada temprana y la revisión de pérdidas
 from dataclasses import dataclass  # resultado inmutable del entrenamiento
-from typing import Iterator  # tipo del generador de minilotes
 
 import numpy as np  # permutación de índices con el Generator de la corrida
 import torch  # tensores, no_grad y optimizadores
@@ -40,16 +39,10 @@ from torch import nn  # tipo nn.Module de la red y de la pérdida
 
 from src.common.seeds import validar_entero  # validación de enteros ≥ mínimo (reutilizada sin modificar)
 
-__all__ = [  # interfaz pública acordada (tarea B2)
-    "OPTIMIZADORES",
-    "grupos_de_parametros",
-    "construir_optimizador",
-    "iterar_minilotes",
-    "epoca_entrenamiento",
-    "evaluar_perdida",
-    "ParadaTemprana",
-    "ResultadoEntrenamiento",
-    "entrenar",
+__all__ = [  # interfaz pública acordada (tarea B2); lo demás es interno
+    "OPTIMIZADORES", "grupos_de_parametros", "construir_optimizador",  # config → optimizador
+    "iterar_minilotes", "epoca_entrenamiento", "evaluar_perdida",  # piezas del bucle (la Parte D las reutiliza)
+    "ParadaTemprana", "ResultadoEntrenamiento", "entrenar",  # parada temprana y bucle completo
 ]
 
 OPTIMIZADORES = ("adam", "sgd")  # valores admitidos de mlp.optimizador (núcleo §5.3)
@@ -122,16 +115,16 @@ def construir_optimizador(red: nn.Module, cfg_mlp: dict, agrupar=grupos_de_param
 # %% [markdown]
 # ## Minilotes
 #
-# En cada época se baraja $\{0, \dots, n-1\}$ con el `np.random.Generator` de la corrida y se recorre en trozos de
+# En cada época se baraja $\{0, \dots, n-1\}$ con el `np.random.Generator` de la corrida y se parte en trozos de
 # `batch` índices; el último trozo puede ser más corto (ningún crédito se omite ni se repite). Como el generador
-# sale de `fijar_semillas(seed)`, el orden es reproducible.
+# sale de `fijar_semillas(seed)`, el orden es reproducible. La permutación se copia al dispositivo **una vez por
+# época** y los trozos son vistas de ese tensor (`torch.split`).
 
 # %%
-def iterar_minilotes(n: int, batch: int, rng: np.random.Generator) -> Iterator[np.ndarray]:
-    """Índices barajados de ``0..n-1`` en trozos de ``batch`` (el último puede ser más corto)."""
-    orden = rng.permutation(n)  # permutación reproducible con el rng de la corrida
-    for inicio in range(0, n, batch):  # inicio de cada minilote
-        yield orden[inicio : inicio + batch]  # el último trozo incluye el resto
+def iterar_minilotes(n: int, batch: int, rng: np.random.Generator, device) -> tuple[torch.Tensor, ...]:
+    """Índices barajados de ``0..n-1`` en ``device``, en trozos de ``batch`` (el último puede ser más corto)."""
+    orden = torch.as_tensor(rng.permutation(n), device=torch.device(device))  # el orden sale del rng de numpy
+    return torch.split(orden, batch)  # vistas sin copia; el último trozo lleva el resto
 
 
 # %% [markdown]
@@ -145,19 +138,16 @@ def iterar_minilotes(n: int, batch: int, rng: np.random.Generator) -> Iterator[n
 #
 # que coincide con la media por observación cuando la pérdida promedia dentro del minilote (`reduction='mean'`).
 #
-# El orden de los minilotes sale de `iterar_minilotes` (el rng de numpy de la corrida); los índices se pasan a un
-# solo tensor por época y la suma se acumula como tensor, con una sola conversión a `float` al final (sin
-# sincronizar con el dispositivo en cada minilote).
+# El orden de los minilotes sale de `iterar_minilotes` (el rng de numpy de la corrida). La suma se acumula como
+# tensor, con una sola conversión a `float` al final (sin sincronizar con el dispositivo en cada minilote).
 
 # %%
 def epoca_entrenamiento(red, perdida, optimizador, X, y, batch, rng) -> float:
     """Una pasada por todos los minilotes con retropropagación; devuelve la pérdida media ponderada de la época."""
     red.train()  # dropout activo durante el entrenamiento
     n = X.shape[0]  # número de observaciones
-    lotes = list(iterar_minilotes(n, batch, rng))  # el orden de la época sale del rng de numpy
-    orden = torch.as_tensor(np.concatenate(lotes), device=X.device)  # una sola copia al dispositivo por época
     total = torch.zeros((), device=X.device)  # Σ |B|·ℓ_B, acumulada sin salir del dispositivo
-    for idx in torch.split(orden, [len(lote) for lote in lotes]):  # mismos trozos que iterar_minilotes
+    for idx in iterar_minilotes(n, batch, rng, X.device):  # índices ya en el dispositivo de los datos
         optimizador.zero_grad()  # sin esto, los gradientes de minilotes anteriores se sumarían
         valor = perdida(red(X[idx]), y[idx])  # ℓ_B: media dentro del minilote
         valor.backward()  # gradiente de ℓ_B (más la L2, que añade el optimizador)
@@ -264,7 +254,8 @@ def validar_formas(red: nn.Module, X: torch.Tensor, y: torch.Tensor, nombre: str
         forma_salida = tuple(red(X[:1]).shape[1:])  # con una fila basta para conocer la forma por observación
     if forma_salida != tuple(y.shape[1:]):  # la pérdida necesita formas idénticas para no difundir
         raise ValueError(  # formas incompatibles
-            f"{nombre}: la salida de la red tiene forma por fila {forma_salida} y el objetivo {tuple(y.shape[1:])}"
+            f"{nombre}: la salida de la red tiene forma por fila {forma_salida} "  # lo que produce la red
+            f"y el objetivo {tuple(y.shape[1:])}"  # frente a lo que se le pide
         )
 
 
@@ -322,9 +313,9 @@ def entrenar(
         if parada.actualizar(perdida_val, epoca, red):  # ¿se agotó la paciencia?
             break  # las épocas restantes ya no mejorarían según la regla
     parada.restaurar(red)  # también al llegar a max_epocas: la última época no tiene por qué ser la mejor
-    return ResultadoEntrenamiento(
-        historial=historial,
-        mejor_epoca=parada.mejor_epoca,
+    return ResultadoEntrenamiento(  # inmutable: quien lo reciba (B4, B5, D) no puede alterar el historial
+        historial=historial,  # para las curvas de aprendizaje del blog
+        mejor_epoca=parada.mejor_epoca,  # la de los pesos que quedaron en la red
         epocas_corridas=len(historial),  # puede ser < max_epocas si paró por paciencia
-        mejor_perdida_val=parada.mejor_perdida,
+        mejor_perdida_val=parada.mejor_perdida,  # criterio con que se eligieron esos pesos
     )
