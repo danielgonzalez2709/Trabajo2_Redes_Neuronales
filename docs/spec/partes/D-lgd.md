@@ -51,6 +51,9 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
   2014: 63 %); en 2013–2014 es consistente con censura (dentro de cada cosecha, más casos sin recuperación entre los castigados
   más tarde), sin descartar composición ni cambio de canal de cobranza. Evidencia: `alucinaciones/evidencias/D1_verificacion_lgd.*`.
   El blog lo reporta como "consistente con censura", no como causa probada.
+- **Preprocesador de la LGD [DECIDIDO, Camila, 24-oct]:** `models/preprocesador_lgd.json` es el `Preprocesador` de A (mismas
+  variables y percentiles de `configs/datos.yaml`) ajustado **solo con el train de la población LGD**; lo comparten lineal y MLP y
+  en D4 se aplica también a todo el test de `loans_pd` (`pred_pd_test.parquet`). Lo escribe `python -m src.lgd.preparar` (D2).
 - Limitaciones para el blog: sin descuento del dinero en el tiempo; solo el costo de cobranza registrado; recuperaciones abiertas
   en castigos recientes (censura); intereses no incluidos; masa de probabilidad en los extremos.
 
@@ -78,7 +81,7 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 |---|---|---|---|---|---|---|
 | D1 🟨 | Población, EAD y LGD desde `montos.parquet` (v0.10), con la cita del diccionario por campo | E0 | `test_lgd.py` con casos hechos a mano; conteo fuera de [0, 1] | **curador-datos** + cazador | vie 23 | Camila |
 | D1b | Descriptivo de la LGD observada y después del preprocesamiento (§3.2b) | D1 (A6b para la parte posterior al preprocesamiento) | `descriptivo.json`; figuras citadas en el blog | analista-experimentos | sáb 24 | por repartir |
-| D2 | `loans_lgd.parquet` con el preprocesador y la partición reales | A5, D1 | Misma partición temporal; esquema = núcleo §5.1 | revisor-spec | vie 23, noche | por repartir |
+| D2 ✅ | `loans_lgd.parquet` con el preprocesador y la partición reales | A5, D1 | Misma partición temporal; esquema = núcleo §5.1 | revisor-spec | vie 23, noche | Camila |
 | D3 ✅ | Lineal + MLP de LGD (salida sigmoide, pérdida §3.3) | E0 (B2 cuando llegue) | Derivación de la pérdida revisada; `test_lgd_mlp.py` | verificador-matematico | vie 23 | Camila |
 | D4 | Optuna + 30 semillas + `summary.json` | D2, D3 | Presupuesto y semillas según núcleo §6 | analista-experimentos | **sáb 24, 6 p. m.** | por repartir |
 | D5 | Demo | D3 | **< 2 min en CPU** | auditor-reproducibilidad | sáb 24 | por repartir |

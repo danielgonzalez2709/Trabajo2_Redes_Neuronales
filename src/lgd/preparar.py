@@ -8,7 +8,7 @@ fórmula ([DECIDIDO, Camila, 24-oct]: lo excluido se cuenta en el resumen; ``lgd
 distribución distinta de la LGD entre particiones se acepta y se documenta: no se filtra por año
 ([DECIDIDO, Camila, 24-oct]); ``lgd_por_split`` en el resumen la deja medida.
 
-Preprocesador de la LGD — **[PROPUESTO por el orquestador, la confirma Camila]**: ``models/preprocesador_lgd.json`` es el
+Preprocesador de la LGD — **[DECIDIDO, Camila, 24-oct]**: ``models/preprocesador_lgd.json`` es el
 mismo ``Preprocesador`` de la Parte A (mismas variables de ``configs/features.yaml`` y mismos percentiles de recorte, que
 se leen de ``configs/datos.yaml``), **ajustado solo con las filas ``split == "train"`` de la población LGD**. Lo usan la
 regresión lineal y el MLP de LGD (misma tarea → mismo objeto, núcleo §5.2) y también se aplica a todo el test de

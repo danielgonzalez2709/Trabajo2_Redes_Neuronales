@@ -63,6 +63,20 @@ def _eda(cfg: dict | None) -> int:
     return manejador(cfg)
 
 
+def _lgd(cfg: dict | None) -> int:
+    """Parte D (D4): lineal + MLP de LGD con semillas."""
+    from src.lgd.experimento import manejador
+
+    return manejador(cfg)
+
+
+def _lgd_hpo(cfg: dict | None) -> int:
+    """Parte D (D4): búsqueda Optuna del MLP de LGD."""
+    from src.lgd.experimento import manejador_hpo
+
+    return manejador_hpo(cfg)
+
+
 def _el(cfg: dict | None) -> int:
     """Parte E (E5): pérdida esperada."""
     from src.el.experimento import manejador
@@ -95,8 +109,8 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
     "pd": Subcomando("Parte B: logística + MLP de PD", True, _pendiente("pd", "B3/B5")),
     "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pendiente("pd-hpo", "B4")),
-    "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _pendiente("lgd", "D3/D4")),
-    "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _pendiente("lgd-hpo", "D4")),
+    "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
+    "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),

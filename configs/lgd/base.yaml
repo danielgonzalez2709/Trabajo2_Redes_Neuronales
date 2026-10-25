@@ -1,4 +1,6 @@
-# Parte D — LGD (Spec, Parte D §3.3; núcleo §5.3). D3 solo define el bloque mlp; el resto lo añade D4.
+# Parte D — LGD (Spec, Parte D §3.3; núcleo §5.3, §5.4, §6). `python run.py lgd --config configs/lgd/base.yaml`
+# (lineal + 30 semillas del MLP) y `python run.py lgd-hpo --config configs/lgd/hpo.yaml` (búsqueda Optuna).
+# D3 define el bloque mlp; D4 añade base_seed, semillas, hpo, salida y modelos.
 # Valores por defecto de partida (no ajustados): la búsqueda de hiperparámetros los reemplaza.
 mlp:
   capas: [64, 32]
@@ -23,3 +25,26 @@ datos:
     loans_lgd: data/processed/loans_lgd.parquet
     preprocesador: models/preprocesador_lgd.json
     resumen: results/data/lgd/resumen_objetivo.json
+  muestra: null             # D4: n total de créditos LGD (submuestreo estratificado por split con base_seed); null = todos
+# D4 — experimento (src/lgd/experimento.py). Entradas: datos.salida.loans_lgd, datos.salida.preprocesador (tal cual, sin
+# reajustar) y el test de datos.loans_pd.
+base_seed: 0                # semilla efectiva = base_seed + k (núcleo §4.1); también semilla de la búsqueda
+semillas:
+  n: 30                     # configuración final del MLP con base_seed + 0…n−1 (núcleo §6); la lineal se ajusta 1 vez
+hpo:
+  n_ensayos: 30             # Optuna TPE (Parte D §3.3); demo: 5
+  usar_mejor: true          # lgd usa salida/mejor_config.json (lo escribe lgd-hpo) si existe; si no, el bloque mlp
+  # Mismo espacio que B (B §3.3). Neuronas: una elección por capa. sgd usa mlp.momento (no se busca).
+  espacio:
+    n_capas: [1, 4]                         # entero, inclusivo
+    neuronas: [16, 32, 64, 128, 256]        # categórico, por capa
+    activacion: [relu, leaky_relu, tanh]
+    dropout: [0.0, 0.5]                     # uniforme
+    l2: [1.0e-6, 1.0e-2]                    # log-uniforme (en D: l2·Σ‖W‖², ver mlp.l2)
+    optimizador: [adam, sgd]
+    lr: [1.0e-4, 1.0e-2]                    # log-uniforme
+    batch: [256, 512, 1024, 2048]
+salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, mejor_config.json, pred_test, pred_pd_test
+modelos:
+  lineal: models/lgd_lineal.joblib
+  mlp: models/lgd_mlp.pt    # semilla con el MAE de test mediano

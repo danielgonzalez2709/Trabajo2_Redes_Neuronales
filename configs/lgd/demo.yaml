@@ -1,0 +1,18 @@
+# Parte D — DEMO (< 2 min en CPU): `python run.py lgd --config configs/lgd/demo.yaml`.
+# Escribe en results/data/lgd_demo/ y models/*_demo* (ignorados por git): nunca toca los resultados reales.
+# Muestra, semillas y épocas reducidas solo para que corra rápido; NO son los resultados reportados.
+hereda: base.yaml
+datos:
+  muestra: 20000
+semillas:
+  n: 3
+hpo:
+  n_ensayos: 5              # demo de la búsqueda: python run.py lgd-hpo --config configs/lgd/demo.yaml
+  usar_mejor: false         # la demo entrena el bloque mlp de abajo, haya o no búsqueda
+mlp:
+  max_epocas: 30
+  paciencia: 5
+salida: results/data/lgd_demo
+modelos:
+  lineal: models/lgd_lineal_demo.joblib
+  mlp: models/lgd_mlp_demo.pt

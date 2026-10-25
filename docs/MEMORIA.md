@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-24 |
-| Fase | **Parte A en `main`** (PR #1), **reparto B+C en `main`** (PR #2) y **E5/E6/E7/E11 + Spec v0.10 en `main`** (PR #3). Ruleset de `main` activo. **D3 ✅ en `dev/camila`** (lineal + MLP de LGD) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1/D2 con `montos.parquet` (unir con `loans_pd.parquet` por `id`; mismas filas y orden). D4 entrega `pred_test.parquet` con columnas `pred_<modelo>` **y** `lgd/pred_pd_test.parquet` (LGD de todo el test, §5.4 v0.10). Camila: E1 (app). Daniel: confirmar H-01 y H-02 |
+| Fase | **Parte A en `main`** (PR #1), **reparto B+C en `main`** (PR #2) y **E5/E6/E7/E11 + Spec v0.10 en `main`** (PR #3). Ruleset de `main` activo. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 🟨 (faltan citas del diccionario) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4 (Optuna de noche). C (Juan José): C1–C2. D (Camila y José): D1b descriptivo y D4 Optuna + 30 semillas sobre `loans_lgd.parquet`; Daniel pasa `LCDataDictionary.xlsx` (Kaggle) para cerrar D1. D4 entrega `pred_test.parquet` con columnas `pred_<modelo>` **y** `lgd/pred_pd_test.parquet` (LGD de todo el test, §5.4 v0.10). Camila: E1 (app). Daniel: confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -32,6 +32,9 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- LGD (Camila, 24-oct): población = Charged Off (2 estados); EAD ≤ 0 o NA → excluir y contar; diferencia entre particiones
+  (LGD = 1: train 26 %, test 63 %) se acepta y documenta ("consistente con censura"); `preprocesador_lgd.json` = el de A
+  ajustado solo con el train de la población LGD (D §3.2).
 - Reparto B+C (Andrés y Juan José, 24-oct): Andrés hace la Parte B y Juan José la Parte C (núcleo §1.1, Spec v0.9).
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
@@ -61,6 +64,9 @@ mar 27 6 p. m. entrega.
 Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos del mundo real, H-05 Matemáticas, Parte D; H-03 y H-04 en `dev/andres`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-24** — D2 (Camila): `loans_lgd.parquet` (43 236: train 14 419 / val 14 836 / test 13 981), `preprocesador_lgd.json`
+  y `resumen_objetivo.json` con `python -m src.lgd.preparar`; revisor-spec y revisor-calidad aprueban. D1: cifras confirmadas
+  por el cazador; faltan las 5 citas del diccionario de Kaggle (`TODO(dato-faltante)`).
 - **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional, MSE opcional), 29 pruebas.
   revisor-calidad RECHAZÓ la 1.ª ronda (NaN entrenaba en silencio), APROBADA en la 2.ª; revisor-spec y verificador-matematico
   aprueban; cita Papke & Wooldridge (1996) confirmada (contenido solo por fuente secundaria). Candidato H-05. Pendiente para D4:
