@@ -144,21 +144,26 @@ def iterar_minilotes(n: int, batch: int, rng: np.random.Generator) -> Iterator[n
 # $$\bar\ell_{\text{train}} = \frac{1}{n}\sum_{B} |B|\,\ell_B ,$$
 #
 # que coincide con la media por observación cuando la pérdida promedia dentro del minilote (`reduction='mean'`).
+#
+# El orden de los minilotes sale de `iterar_minilotes` (el rng de numpy de la corrida); los índices se pasan a un
+# solo tensor por época y la suma se acumula como tensor, con una sola conversión a `float` al final (sin
+# sincronizar con el dispositivo en cada minilote).
 
 # %%
 def epoca_entrenamiento(red, perdida, optimizador, X, y, batch, rng) -> float:
     """Una pasada por todos los minilotes con retropropagación; devuelve la pérdida media ponderada de la época."""
     red.train()  # dropout activo durante el entrenamiento
-    total = 0.0  # suma de |B|·ℓ_B
     n = X.shape[0]  # número de observaciones
-    for indices in iterar_minilotes(n, batch, rng):  # minilotes barajados
-        idx = torch.as_tensor(indices, device=X.device)  # índices en el dispositivo de los datos
-        optimizador.zero_grad()  # borra los gradientes del paso anterior
-        valor = perdida(red(X[idx]), y[idx])  # pérdida del minilote
-        valor.backward()  # retropropagación
-        optimizador.step()  # actualización de los parámetros
-        total += valor.item() * len(indices)  # acumula ponderando por tamaño
-    return total / n  # pérdida media de la época
+    lotes = list(iterar_minilotes(n, batch, rng))  # el orden de la época sale del rng de numpy
+    orden = torch.as_tensor(np.concatenate(lotes), device=X.device)  # una sola copia al dispositivo por época
+    total = torch.zeros((), device=X.device)  # Σ |B|·ℓ_B, acumulada sin salir del dispositivo
+    for idx in torch.split(orden, [len(lote) for lote in lotes]):  # mismos trozos que iterar_minilotes
+        optimizador.zero_grad()  # sin esto, los gradientes de minilotes anteriores se sumarían
+        valor = perdida(red(X[idx]), y[idx])  # ℓ_B: media dentro del minilote
+        valor.backward()  # gradiente de ℓ_B (más la L2, que añade el optimizador)
+        optimizador.step()  # un paso de Adam o SGD
+        total = total + valor.detach() * len(idx)  # pondera por |B|; detach para no retener el grafo
+    return float(total) / n  # única conversión a float: media por observación
 
 
 # %% [markdown]
@@ -235,40 +240,55 @@ class ResultadoEntrenamiento:
 
 
 # %% [markdown]
-# ## Comprobaciones del bucle
+# ## Comprobación de formas
 #
-# - **Formas:** la salida de la red y el objetivo deben tener la misma forma. Si no, pérdidas como `MSELoss`
-#   difundirían $(n, 1)$ contra $(n,)$ a una matriz $(n, n)$ sin error. Se comprueba con una fila en modo
-#   evaluación (no consume aleatoriedad del dropout).
-# - **Finitud:** una pérdida NaN o $\pm\infty$ en train o en val detiene todo con `FloatingPointError`, nombrando la
-#   época (decisión de Andrés).
+# Antes de entrenar, en cada conjunto (train y val):
+#
+# - debe haber al menos una fila (con $n = 0$ la media de la época sería $0/0$);
+# - $X$ e $y$ deben tener el mismo número de filas;
+# - la salida de la red y el objetivo deben tener la misma forma por fila. Si no, pérdidas como `MSELoss`
+#   difundirían $(n, 1)$ contra $(n,)$ a una matriz $(n, n)$ sin error.
+#
+# La forma de la salida se mira con una sola fila en modo evaluación, para no consumir aleatoriedad del dropout.
+# Todo error es `ValueError` y nombra el conjunto.
 
 # %%
 def validar_formas(red: nn.Module, X: torch.Tensor, y: torch.Tensor, nombre: str) -> None:
-    """ValueError si X e y tienen distinto número de filas o si la salida de la red no tiene la forma de y."""
-    if X.shape[0] != y.shape[0]:  # mismas observaciones en X e y
+    """ValueError nombrando el conjunto: sin filas, filas distintas en X e y, o salida con otra forma que y."""
+    if X.shape[0] == 0:  # sin filas no hay pérdida que promediar
+        raise ValueError(f"{nombre}: el conjunto no tiene filas")  # conjunto vacío
+    if X.shape[0] != y.shape[0]:  # cada fila de X necesita su objetivo
         raise ValueError(f"{nombre}: X tiene {X.shape[0]} filas e y tiene {y.shape[0]}")  # filas distintas
-    red.eval()  # sin dropout: la comprobación no consume aleatoriedad
-    with torch.no_grad():  # sin grafo
-        forma_salida = tuple(red(X[:1]).shape[1:])  # forma de la salida por observación
-    if forma_salida != tuple(y.shape[1:]):  # debe coincidir con la del objetivo
+    red.eval()  # sin dropout: la comprobación no altera el estado aleatorio del entrenamiento
+    with torch.no_grad():  # es solo una inspección: no hace falta grafo
+        forma_salida = tuple(red(X[:1]).shape[1:])  # con una fila basta para conocer la forma por observación
+    if forma_salida != tuple(y.shape[1:]):  # la pérdida necesita formas idénticas para no difundir
         raise ValueError(  # formas incompatibles
             f"{nombre}: la salida de la red tiene forma por fila {forma_salida} y el objetivo {tuple(y.shape[1:])}"
         )
 
 
+# %% [markdown]
+# ## Comprobación de finitud
+#
+# Regla (decisión de Andrés): una pérdida NaN o $\pm\infty$ detiene el entrenamiento con `FloatingPointError`;
+# el mensaje nombra la fase (`train` o `val`) y la época. Seguir entrenando con una pérdida no finita solo
+# propagaría NaN a los pesos.
+
+# %%
 def verificar_finita(valor: float, nombre: str, epoca: int) -> None:
-    """FloatingPointError si ``valor`` es NaN o ±inf, indicando la época."""
+    """FloatingPointError si ``valor`` es NaN o ±inf, nombrando la fase y la época."""
     if not math.isfinite(valor):  # NaN o ±inf
-        raise FloatingPointError(f"Pérdida de {nombre} no finita ({valor}) en la época {epoca}")  # aborta
+        raise FloatingPointError(f"Pérdida de {nombre} no finita ({valor}) en la época {epoca}")  # fase y época
 
 
 # %% [markdown]
 # ## Bucle completo
 #
-# Para $e = 1, \dots,$ `max_epocas`: una época de entrenamiento, la pérdida de validación, la comprobación de
-# finitud, el registro en el historial y la consulta a la parada temprana. Al salir, la red queda con los mejores
-# pesos. `X` e `y` son tensores ya en el dispositivo de la red.
+# Para $e = 1, \dots,$ `max_epocas`: una época de entrenamiento y su comprobación de finitud (antes de medir val,
+# para nombrar la fase donde nació el problema), la pérdida de validación y su comprobación, el registro en el
+# historial y la consulta a la parada temprana. Al salir (por paciencia o por `max_epocas`), la red queda con los
+# mejores pesos. `X` e `y` son tensores ya en el dispositivo de la red.
 
 # %%
 def entrenar(
@@ -287,24 +307,24 @@ def entrenar(
     parada_cls=ParadaTemprana,
 ) -> ResultadoEntrenamiento:
     """Entrena ``red`` con minilotes y parada temprana; al terminar deja en ``red`` los pesos de la mejor época."""
-    batch = validar_entero(batch, "batch", minimo=1)  # tamaño de minilote ≥ 1
-    max_epocas = validar_entero(max_epocas, "max_epocas", minimo=1)  # al menos una época
-    validar_formas(red, X_tr, y_tr, "train")  # salida y objetivo compatibles en train
-    validar_formas(red, X_val, y_val, "val")  # y en validación
-    parada = parada_cls(paciencia)  # estado de la parada temprana
+    batch = validar_entero(batch, "batch", minimo=1)  # un minilote vacío no daría un paso
+    max_epocas = validar_entero(max_epocas, "max_epocas", minimo=1)  # al menos una época para tener mejores pesos
+    validar_formas(red, X_tr, y_tr, "train")  # falla antes de gastar tiempo entrenando
+    validar_formas(red, X_val, y_val, "val")  # la parada temprana depende de esta pérdida
+    parada = parada_cls(paciencia)  # inyectable: la Parte D puede usar otra regla
     historial = []  # una entrada por época
     for epoca in range(1, max_epocas + 1):  # épocas numeradas desde 1
-        perdida_train = epoca_entrenamiento(red, perdida, optimizador, X_tr, y_tr, batch, rng)  # entrena
-        perdida_val = evaluar_perdida(red, perdida, X_val, y_val)  # mide en validación
-        verificar_finita(perdida_train, "train", epoca)  # NaN/inf en train → error
-        verificar_finita(perdida_val, "val", epoca)  # NaN/inf en val → error
+        perdida_train = epoca_entrenamiento(red, perdida, optimizador, X_tr, y_tr, batch, rng)  # entrena una época
+        verificar_finita(perdida_train, "train", epoca)  # antes de medir val: nombra la fase de origen
+        perdida_val = evaluar_perdida(red, perdida, X_val, y_val)  # criterio de la parada temprana
+        verificar_finita(perdida_val, "val", epoca)  # una val no finita invalidaría la comparación
         historial.append({"epoca": epoca, "perdida_train": perdida_train, "perdida_val": perdida_val})  # registra
         if parada.actualizar(perdida_val, epoca, red):  # ¿se agotó la paciencia?
-            break  # detener
-    parada.restaurar(red)  # la red queda con los mejores pesos
-    return ResultadoEntrenamiento(  # resumen inmutable
-        historial=historial,  # historial completo
-        mejor_epoca=parada.mejor_epoca,  # mejor época
-        epocas_corridas=len(historial),  # épocas corridas
-        mejor_perdida_val=parada.mejor_perdida,  # mejor pérdida de validación
+            break  # las épocas restantes ya no mejorarían según la regla
+    parada.restaurar(red)  # también al llegar a max_epocas: la última época no tiene por qué ser la mejor
+    return ResultadoEntrenamiento(
+        historial=historial,
+        mejor_epoca=parada.mejor_epoca,
+        epocas_corridas=len(historial),  # puede ser < max_epocas si paró por paciencia
+        mejor_perdida_val=parada.mejor_perdida,
     )

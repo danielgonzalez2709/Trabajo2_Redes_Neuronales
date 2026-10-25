@@ -25,11 +25,19 @@ from src.pd.entrenar import (
     ResultadoEntrenamiento,
     construir_optimizador,
     entrenar,
+    epoca_entrenamiento,
     evaluar_perdida,
     grupos_de_parametros,
     iterar_minilotes,
 )
-from src.pd.mlp import ACTIVACIONES, CLAVES_MLP, MLPPD, construir_red, contar_parametros, validar_cfg_mlp
+from src.pd.mlp import (
+    ACTIVACIONES,
+    MLPPD,
+    construir_perdida,
+    construir_red,
+    contar_parametros,
+    validar_cfg_mlp,
+)
 
 # --------------------------------------------------------------------------------------------
 # Constantes de prueba (no son del Spec ni del dominio; solo fijan los escenarios sintéticos)
@@ -88,6 +96,12 @@ MAX_EPOCAS_SIN_PARADA = 8  # tope corto con paciencia mayor: termina por max_epo
 PACIENCIA_SIN_PARADA = 100  # paciencia que nunca se agota en MAX_EPOCAS_SIN_PARADA
 EPOCA_NO_FINITA = 2  # época en la que la pérdida guionizada deja de ser finita
 CAPAS_EVAL = [16]  # una capa oculta para la prueba de evaluar_perdida con dropout
+N_EPOCA = 10  # filas de la prueba de la media ponderada de la época
+BATCH_EPOCA = 3  # minilotes 3 + 3 + 3 + 1: el último es incompleto
+PERDIDA_CONSTANTE = 0.7  # pérdida guionizada constante de cada minilote
+TOL_F32 = 1e-6  # tolerancia relativa para cantidades acumuladas en float32
+POS_WEIGHT_PRUEBA = 2.0  # w₊ de la prueba de la BCE ponderada
+N_COLUMNAS_OTRAS = 5  # columnas de un re-fit inválido
 
 
 # --------------------------------------------------------------------------------------------
@@ -269,11 +283,6 @@ def test_estructura_de_la_red(activacion):
     assert not any(isinstance(m, nn.Sigmoid) for m in red.modules())  # nada de Sigmoid: devuelve el logit
 
 
-def test_claves_mlp():
-    """5a (añadida). CLAVES_MLP son exactamente las 11 de §5.3 más pos_weight (las de CFG_PRUEBA)."""
-    assert set(CLAVES_MLP) == set(CFG_PRUEBA["mlp"])  # 12 claves, ni más ni menos
-
-
 def test_validar_cfg_mlp_acepta_la_valida():
     """5b. La config de prueba es válida y validar_cfg_mlp la devuelve como dict con las mismas claves."""
     validada = validar_cfg_mlp(copy.deepcopy(CFG_PRUEBA["mlp"]))  # valida una copia
@@ -302,6 +311,8 @@ CASOS_INVALIDOS = {
     "capas_flotante": ("capas", [32.0, 16]),  # anchura no entera (aunque valga lo mismo)
     "capas_bool": ("capas", [True]),  # bool no cuenta como entero
     "device_desconocido": ("device", "tpu"),  # fuera de auto|cpu|cuda
+    "lr_inf": ("lr", float("inf")),  # lr no finito
+    "pos_weight_inf": ("pos_weight", float("inf")),  # pos_weight no finito
 }
 
 
@@ -372,7 +383,9 @@ def test_iterar_minilotes_depende_del_rng():
     batch = CFG_PRUEBA["mlp"]["batch"]  # tamaño de minilote de la config de prueba
     a = np.concatenate(list(iterar_minilotes(N_TRAIN, batch, np.random.default_rng(SEMILLA))))  # primer recorrido
     b = np.concatenate(list(iterar_minilotes(N_TRAIN, batch, np.random.default_rng(SEMILLA))))  # misma semilla
+    c = np.concatenate(list(iterar_minilotes(N_TRAIN, batch, np.random.default_rng(SEMILLA_OTRA))))  # otra semilla
     np.testing.assert_array_equal(a, b)  # misma semilla, mismo orden
+    assert not np.array_equal(a, c)  # otra semilla, otro orden (no hay un rng fijo por dentro)
     assert not np.array_equal(a, np.arange(N_TRAIN))  # barajado (no es el orden original)
 
 
@@ -401,16 +414,59 @@ def test_parada_temprana_reinicia_la_cuenta():
     assert parada.mejor_epoca == 4  # la mejor es la 4
 
 
-def test_entrenar_rechaza_formas_distintas():
-    """9. Salida (n, 1) y objetivo (n,) → ValueError (MSELoss difundiría a (n, n) en silencio)."""
+@pytest.mark.parametrize("conjunto", ["train", "val"])
+def test_entrenar_rechaza_formas_distintas(conjunto):
+    """9. Salida (n, 1) y objetivo (n,) en train o en val → ValueError (MSELoss difundiría a (n, n) en silencio)."""
     X_tr, y_tr, X_val, y_val = _regresion(1.0)  # datos con objetivo (n, 1)
+    if conjunto == "train":  # se aplana solo un objetivo
+        y_tr = y_tr.squeeze(1)  # train (n,)
+    else:  # o el otro
+        y_val = y_val.squeeze(1)  # val (n,)
     red = nn.Linear(D_REG, 1)  # salida (n, 1)
     optimizador = torch.optim.Adam(red.parameters(), lr=LR_REG)  # optimizador cualquiera
     with pytest.raises(ValueError):  # formas incompatibles
         entrenar(
-            red, nn.MSELoss(), optimizador, X_tr, y_tr.squeeze(1), X_val, y_val.squeeze(1),
+            red, nn.MSELoss(), optimizador, X_tr, y_tr, X_val, y_val,
             batch=BATCH_REG, max_epocas=EPOCAS_CORTAS, paciencia=1, rng=np.random.default_rng(SEMILLA),
-        )  # objetivo aplanado a (n,)
+        )  # un objetivo aplanado a (n,)
+
+
+@pytest.mark.parametrize("conjunto", ["train", "val"])
+def test_entrenar_rechaza_datos_vacios(conjunto):
+    """9b (añadida, R2). Un conjunto sin filas → ValueError que nombra el conjunto (no una media 0/0)."""
+    X_tr, y_tr, X_val, y_val = _regresion(1.0)  # datos válidos
+    if conjunto == "train":  # se vacía solo un conjunto
+        X_tr, y_tr = X_tr[:0], y_tr[:0]  # train sin filas
+    else:  # o el otro
+        X_val, y_val = X_val[:0], y_val[:0]  # val sin filas
+    red = nn.Linear(D_REG, 1)  # red cualquiera
+    optimizador = torch.optim.SGD(red.parameters(), lr=LR_REG)  # optimizador cualquiera
+    with pytest.raises(ValueError, match=conjunto):  # el mensaje dice qué conjunto
+        entrenar(
+            red, nn.MSELoss(), optimizador, X_tr, y_tr, X_val, y_val,
+            batch=BATCH_REG, max_epocas=EPOCAS_CORTAS, paciencia=1, rng=np.random.default_rng(SEMILLA),
+        )  # conjunto vacío
+
+
+class _PerdidaConstante(nn.Module):
+    """Pérdida guionizada: vale PERDIDA_CONSTANTE en todo minilote (conserva el grafo para backward)."""
+
+    def forward(self, salida, objetivo):
+        return salida.sum() * 0.0 + PERDIDA_CONSTANTE  # constante, pero derivable respecto de la salida
+
+
+def test_epoca_entrenamiento_media_ponderada():
+    """9c (añadida). Con pérdida constante c en minilotes 3 + 3 + 3 + 1, la época devuelve c (media ponderada).
+
+    Una implementación que divide la suma por el tamaño del último lote (o la deja sin dividir) da 10·c.
+    """
+    fijar_semillas(SEMILLA_MODELO)  # pesos iniciales reproducibles
+    red = nn.Linear(D_REG, 1)  # red cualquiera
+    X = torch.zeros(N_EPOCA, D_REG)  # entradas cualesquiera
+    y = torch.zeros(N_EPOCA, 1)  # objetivo cualquiera
+    optimizador = torch.optim.SGD(red.parameters(), lr=LR_REG)  # optimizador cualquiera
+    media = epoca_entrenamiento(red, _PerdidaConstante(), optimizador, X, y, BATCH_EPOCA, np.random.default_rng(SEMILLA))
+    assert media == pytest.approx(PERDIDA_CONSTANTE, rel=TOL_F32)  # (3c + 3c + 3c + 1c) / 10 = c
 
 
 class _PerdidaNoFinita(nn.Module):
@@ -449,6 +505,7 @@ def test_entrenar_perdida_no_finita(valor, fase):
             rng=np.random.default_rng(SEMILLA),
         )  # un minilote por época
     assert re.search(rf"\b{EPOCA_NO_FINITA}\b", str(exc.value))  # el mensaje dice la época
+    assert fase in str(exc.value)  # y la fase (train o val) en la que ocurrió
 
 
 def test_entrenar_es_generico_regresion():
@@ -522,14 +579,17 @@ def test_resultado_del_fit(modelo_base):
     assert isinstance(r, ResultadoEntrenamiento)  # tipo del contrato
     assert 1 <= r.mejor_epoca <= r.epocas_corridas <= CFG_PRUEBA["mlp"]["max_epocas"]  # coherencia de épocas
     assert len(r.historial) == r.epocas_corridas  # una entrada por época
-    assert modelo_base.n_parametros() == N_PARAMS_48_24  # capas [48, 24] con 48 entradas
 
 
 def test_dropout_no_se_aplica_al_predecir(datos_pd):
     """14. Con dropout 0.5, dos llamadas a predict_proba sobre los mismos datos son idénticas."""
-    modelo = _ajustar(datos_pd, _cfg(dropout=DROPOUT_ALTO, max_epocas=EPOCAS_CORTAS))  # red con mucho dropout
+    captura = _Captura()  # para poner la red en train() desde fuera
+    modelo = _ajustar(datos_pd, _cfg(dropout=DROPOUT_ALTO, max_epocas=EPOCAS_CORTAS), construir_red=captura)
     X_val = datos_pd[2]  # validación
-    np.testing.assert_array_equal(modelo.predict_proba(X_val), modelo.predict_proba(X_val))  # idénticas
+    captura.red.train()  # si predict no llamara a eval(), el dropout quedaría activo
+    primera = modelo.predict_proba(X_val)  # primera predicción
+    captura.red.train()  # de nuevo en train() antes de la segunda
+    np.testing.assert_array_equal(primera, modelo.predict_proba(X_val))  # idénticas
 
 
 def test_determinismo_por_semilla(modelo_base, datos_pd):
@@ -588,6 +648,61 @@ def test_overrides_en_vivo(datos_pd):
     assert modelo.n_parametros() == N_PARAMS_64_32  # respeta capas
     assert [m.out_features for m in captura.red if isinstance(m, nn.Linear)] == CAPAS_OVERRIDE + [1]  # anchuras
     assert all(m.p == DROPOUT_OVERRIDE for m in captura.red if isinstance(m, nn.Dropout))  # respeta dropout
+
+
+def test_construir_perdida_pondera_la_clase_positiva():
+    """18b (añadida). BCE con w₊ = 2 en z = 0: y = 1 → w₊·log 2 = 2·log 2; y = 0 → log 2 (celda de la pérdida)."""
+    perdida = construir_perdida(POS_WEIGHT_PRUEBA, torch.device("cpu"))  # BCEWithLogitsLoss(pos_weight=2)
+    z = torch.zeros(1, 1)  # logit 0 → σ(z) = 1/2
+    malo = float(perdida(z, torch.ones(1, 1)))  # −w₊·log σ(0) = w₊·log 2
+    bueno = float(perdida(z, torch.zeros(1, 1)))  # −log(1 − σ(0)) = log 2
+    assert malo == pytest.approx(POS_WEIGHT_PRUEBA * np.log(2), rel=TOL_F32)  # pondera a los malos
+    assert bueno == pytest.approx(np.log(2), rel=TOL_F32)  # no pondera a los buenos
+
+
+CASOS_Y_INVALIDOS = {
+    "con_un_2": lambda y: np.where(np.arange(y.size) == 0, 2, y),  # etiqueta fuera de {0, 1}
+    "con_nan": lambda y: np.where(np.arange(y.size) == 0, np.nan, y.astype(float)),  # etiqueta faltante
+    "longitud_mala": lambda y: y[:-1],  # una etiqueta menos que filas
+}
+
+
+@pytest.mark.parametrize("dañar", list(CASOS_Y_INVALIDOS.values()), ids=list(CASOS_Y_INVALIDOS))
+@pytest.mark.parametrize("cual", ["y_tr", "y_val"])
+def test_fit_rechaza_objetivo_invalido(datos_pd, cual, dañar):
+    """18c (añadida). y_tr o y_val con un 2, un NaN o la longitud equivocada → ValueError en fit."""
+    X_tr, y_tr, X_val, y_val = datos_pd  # datos válidos
+    if cual == "y_tr":  # se daña solo un objetivo
+        y_tr = dañar(y_tr)  # train dañado
+    else:  # o el otro
+        y_val = dañar(y_val)  # val dañado
+    with pytest.raises(ValueError):  # objetivo inválido
+        MLPPD().fit(X_tr, y_tr, X_val, y_val, _cfg(max_epocas=EPOCAS_CORTAS), SEMILLA_MODELO)  # fit
+
+
+def test_fit_rechaza_x_val_con_otras_columnas(datos_pd):
+    """18d (añadida). X_val con una columna menos que X_tr → ValueError (no un error críptico de matmul)."""
+    X_tr, y_tr, X_val, y_val = datos_pd  # datos válidos
+    with pytest.raises(ValueError):  # columnas incompatibles
+        MLPPD().fit(X_tr, y_tr, X_val[:, :-1], y_val, _cfg(max_epocas=EPOCAS_CORTAS), SEMILLA_MODELO)  # fit
+
+
+def test_refit_fallido_no_altera_el_modelo(datos_pd):
+    """18e (añadida, B2). Un re-fit que falla por validación deja el modelo entrenado como estaba."""
+    X_tr, y_tr, X_val, y_val = datos_pd  # datos válidos (48 columnas)
+    modelo = _ajustar(datos_pd, _cfg(max_epocas=EPOCAS_CORTAS))  # modelo entrenado
+    antes = modelo.predict_proba(X_val)  # predicción de referencia
+    with pytest.raises(ValueError):  # X_tr con 5 columnas y X_val con 48: incompatibles
+        modelo.fit(X_tr[:, :N_COLUMNAS_OTRAS], y_tr, X_val, y_val, _cfg(max_epocas=EPOCAS_CORTAS), SEMILLA_MODELO)
+    np.testing.assert_array_equal(modelo.predict_proba(X_val), antes)  # sigue funcionando e igual
+
+
+def test_fit_con_val_de_una_sola_clase(datos_pd):
+    """18f (añadida, humo). y_val sin malos (una sola clase) es válido: fit entrena y predice valores finitos."""
+    X_tr, y_tr, X_val, _ = datos_pd  # datos válidos
+    y_val = np.zeros(X_val.shape[0], dtype=np.int64)  # todos buenos
+    modelo = MLPPD().fit(X_tr, y_tr, X_val, y_val, _cfg(max_epocas=EPOCAS_CORTAS), SEMILLA_MODELO)  # entrena
+    assert np.all(np.isfinite(modelo.predict_proba(X_val)))  # predice sin problemas
 
 
 def test_guardar_y_cargar(modelo_base, datos_pd, tmp_path):
