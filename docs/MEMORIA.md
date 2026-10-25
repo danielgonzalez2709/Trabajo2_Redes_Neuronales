@@ -54,13 +54,13 @@ mar 27 6 p. m. entrega.
 4. Modelo que va a la app (sáb 24).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 0 · Candidatos: 4 (H-01 Código, H-02 Datos del mundo real, H-03 y H-04 Código de la Parte B) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
 - **2026-10-24** — B1 (Andrés): `src/common/metricas.py` en percent format (fórmula antes de cada función; AUC, Gini, KS,
   Brier, ROC con TPR/FPR aparte, calibración por cuantiles; dependencias inyectadas) + `test_metricas.py` (63 pruebas de caja
   negra contra sklearn/scipy). TDD con 2 rondas: revisor-spec, revisor-calidad y verificador-matematico APROBADO (27
-  mutantes mueren). Candidatos H-03 (convención de borde de `calibration_curve`) y H-04 (AUC errónea con ±inf). Pendiente:
+  mutantes mueren). H-03 (convención de borde de `calibration_curve`) y H-04 (AUC errónea con ±inf), confirmados por Andrés. Pendiente:
   TODO(cita) de Murphy (1973); el PR debe declarar que toca `src/common/` (compartido) y esperar a que se fusione el PR #2.
 - **2026-10-24** — Spec v0.9: Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B, Juan José C); PR
   `dev/andres` → `main`.

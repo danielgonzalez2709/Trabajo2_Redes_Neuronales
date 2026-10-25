@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 3 (H-01, H-03, H-04) | 0 |
+| Código | 3 (H-01, H-03, H-04) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -97,7 +97,7 @@ falsas se registran como candidatos.
 
 
 ### H-03 — "calibration_curve asigna al bin superior el dato que cae en un borde (`side="right"`)"
-- **Estado:** candidato (falta que Andrés lo confirme)
+- **Estado:** confirmado (Andrés, 24-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
@@ -118,7 +118,7 @@ falsas se registran como candidatos.
    y una prueba de contraste solo fija una convención si sus datos ejercitan el caso (aquí, empates en los bordes).
 
 ### H-04 — AUC errónea en silencio cuando el puntaje trae ±inf
-- **Estado:** candidato (falta que Andrés lo confirme)
+- **Estado:** confirmado (Andrés, 24-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
