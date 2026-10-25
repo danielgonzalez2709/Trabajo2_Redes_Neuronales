@@ -51,15 +51,14 @@ Semillas (``entrenar_semillas``):
   ``loans_pd``: ``id, pred_lineal, pred_mlp``) con la semilla del MLP de **MAE de test mediano** (``_semilla_mediana``);
   esa semilla se guarda en ``modelos.mlp``.
 - Cada JSON lleva ``hash_particion`` (SHA-256 de las líneas ``id,split`` de ``loans_lgd`` completo, en su orden,
-  antes de la muestra) y ``hash_preprocesador`` (SHA-256 del JSON canónico del preprocesador).
+  antes de la muestra) y ``hash_preprocesador`` (SHA-256 del JSON canónico del preprocesador); ambos se definen en
+  ``src/lgd/procedencia.py``.
 """
 
 from __future__ import annotations
 
 import copy
 import datetime as dt
-import hashlib
-import json
 import time
 from pathlib import Path
 
@@ -74,6 +73,7 @@ from src.lgd.lineal import LinealLGD
 from src.lgd.metricas import mae, rmse
 from src.lgd.mlp import MLPLGD
 from src.lgd.preparar import rechazar_posteriores
+from src.lgd.procedencia import hash_particion, hash_preprocesador  # noqa: F401 (públicos también aquí)
 
 SPLITS = ("train", "val", "test")
 METRICAS = ("mae_val", "rmse_val", "mae_test", "rmse_test")
@@ -88,20 +88,6 @@ CABECERA_MLP_FINAL = """# Generado por `python run.py lgd-hpo` (src/lgd/experime
 
 
 # ------------------------------------------------------------------------------------------------------------ datos
-def _sha256_texto(texto: str) -> str:
-    return hashlib.sha256(texto.encode("utf-8")).hexdigest()
-
-
-def hash_particion(df: pd.DataFrame) -> str:
-    """SHA-256 de las líneas ``id,split`` (unidas con salto de línea) en el orden del archivo."""
-    return _sha256_texto("\n".join(df["id"].astype(str) + "," + df["split"].astype(str)))
-
-
-def hash_preprocesador(pre_dict: dict) -> str:
-    """SHA-256 del JSON canónico (claves ordenadas, sin espacios, UTF-8) del preprocesador."""
-    return _sha256_texto(json.dumps(pre_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
-
-
 def _repartir(n_total: int, tamanos: dict[str, int]) -> dict[str, int]:
     """Reparto proporcional de ``n_total`` entre splits (restos mayores; empate → orden de SPLITS)."""
     total = sum(tamanos.values())

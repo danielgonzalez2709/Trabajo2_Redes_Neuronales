@@ -37,3 +37,10 @@ salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, pred_te
 modelos:
   lineal: models/lgd_lineal.joblib
   mlp: models/lgd_mlp.pt    # semilla con el MAE de test mediano
+# D1b — descriptivo de la LGD observada y después del preprocesamiento (python -m src.lgd.descriptivo; Parte D §3.2b).
+# Solo datos: las figuras (D6) se dibujan desde este JSON. El umbral de monotonía se lee de la config de A
+# (eda.umbral_monotonia de datos.config_datos), no se copia.
+descriptivo:
+  salida: results/data/lgd/descriptivo.json
+  n_bins_histograma: 20     # bins iguales en [0, 1] para la LGD (total y por split)
+  cuantiles: [0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99]

@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario versionado y etiquetas en español (PR #4–#5). Spec v0.12. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 ✅ (citas de `diccionario_loanstats.csv`), D4 ✅ (30 ensayos + 30 semillas; `pred_pd_test.parquet` listo para E5), D5 🟨 (demo 2,9 s; falta auditor) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4. C (Juan José): C1–C2. D (Camila y José): D1b, D5 (auditor), D6, D8, D7. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`). Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02 |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario versionado y etiquetas en español (PR #4–#5). Spec v0.12. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 ✅ (citas de `diccionario_loanstats.csv`), D4 ✅ (30 ensayos + 30 semillas; `pred_pd_test.parquet` listo para E5), D5 ✅ (demo 2,8–3,9 s; auditor en clon limpio sin red; falta otra máquina) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4. C (Juan José): C1–C2. D (Camila y José): D8 (notebook 04), D7 (blog 08). Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`). Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -64,6 +64,12 @@ mar 27 6 p. m. entrega.
 Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos del mundo real, H-05 Matemáticas, Parte D; H-03 y H-04 en `dev/andres`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` con `src/viz/figs_lgd.py`, conectadas en `run.py figures` (`_figures` de
+  `src/common/cli.py`, archivo compartido: avisar en el PR). Error por banda: en LGD = 1 (63 % de test) la mediana constante
+  tiene MAE 0,057 frente a 0,082 de los modelos. Pendiente PR: mover `_guardar` a `src/viz/style.py`.
+- **2026-10-25** — D1b (Camila): `results/data/lgd/descriptivo.json` (histograma, masa en 0/1, LGD y EAD por split, año y plazo; A §3.8
+  con `objetivo="lgd"`). PSI train→test mayores: `purpose` 0,32, `dti` 0,23, `pub_rec` 0,16. Hallazgo para A: con 2 grupos
+  `tendencia_numerica` marca "monótona" siempre (ρ = ±1; caso `pub_rec`); avisar a Daniel. D5 ✅ (auditor, clon sin red).
 - **2026-10-25** — D4 (Camila): búsqueda TPE 30/30 ensayos completos (mejor #27: [128, 64] tanh, adam, lr 0,0098) y 30 semillas.
   Test: MLP MAE 0,07708 ± 0,00059, RMSE 0,08570 (14 593 parámetros, 45,6 s); lineal MAE 0,07712, RMSE 0,08659 (49 parámetros).
   **Hallazgo:** ambos modelos quedan casi en la media (corr(y, mlp) = 0,04; predicciones 0,86–0,94 frente a 63 % de y ≥ 0,99) y la
