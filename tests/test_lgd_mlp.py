@@ -4,14 +4,15 @@ Datos sintéticos pequeños generados aquí (no se construye la variable objetiv
 """
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pytest
 import torch
 
 from src.common.config import load_config
 from src.lgd.lineal import LinealLGD
-from src.lgd.mlp import MLPLGD
-from src.lgd.perdidas import obtener_perdida, perdida_bce_fraccional, perdida_mse
+from src.lgd.mlp import CLAVES_MLP, MLPLGD
+from src.lgd.perdidas import PERDIDAS_VALIDAS, obtener_perdida, perdida_bce_fraccional, perdida_mse
 
 RAIZ = Path(__file__).resolve().parents[1]
 N_FEATURES = 5
@@ -143,13 +144,15 @@ def test_guardar_cargar(datos, tmp_path):
 
 # 7. lineal fuera de [0, 1]
 def test_lineal_fuera_de_rango():
+    """Ajuste exacto y = 0,1·x con y ∈ [0, 1]; al extrapolar, la recta sale de [0, 1] y no se recorta."""
     X = np.arange(10, dtype=float).reshape(-1, 1)
-    y = 0.2 * X[:, 0] - 0.5  # recta exacta: -0.5, -0.3, -0.1, 0.1, ..., 1.1, 1.3
+    y = 0.1 * X[:, 0]  # 0,0 … 0,9
     lin = LinealLGD().fit(X, y, X, y, {}, seed=0)
-    p = lin.predict(X)
-    np.testing.assert_allclose(p, y, atol=1e-10)  # no recorta en silencio
-    conteo = lin.contar_fuera_de_rango(X)
-    assert conteo == {"debajo_de_0": 3, "encima_de_1": 2, "total": 5, "n": 10}
+    X_nuevo = np.array([-5.0, -1.0, 3.0, 5.0, 12.0, 15.0]).reshape(-1, 1)
+    p = lin.predict(X_nuevo)
+    np.testing.assert_allclose(p, 0.1 * X_nuevo[:, 0], atol=1e-10)  # no recorta en silencio
+    conteo = lin.contar_fuera_de_rango(X_nuevo)
+    assert conteo == {"debajo_de_0": 2, "encima_de_1": 2, "total": 4, "n": 6}
 
 
 # 8. parada temprana
@@ -204,7 +207,86 @@ def test_sgd_y_activaciones(datos):
 
 def test_config_base_lgd_tiene_bloque_mlp_completo():
     cfg = load_config(RAIZ / "configs" / "lgd" / "base.yaml")
-    claves = {"capas", "activacion", "dropout", "l2", "optimizador", "lr", "momento", "batch", "max_epocas",
-              "paciencia", "device", "perdida"}
+    claves = set(CLAVES_MLP)
     assert claves <= set(cfg["mlp"])
-    assert cfg["mlp"]["perdida"] in ("bce_fraccional", "mse")
+    assert cfg["mlp"]["perdida"] in PERDIDAS_VALIDAS
+
+
+# ---------------------------------------------------------------- ronda 2
+def test_bce_fraccional_minimo_en_mu_igual_y():
+    """Para y fraccional fijo, la pérdida en función de μ es mínima en μ = y."""
+    mus = np.linspace(0.001, 0.999, 999)
+    z = torch.logit(torch.tensor(mus, dtype=torch.float64))
+    for y in (0.1, 0.3, 0.5, 0.77, 0.95):
+        perdidas = [perdida_bce_fraccional(zi.reshape(1), torch.tensor([y], dtype=torch.float64)).item() for zi in z]
+        assert mus[int(np.argmin(perdidas))] == pytest.approx(y, abs=1e-3)
+
+
+def test_bce_fraccional_estable_con_logits_extremos():
+    z = torch.tensor([50.0, -50.0, 50.0, -50.0], dtype=torch.float64, requires_grad=True)
+    y = torch.tensor([0.0, 1.0, 1.0, 0.0], dtype=torch.float64)
+    perdida = perdida_bce_fraccional(z, y)
+    perdida.backward()
+    assert torch.isfinite(perdida) and torch.all(torch.isfinite(z.grad))
+
+
+def test_fit_con_y_en_0_y_1(datos):
+    X_tr, y_tr, X_val, y_val = datos
+    m = MLPLGD().fit(X_tr, (y_tr > 0.5).astype(float), X_val, (y_val > 0.5).astype(float), _cfg(max_epocas=3), seed=0)
+    p = m.predict(X_val)
+    assert np.all(np.isfinite(p)) and np.all((p >= 0) & (p <= 1))
+
+
+def test_x_no_finita_da_error(datos):
+    X_tr, y_tr, X_val, y_val = datos
+    X_mal = X_tr.copy()
+    X_mal[0, 0] = np.nan
+    with pytest.raises(ValueError, match="finit"):
+        MLPLGD().fit(X_mal, y_tr, X_val, y_val, _cfg(max_epocas=1), seed=0)
+    X_mal[0, 0] = np.inf
+    with pytest.raises(ValueError, match="finit"):
+        LinealLGD().fit(X_mal, y_tr, X_val, y_val, {}, seed=0)
+
+
+def test_divergencia_da_runtime_error(datos):
+    X_tr, y_tr, X_val, y_val = datos
+    cfg = _cfg(optimizador="sgd", lr=1e30, max_epocas=5)
+    with pytest.raises(RuntimeError, match="lr"):
+        MLPLGD().fit(X_tr * 1e6, y_tr, X_val * 1e6, y_val, cfg, seed=0)
+
+
+def test_errores_de_forma_y_de_estado(datos, tmp_path):
+    X_tr, y_tr, X_val, y_val = datos
+    with pytest.raises(ValueError, match="columnas"):
+        MLPLGD().fit(X_tr, y_tr, X_val[:, :3], y_val, _cfg(max_epocas=1), seed=0)
+    with pytest.raises(ValueError, match="filas"):
+        MLPLGD().fit(X_tr, y_tr[:-1], X_val, y_val, _cfg(max_epocas=1), seed=0)
+    with pytest.raises(ValueError, match="filas"):
+        LinealLGD().fit(X_tr, y_tr[:-1], X_val, y_val, {}, seed=0)
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        LinealLGD().fit(X_tr, y_tr + 2, X_val, y_val, {}, seed=0)
+    m = MLPLGD().fit(X_tr, y_tr, X_val, y_val, _cfg(max_epocas=1), seed=0)
+    with pytest.raises(ValueError, match="columnas"):
+        m.predict(X_val[:, :3])
+    lin = LinealLGD().fit(X_tr, y_tr, X_val, y_val, {}, seed=0)
+    with pytest.raises(ValueError, match="columnas"):
+        lin.predict(X_val[:, :3])
+    for modelo in (MLPLGD(), LinealLGD()):
+        with pytest.raises(RuntimeError, match="fit"):
+            modelo.predict(X_val)
+        with pytest.raises(RuntimeError, match="fit"):
+            modelo.n_parametros()
+
+    ruta = tmp_path / "ajeno.joblib"
+    joblib.dump({"no": "es un modelo"}, ruta)
+    with pytest.raises(TypeError, match="LinealLGD"):
+        LinealLGD.cargar(ruta)
+
+
+@pytest.mark.parametrize("clave,valor", [("batch", 0), ("max_epocas", 1.5), ("paciencia", True), ("capas", [8, 0]),
+                                         ("capas", [8, 2.0]), ("lr", 0.0), ("l2", -1.0), ("momento", -0.1),
+                                         ("dropout", 1.0), ("optimizador", "rmsprop"), ("device", "tpu")])
+def test_valores_invalidos_de_cfg(datos, clave, valor):
+    X_tr, y_tr, X_val, y_val = datos
+    with pytest.raises((ValueError, TypeError), match=clave if clave != "capas" else "capa"):
+        MLPLGD().fit(X_tr, y_tr, X_val, y_val, _cfg(**{clave: valor}), seed=0)

@@ -6,7 +6,7 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 0 | 0 |
+| Matemáticas | 1 (H-05) | 0 |
 | Código | 1 (H-01) | 0 |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
@@ -95,3 +95,30 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** una explicación "de sentido común" de un vacío es una afirmación sobre los datos: se cita del
    diccionario o se prueba con los datos, como hace el script de evidencia. Revisar cada frase "X significa Y" contra la fuente.
 
+### H-05 — "El estimador es consistente para la media condicional", dicho del MLP de LGD
+- **Estado:** candidato
+- **Categoría:** Matemáticas
+- **Parte:** D
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico`; el orquestador guardó la evidencia
+- **Nota de numeración:** H-03 y H-04 ya están en `dev/andres` (Parte B), aún sin fusionar.
+1. **Prompt (literal):** `prompts/D3.md`, ronda 1 (punto 2 de "Qué entregar": "por qué se minimiza en pᵢ = yᵢ también para
+   yᵢ fraccional").
+2. **Respuesta relevante de la IA:** docstring de `src/lgd/perdidas.py` (commit 922f2f1): "la condición de primer orden solo
+   exige que la media condicional esté bien especificada; no exige que y siga una Bernoulli. Por eso el estimador es
+   consistente para la media condicional con objetivos fraccionales", en el módulo de la pérdida del **MLP**.
+3. **Cómo sospechamos:** el argumento (E[μ − y | x] = 0 cuando μ = E[y | x]) prueba que E[y | x] es el **minimizador
+   poblacional** de la pérdida esperada; la **consistencia** de Papke & Wooldridge (1996) es un resultado para un modelo
+   paramétrico con la media bien especificada y condiciones de regularidad, que no se traslada sin más a un MLP no
+   identificable entrenado con L2 y parada temprana.
+4. **Evidencia:** `evidencias/H-05_consistencia_qmle.py` y `.txt`: (i) para y fija, el argmin de la BCE está en μ = y;
+   (ii) con y ~ Beta y E[y|x] = σ(−0,5 + 1,2x), n = 200 000, el QMLE **paramétrico** da (−0,4997; 1,2023): la consistencia
+   vale para ese modelo. Fuente del resultado: Oberhofer & Pfaffermayr (2009), réplica de Papke & Wooldridge, ec. (2) y
+   "the proposed QLME is consistent as long as the conditional mean function is correctly specified",
+   https://www2.uibk.ac.at/downloads/c4041030/wpaper/2009-02.pdf (consultada el 24-oct-2026). El artículo original (Journal
+   of Applied Econometrics, 11(6), 619–632) no se pudo leer: el PDF disponible es un escaneo sin texto.
+5. **Corrección:** ronda 2 de D3: el docstring separa el minimizador poblacional E[y | x] (lo que aplica al MLP) de la
+   consistencia del QMLE paramétrico (Papke & Wooldridge, 1996), con `TODO(cita)` sobre la fuente secundaria.
+6. **Lección aprendida:** un resultado asintótico tiene hipótesis (modelo paramétrico, media bien especificada); citarlo para
+   un modelo que no las cumple es una exageración. Pedir al verificador que contraste cada "es consistente / es insesgado"
+   con las hipótesis del teorema citado.

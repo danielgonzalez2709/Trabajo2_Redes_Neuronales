@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-24 |
-| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.9 |
-| Próxima tarea | Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés arranca B1/B2 y Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
+| Fase | **Parte A completa y fusionada en `main`** (PR #1). Reparto B+C declarado: Andrés B, Juan José C. Spec v0.9. **D3 ✅ en `dev/camila`** (lineal + MLP de LGD) |
+| Próxima tarea | Camila: D1/D2 en cuanto `montos.parquet` (v0.10, en `dev/daniel`) llegue a `main`. Daniel: revisar el PR del reparto B+C (v0.9) y activar el ruleset de `main` si falta. Andrés arranca B1/B2 y Juan José C1/C2. B, C y D actualizan su rama desde `main` y usan `data/processed/loans_pd.parquet` y `models/preprocesador_pd.json`. Daniel: confirmar H-01 y H-02 |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -52,11 +52,17 @@ mar 27 6 p. m. entrega.
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
+5. D3 → núcleo §4: añadir `src/lgd/perdidas.py` y `src/lgd/validacion.py` al árbol (PR de Spec). Significado de `l2`
+   igual en PD y LGD (D usa `l2·Σ‖W‖²` explícita sin sesgos = `weight_decay = 2·l2`): coordinar con Andrés (B2) antes de D4.
 
 ## 🎯 Cacería (resumen)
-Confirmados: 0 · Candidatos: 2 (H-01 Código, H-02 Datos del mundo real) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos del mundo real, H-05 Matemáticas, Parte D; H-03 y H-04 en `dev/andres`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional, MSE opcional), 29 pruebas.
+  revisor-calidad RECHAZÓ la 1.ª ronda (NaN entrenaba en silencio), APROBADA en la 2.ª; revisor-spec y verificador-matematico
+  aprueban; cita Papke & Wooldridge (1996) confirmada (contenido solo por fuente secundaria). Pendiente para D4: divergencia con
+  pérdida finita no avisa.
 - **2026-10-24** — Spec v0.9: Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B, Juan José C); PR
   `dev/andres` → `main`.
 - **2026-10-24** — PR de la Parte A (`dev/daniel` → `main`) abierto: 17 commits.

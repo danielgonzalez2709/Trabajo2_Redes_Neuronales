@@ -8,64 +8,74 @@ Bucle de entrenamiento propio mínimo (mientras llega ``entrenar.py`` de la Part
 - Semillas: ``fijar_semillas(seed)`` antes de construir la red (pesos iniciales y dropout salen de esa semilla);
   el orden de los mini-lotes sale del ``np.random.Generator`` que devuelve. En CPU se activa
   ``torch.use_deterministic_algorithms(True)``.
-- L2: **penalización explícita** ``l2 · Σ‖W‖²`` sobre las matrices de pesos de las capas ``Linear`` (no sobre los
-  sesgos), sumada a la pérdida de entrenamiento de cada mini-lote. No se usa ``weight_decay`` del optimizador, para
-  que el término sea el mismo con Adam y con SGD.
+- L2: penalización L2 explícita en la pérdida, ``l2 · Σ‖W‖²`` sobre las matrices de pesos de las capas ``Linear``,
+  sin sesgos; equivale a ``weight_decay = 2·l2`` acoplado sobre los pesos. Con Adam, ni esto ni ``weight_decay``
+  son weight decay desacoplado (AdamW).
 - Optimizador: ``adam`` (``lr``; ``momento`` no aplica) o ``sgd`` (``lr`` y ``momentum = momento``).
 - Parada temprana: tras cada época se calcula la pérdida de validación (modo evaluación, sin dropout y sin el término
   L2); si no mejora durante ``paciencia`` épocas seguidas se detiene y se restauran los pesos de la mejor época.
+  Una pérdida de validación no finita detiene el ajuste con ``RuntimeError`` (divergencia).
 - Atributos para el reporte por semilla (D4): ``epocas_``, ``mejor_epoca_``, ``device_``, ``tiempo_s_``,
-  ``historial_`` (``{"train": [...], "val": [...]}``).
+  ``historial_`` (``{"train": [...], "val": [...]}``). ``historial_["train"]`` es el promedio de la pérdida (sin L2)
+  de los mini-lotes de la época, medida con dropout activo y con pesos a mitad de época: no es comparable en nivel
+  con ``historial_["val"]``.
 """
 
 from __future__ import annotations
 
 import copy
+import math
 import time
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import torch
 from torch import nn
 
-from src.common.seeds import fijar_semillas
+from src.common.seeds import fijar_semillas, validar_entero
 from src.lgd.perdidas import obtener_perdida
+from src.lgd.validacion import a_matriz, a_objetivo
 
 CLAVES_MLP = ("capas", "activacion", "dropout", "l2", "optimizador", "lr", "momento", "batch", "max_epocas",
               "paciencia", "device", "perdida")
 ACTIVACIONES = {"relu": nn.ReLU, "leaky_relu": nn.LeakyReLU, "tanh": nn.Tanh}
 OPTIMIZADORES = ("adam", "sgd")
 DEVICES = ("auto", "cpu", "cuda")
+# Metadatos del modelo ajustado: atributo ``<nombre>_`` y clave ``<nombre>`` del archivo .pt.
+_METADATOS = ("arquitectura", "cfg_mlp", "epocas", "mejor_epoca", "device", "tiempo_s", "historial", "seed")
+
+Perdida = Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 
 
 def _leer_cfg_mlp(cfg: dict) -> dict:
-    """Bloque ``cfg["mlp"]`` validado; clave faltante → ``KeyError`` y valor inválido → ``ValueError``."""
+    """Bloque ``cfg["mlp"]`` validado (copia); clave faltante → ``KeyError``, valor inválido → ``ValueError`` o
+    ``TypeError``. ``mlp.perdida`` la valida ``obtener_perdida``."""
     if not isinstance(cfg, dict) or "mlp" not in cfg:
         raise KeyError("la configuración no tiene el bloque 'mlp' (núcleo §5.3)")
-    mlp = cfg["mlp"]
+    mlp = dict(cfg["mlp"])
     faltan = [c for c in CLAVES_MLP if c not in mlp]
     if faltan:
         raise KeyError(f"faltan claves en cfg['mlp']: {faltan}")
-    mlp = dict(mlp)
-    obtener_perdida(mlp["perdida"])  # valida
     if mlp["activacion"] not in ACTIVACIONES:
         raise ValueError(f"mlp.activacion debe ser una de {list(ACTIVACIONES)}; se recibió {mlp['activacion']!r}")
     if mlp["optimizador"] not in OPTIMIZADORES:
         raise ValueError(f"mlp.optimizador debe ser uno de {list(OPTIMIZADORES)}; se recibió {mlp['optimizador']!r}")
     if mlp["device"] not in DEVICES:
         raise ValueError(f"mlp.device debe ser uno de {list(DEVICES)}; se recibió {mlp['device']!r}")
-    if not isinstance(mlp["capas"], (list, tuple)) or not all(
-        isinstance(c, int) and not isinstance(c, bool) and c > 0 for c in mlp["capas"]
-    ):
+    if not isinstance(mlp["capas"], (list, tuple)):
         raise ValueError(f"mlp.capas debe ser una lista de enteros positivos; se recibió {mlp['capas']!r}")
+    mlp["capas"] = [validar_entero(c, f"mlp.capas[{i}]", minimo=1) for i, c in enumerate(mlp["capas"])]
+    for clave in ("batch", "max_epocas", "paciencia"):
+        mlp[clave] = validar_entero(mlp[clave], f"mlp.{clave}", minimo=1)
     if not 0.0 <= float(mlp["dropout"]) < 1.0:
         raise ValueError(f"mlp.dropout debe estar en [0, 1); se recibió {mlp['dropout']!r}")
-    for clave in ("batch", "max_epocas", "paciencia"):
-        if not isinstance(mlp[clave], int) or isinstance(mlp[clave], bool) or mlp[clave] < 1:
-            raise ValueError(f"mlp.{clave} debe ser un entero >= 1; se recibió {mlp[clave]!r}")
-    if float(mlp["lr"]) <= 0 or float(mlp["l2"]) < 0 or float(mlp["momento"]) < 0:
-        raise ValueError("mlp.lr debe ser > 0 y mlp.l2, mlp.momento >= 0")
-    mlp["capas"] = [int(c) for c in mlp["capas"]]
+    if not float(mlp["lr"]) > 0.0:
+        raise ValueError(f"mlp.lr debe ser > 0; se recibió {mlp['lr']!r}")
+    if not float(mlp["l2"]) >= 0.0:
+        raise ValueError(f"mlp.l2 debe ser >= 0; se recibió {mlp['l2']!r}")
+    if not float(mlp["momento"]) >= 0.0:
+        raise ValueError(f"mlp.momento debe ser >= 0; se recibió {mlp['momento']!r}")
     return mlp
 
 
@@ -87,20 +97,40 @@ def _construir_red(n_entradas: int, capas: list[int], activacion: str, dropout: 
     return nn.Sequential(*modulos)
 
 
-def _a_matriz(X) -> np.ndarray:
-    X = np.asarray(X, dtype=np.float32)
-    if X.ndim != 2:
-        raise ValueError(f"X debe ser una matriz 2D; se recibió shape {X.shape}")
-    return X
+def _crear_optimizador(mlp: dict, parametros) -> torch.optim.Optimizer:
+    if mlp["optimizador"] == "adam":
+        return torch.optim.Adam(parametros, lr=float(mlp["lr"]))
+    return torch.optim.SGD(parametros, lr=float(mlp["lr"]), momentum=float(mlp["momento"]))
 
 
-def _a_objetivo(y, n: int, nombre: str) -> np.ndarray:
-    y = np.asarray(y, dtype=np.float32).reshape(-1)
-    if y.size != n:
-        raise ValueError(f"{nombre} tiene {y.size} valores y X tiene {n} filas")
-    if not np.all(np.isfinite(y)) or np.any(y < 0.0) or np.any(y > 1.0):
-        raise ValueError(f"{nombre} debe estar en [0, 1] (LGD) y sin faltantes")
-    return y
+def _penalizacion_l2(pesos: list[torch.Tensor]) -> torch.Tensor:
+    """Σ‖W‖² sobre las matrices de pesos (sin sesgos)."""
+    return sum((w ** 2).sum() for w in pesos)
+
+
+def _entrenar_una_epoca(red: nn.Sequential, opt: torch.optim.Optimizer, perdida: Perdida, Xt: torch.Tensor,
+                        yt: torch.Tensor, orden: torch.Tensor, batch: int, pesos: list[torch.Tensor],
+                        l2: float) -> float:
+    """Una pasada por los mini-lotes en el orden dado; devuelve la pérdida media (sin L2) ponderada por lote."""
+    red.train()
+    suma, cuenta = 0.0, 0
+    for i in range(0, orden.numel(), batch):
+        idx = orden[i:i + batch]
+        datos = perdida(red(Xt[idx]).squeeze(-1), yt[idx])
+        total = datos + l2 * _penalizacion_l2(pesos)
+        opt.zero_grad()
+        total.backward()
+        opt.step()
+        suma += float(datos.detach()) * idx.numel()
+        cuenta += idx.numel()
+    return suma / cuenta
+
+
+def _perdida_validacion(red: nn.Sequential, perdida: Perdida, Xv: torch.Tensor, yv: torch.Tensor) -> float:
+    """Pérdida de validación en modo evaluación (sin dropout) y sin el término L2."""
+    red.eval()
+    with torch.no_grad():
+        return float(perdida(red(Xv).squeeze(-1), yv))
 
 
 class MLPLGD:
@@ -108,25 +138,17 @@ class MLPLGD:
 
     def __init__(self) -> None:
         self.red_: nn.Sequential | None = None
-        self.arquitectura_: dict | None = None
-        self.cfg_mlp_: dict | None = None
-        self.epocas_: int | None = None
-        self.mejor_epoca_: int | None = None
-        self.device_: str | None = None
-        self.tiempo_s_: float | None = None
-        self.historial_: dict | None = None
-        self.seed_: int | None = None
+        for nombre in _METADATOS:
+            setattr(self, f"{nombre}_", None)
 
     # ------------------------------------------------------------------ entrenamiento
     def fit(self, X_tr, y_tr, X_val, y_val, cfg: dict, seed: int) -> "MLPLGD":
         mlp = _leer_cfg_mlp(cfg)
         perdida = obtener_perdida(mlp["perdida"])
-        X_tr = _a_matriz(X_tr)
-        X_val = _a_matriz(X_val)
-        if X_val.shape[1] != X_tr.shape[1]:
-            raise ValueError("X_val y X_tr tienen distinto número de columnas")
-        y_tr = _a_objetivo(y_tr, X_tr.shape[0], "y_tr")
-        y_val = _a_objetivo(y_val, X_val.shape[0], "y_val")
+        X_tr = a_matriz(X_tr, nombre="X_tr")
+        X_val = a_matriz(X_val, n_columnas=X_tr.shape[1], nombre="X_val")
+        y_tr = a_objetivo(y_tr, X_tr.shape[0], nombre="y_tr")
+        y_val = a_objetivo(y_val, X_val.shape[0], nombre="y_val")
 
         inicio = time.perf_counter()
         device = _resolver_device(mlp["device"])
@@ -137,60 +159,36 @@ class MLPLGD:
         arquitectura = {"n_entradas": int(X_tr.shape[1]), "capas": mlp["capas"], "activacion": mlp["activacion"],
                         "dropout": float(mlp["dropout"])}
         red = _construir_red(**arquitectura).to(device)
-        if mlp["optimizador"] == "adam":
-            opt = torch.optim.Adam(red.parameters(), lr=float(mlp["lr"]))
-        else:
-            opt = torch.optim.SGD(red.parameters(), lr=float(mlp["lr"]), momentum=float(mlp["momento"]))
+        opt = _crear_optimizador(mlp, red.parameters())
         pesos = [m.weight for m in red.modules() if isinstance(m, nn.Linear)]
-        l2 = float(mlp["l2"])
-
-        Xt = torch.from_numpy(X_tr).to(device)
-        yt = torch.from_numpy(y_tr).to(device)
-        Xv = torch.from_numpy(X_val).to(device)
-        yv = torch.from_numpy(y_val).to(device)
-        n, batch = Xt.shape[0], mlp["batch"]
+        Xt, yt = torch.from_numpy(X_tr).to(device), torch.from_numpy(y_tr).to(device)
+        Xv, yv = torch.from_numpy(X_val).to(device), torch.from_numpy(y_val).to(device)
 
         hist_train: list[float] = []
         hist_val: list[float] = []
-        mejor_val = float("inf")
+        mejor_val, mejor_epoca = math.inf, 0
         mejor_estado = copy.deepcopy(red.state_dict())
-        mejor_epoca = 0
-        sin_mejora = 0
-        epoca = 0
         for epoca in range(1, mlp["max_epocas"] + 1):
-            red.train()
-            orden = torch.from_numpy(rng.permutation(n)).to(device)
-            suma, cuenta = 0.0, 0
-            for i in range(0, n, batch):
-                idx = orden[i:i + batch]
-                logits = red(Xt[idx]).squeeze(-1)
-                datos = perdida(logits, yt[idx])
-                total = datos + l2 * sum((w ** 2).sum() for w in pesos) if l2 > 0 else datos
-                opt.zero_grad()
-                total.backward()
-                opt.step()
-                suma += float(datos.detach()) * idx.numel()
-                cuenta += idx.numel()
-            hist_train.append(suma / cuenta)
-
-            red.eval()
-            with torch.no_grad():
-                val = float(perdida(red(Xv).squeeze(-1), yv))
+            orden = torch.from_numpy(rng.permutation(Xt.shape[0])).to(device)
+            hist_train.append(_entrenar_una_epoca(red, opt, perdida, Xt, yt, orden, mlp["batch"], pesos,
+                                                  float(mlp["l2"])))
+            val = _perdida_validacion(red, perdida, Xv, yv)
+            if not math.isfinite(val):
+                raise RuntimeError(f"pérdida de validación no finita ({val}) en la época {epoca}: el entrenamiento "
+                                   f"divergió; prueba un mlp.lr menor (actual {mlp['lr']})")
             hist_val.append(val)
             if val < mejor_val:
-                mejor_val, mejor_epoca, sin_mejora = val, epoca, 0
+                mejor_val, mejor_epoca = val, epoca
                 mejor_estado = copy.deepcopy(red.state_dict())
-            else:
-                sin_mejora += 1
-                if sin_mejora >= mlp["paciencia"]:
-                    break
+            elif epoca - mejor_epoca >= mlp["paciencia"]:
+                break
 
         red.load_state_dict(mejor_estado)
         red.eval()
         self.red_ = red
         self.arquitectura_ = arquitectura
         self.cfg_mlp_ = mlp
-        self.epocas_ = epoca
+        self.epocas_ = len(hist_val)
         self.mejor_epoca_ = mejor_epoca
         self.device_ = device.type
         self.tiempo_s_ = time.perf_counter() - inicio
@@ -207,9 +205,7 @@ class MLPLGD:
     def predict(self, X) -> np.ndarray:
         """LGD estimada σ(z) ∈ [0, 1], shape (n,)."""
         red = self._ajustada()
-        X = _a_matriz(X)
-        if X.shape[1] != self.arquitectura_["n_entradas"]:
-            raise ValueError(f"X tiene {X.shape[1]} columnas y la red espera {self.arquitectura_['n_entradas']}")
+        X = a_matriz(X, n_columnas=self.arquitectura_["n_entradas"])
         device = next(red.parameters()).device
         red.eval()
         with torch.no_grad():
@@ -226,35 +222,18 @@ class MLPLGD:
         red = self._ajustada()
         ruta = Path(ruta)
         ruta.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(
-            {
-                "state_dict": {k: v.detach().cpu() for k, v in red.state_dict().items()},
-                "arquitectura": self.arquitectura_,
-                "cfg_mlp": self.cfg_mlp_,
-                "epocas": self.epocas_,
-                "mejor_epoca": self.mejor_epoca_,
-                "device": self.device_,
-                "tiempo_s": self.tiempo_s_,
-                "historial": self.historial_,
-                "seed": self.seed_,
-            },
-            ruta,
-        )
+        contenido = {nombre: getattr(self, f"{nombre}_") for nombre in _METADATOS}
+        contenido["state_dict"] = {k: v.detach().cpu() for k, v in red.state_dict().items()}
+        torch.save(contenido, ruta)
 
     @classmethod
     def cargar(cls, ruta) -> "MLPLGD":
         """Carga en CPU un modelo guardado con ``guardar``."""
         datos = torch.load(Path(ruta), map_location="cpu", weights_only=True)
         obj = cls()
-        obj.red_ = _construir_red(**datos["arquitectura"])
+        for nombre in _METADATOS:
+            setattr(obj, f"{nombre}_", datos[nombre])
+        obj.red_ = _construir_red(**obj.arquitectura_)
         obj.red_.load_state_dict(datos["state_dict"])
         obj.red_.eval()
-        obj.arquitectura_ = datos["arquitectura"]
-        obj.cfg_mlp_ = datos["cfg_mlp"]
-        obj.epocas_ = datos["epocas"]
-        obj.mejor_epoca_ = datos["mejor_epoca"]
-        obj.device_ = datos["device"]
-        obj.tiempo_s_ = datos["tiempo_s"]
-        obj.historial_ = datos["historial"]
-        obj.seed_ = datos["seed"]
         return obj

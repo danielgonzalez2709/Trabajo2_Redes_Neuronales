@@ -12,6 +12,8 @@ import joblib
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
+from src.lgd.validacion import a_matriz, a_objetivo
+
 
 class LinealLGD:
     """Implementa ``ModeloLGD`` (núcleo §5.3) con mínimos cuadrados ordinarios."""
@@ -22,7 +24,9 @@ class LinealLGD:
     def fit(self, X_tr, y_tr, X_val=None, y_val=None, cfg: dict | None = None, seed: int = 0) -> "LinealLGD":
         """Ajusta con train. ``X_val``, ``y_val``, ``cfg`` y ``seed`` no se usan (MCO es determinista y sin
         hiperparámetros); se aceptan para cumplir el contrato común."""
-        self.modelo_ = LinearRegression().fit(np.asarray(X_tr, dtype=np.float64), np.asarray(y_tr, dtype=np.float64))
+        X_tr = a_matriz(X_tr, nombre="X_tr", dtype=np.float64)
+        y_tr = a_objetivo(y_tr, X_tr.shape[0], nombre="y_tr", dtype=np.float64)
+        self.modelo_ = LinearRegression().fit(X_tr, y_tr)
         return self
 
     def _ajustado(self) -> LinearRegression:
@@ -32,7 +36,9 @@ class LinealLGD:
 
     def predict(self, X) -> np.ndarray:
         """Predicción lineal sin recortar, shape (n,)."""
-        return np.asarray(self._ajustado().predict(np.asarray(X, dtype=np.float64)), dtype=np.float64).reshape(-1)
+        modelo = self._ajustado()
+        X = a_matriz(X, n_columnas=modelo.n_features_in_, dtype=np.float64)
+        return np.asarray(modelo.predict(X), dtype=np.float64).reshape(-1)
 
     def contar_fuera_de_rango(self, X) -> dict:
         """Cuántas predicciones caen fuera de [0, 1]: ``{debajo_de_0, encima_de_1, total, n}``."""
