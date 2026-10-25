@@ -12,9 +12,9 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario versionado y etiquetas en español (PR #4–#5). Spec v0.12. **D en `dev/camila`:** D3 ✅, D2 ✅ (`loans_lgd.parquet`, 43 236), D1 ✅ (citas de `diccionario_loanstats.csv`), D4 ✅ (30 ensayos + 30 semillas; `pred_pd_test.parquet` listo para E5), D5 ✅ (demo 2,8–3,9 s; auditor en clon limpio sin red; falta otra máquina) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B4. C (Juan José): C1–C2. D (Camila y José): D7 🟨 (blog 08 escrito y verificado; Camila revisa 6 `<!-- revisar: autor -->`). Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`). Camila: E1 (app). Daniel: blog 09, notebook 05, confirmar H-01 y H-02 |
-| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 3) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **D en `dev/camila`:** D1–D6 y D8 ✅, D7 🟨 (blog 08; Camila revisa 6 `<!-- revisar: autor -->`). D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5. C (Juan José): C1–C2; C3 ya puede usar `models/pd_logistica.joblib`. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; cerrar D7; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
+| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
 ## 👥 Equipo
@@ -48,6 +48,13 @@ Juan José González Morales.
   celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
 - [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
   Trabajo 1; app Next.js estática en Vercel con inferencia en el navegador; video con Remotion; Design System `apple-design`.
+- B3 (Andrés, 25-oct; Spec v0.14, B-pd §3.1): rejilla de 13 C (10⁻⁴…10², sin duplicados); criterio log-loss de val, empate →
+  menor C; sin refit con train+val; ConvergenceWarning = error; campo `evidencia` (SHA-256 de partición y preprocesador)
+  en todos los JSON de resultados; `desv` muestral (n = 1 → 0); métricas `{auc,gini,ks,brier,logloss}_{val,test}`;
+  `epocas` de la logística = iteraciones de lbfgs; joblib con `version_sklearn`; `en_borde` en la búsqueda.
+- B2 (Andrés, 24/25-oct): L2 = (λ/2)‖W‖² ≡ `weight_decay = mlp.l2`, sin L2 en sesgos (Spec v0.13, B-pd §3.2);
+  `min_delta = 0`; `mlp.pos_weight = 1` obligatorio; pérdida no finita → `FloatingPointError`; épocas desde 1; se aceptan
+  las pruebas extra (documentadas en `tests/test_mlp.py`) y las funciones auxiliares fuera de las firmas del plan.
 
 ## ⏳ Hitos (núcleo §11)
 jue 22 E0 · vie 23 2 p. m. datos reales · vie 23 noche búsquedas · sáb 24 mediodía PD final · sáb 24 tarde grabación ·
@@ -57,30 +64,29 @@ mar 27 6 p. m. entrega.
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
-5. D3 → núcleo §4: añadir `src/lgd/perdidas.py` y `src/lgd/validacion.py` al árbol (PR de Spec). Significado de `l2`
-   igual en PD y LGD (D usa `l2·Σ‖W‖²` explícita sin sesgos = `weight_decay = 2·l2`): coordinar con Andrés (B2) antes de D4.
+5. **PR de `dev/andres`** (B1 + B2 + B3), declarar: (a) añade `src/common/torch_utils.py` y `src/common/metricas.py`
+   (compartidos); (b) Spec v0.13 corrige B-pd §3.2 (L2 = (λ/2)‖W‖², H-08): avisar a Daniel y pedirle que confirme el origen
+   de H-08; (c) `iterar_minilotes(n, batch, rng, device)` recibe `device`: avisar a D (Camila y José); (d) B3 y Spec v0.14:
+   el campo `evidencia` también aplica a los JSON de la LGD (§5.4): avisar a D; C3 puede usar el modelo de la logística.
+6. Para B5: conectar `run.py pd` (imprimir la config resuelta y el tiempo total, núcleo §4.1) reutilizando
+   `escribir_semilla`, `actualizar_summary`, `actualizar_pred_test`, `resumir` y las huellas de `src/pd/experimento.py`.
+   Después de B5: refactor `TODO(refactor-post-B5)` (validadores duplicados de `mlp.py`, `logistica.py`, `experimento.py`).
+7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
+   Para C/E: la PD de Python sale de X float32 → float64; vigilar la paridad < 1e-6 si la app preprocesa en float64.
+
+8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
+   PR de `dev/camila`: declarar `src/common/cli.py` (`lgd`, `lgd-hpo`, `figures`) y `configs/sustentacion.yaml` (demo `lgd`).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos del mundo real, H-05 Matemáticas, Parte D; H-03 y H-04 en `dev/andres`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 8 (H-01, H-05, H-06, H-07, H-09 Código; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
-- **2026-10-25** — D7 (Camila): blog 08 (7 figuras, 5 tablas; `mkdocs build --strict` OK). verificador-matematico: 20/27 correctas,
-  6 imprecisas corregidas; cazador: cifras confirmadas, cita de `loan_amnt` recortada por la IA (corregida). Bandas de error y
-  referencias constantes registradas en D §3.4 [DECIDIDO, Camila]. Papke & Wooldridge (1996): DOI verificado; teorema solo en secundaria.
-- **2026-10-25** — D8 (Camila): `notebooks/04_lgd` (4,4 s): LGD observada y post-preprocesamiento (§3.2b), demo lineal vs. MLP en
-  carpeta temporal, resultados oficiales con referencias constantes; tablas en `src/lgd/tablas.py`. `configs/sustentacion.yaml`
-  (archivo de E): demo `lgd` con `salida_temporal: salida`; avisar a Daniel. RECHAZADO en la 1.ª ronda (faltaba §3.2b).
-- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` con `src/viz/figs_lgd.py`, conectadas en `run.py figures` (`_figures` de
-  `src/common/cli.py`, archivo compartido: avisar en el PR). Error por banda: en LGD = 1 (63 % de test) la mediana constante
-  tiene MAE 0,057 frente a 0,082 de los modelos. Pendiente PR: mover `_guardar` a `src/viz/style.py`.
-- **2026-10-25** — D1b (Camila): `results/data/lgd/descriptivo.json` (histograma, masa en 0/1, LGD y EAD por split, año y plazo; A §3.8
-  con `objetivo="lgd"`). PSI train→test mayores: `purpose` 0,32, `dti` 0,23, `pub_rec` 0,16. Hallazgo para A: con 2 grupos
-  `tendencia_numerica` marca "monótona" siempre (ρ = ±1; caso `pub_rec`); avisar a Daniel. D5 ✅ (auditor, clon sin red).
-- **2026-10-25** — D4 (Camila): búsqueda TPE 30/30 ensayos completos (mejor #27: [128, 64] tanh, adam, lr 0,0098) y 30 semillas.
-  Test: MLP MAE 0,07708 ± 0,00059, RMSE 0,08570 (14 593 parámetros, 45,6 s); lineal MAE 0,07712, RMSE 0,08659 (49 parámetros).
-  **Hallazgo:** ambos modelos quedan casi en la media (corr(y, mlp) = 0,04; predicciones 0,86–0,94 frente a 63 % de y ≥ 0,99) y la
-  mediana de train como constante da mejor MAE de test (0,06986). Regla §6 cumplida; reproducible bit a bit. RECHAZADO en la
-  1.ª ronda (`mejor_config.json` pisaba `--set mlp.*`); arreglado con `configs/lgd/mlp_final.yaml` heredado por `base.yaml`.
+- **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Falta revisión de autora.
+- **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
+- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos
+  "monótona" siempre (caso `pub_rec`). D5 ✅ (auditor, clon sin red).
+- **2026-10-25** — D4 (Camila): TPE 30/30 + 30 semillas. Test: MLP MAE 0,07708 ± 0,00059 (14 593 parám.), lineal 0,07712 (49);
+  la mediana constante gana (0,06986). Rechazado 1.ª ronda (`mejor_config.json` pisaba `--set`); arreglado con `mlp_final.yaml`.
 - **2026-10-25** — Revisión de lo que B, C, D y E consumen de la Parte A, desde una copia limpia de `main` sin datos crudos:
   todo se carga y funciona. Hueco corregido (Spec v0.12): `categorias_es` en `features.yaml` y `etiquetas_categorias` en el
   JSON de la app (las categorías salían en inglés); avisar a Juan José (exportador) y Camila (app). Siddiqi: 2.ª ed., 2017.
@@ -88,13 +94,8 @@ Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos
   que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
 - **2026-10-24** — PR #3 fusionado (10:26 p. m.): `montos.parquet` y contratos v0.10 en `main`, que Camila necesitaba para D1/D2;
   E5, blog 00 y 11–13, notebook 00 y el proyecto del video.
-- **2026-10-24** — D2 (Camila): `loans_lgd.parquet` (43 236: train 14 419 / val 14 836 / test 13 981), `preprocesador_lgd.json`
-  y `resumen_objetivo.json` con `python -m src.lgd.preparar`; revisor-spec y revisor-calidad aprueban. D1: cifras confirmadas
-  por el cazador; faltan las 5 citas del diccionario de Kaggle (`TODO(dato-faltante)`).
-- **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional, MSE opcional), 29 pruebas.
-  revisor-calidad RECHAZÓ la 1.ª ronda (NaN entrenaba en silencio), APROBADA en la 2.ª; revisor-spec y verificador-matematico
-  aprueban; cita Papke & Wooldridge (1996) confirmada (contenido solo por fuente secundaria). Candidato H-05. Pendiente para D4:
-  divergencia con pérdida finita no avisa.
+- **2026-10-24** — D2 (Camila): `loans_lgd.parquet` (43 236), `preprocesador_lgd.json` y `resumen_objetivo.json` (`python -m src.lgd.preparar`).
+- **2026-10-24** — D3 (Camila): `LinealLGD` y `MLPLGD` (sigmoide + BCE fraccional); rechazado 1.ª ronda (NaN en silencio); candidato H-10.
 - **2026-10-24** — PR #2 fusionado: Spec v0.9, Andrés y Juan José reparten la pareja B+C por parte completa (Andrés B,
   Juan José C). Los contratos de la E[L] de `dev/daniel` pasan a ser la v0.10.
 - **2026-10-24** — Blog 00 (resumen, sin cifras de modelos todavía) y notebook 00 de la sustentación: demos de `run.py` en
@@ -107,6 +108,23 @@ Confirmados: 0 · Candidatos: 3 en `main`+`dev/camila` (H-01 Código, H-02 Datos
   Dato: al incumplir seguía pendiente en promedio el 80 % del monto en test (64 % en train).
 - **2026-10-24** — PR #1 (Parte A, 17 commits) fusionado en `main`; CI `pruebas` en verde en Linux; ruleset activo.
   B, C y D ya pueden usar `loans_pd.parquet` y `preprocesador_pd.json` desde `main`.
+- **2026-10-25** — B3 (Andrés): `src/pd/logistica.py` (`LogisticaPD` según `ModeloPD`, búsqueda de C con la log-loss de
+  val) y `src/pd/experimento.py` (`correr_logistica`, huellas, `resumir`, escritores que no borran lo ajeno);
+  `configs/pd/base.yaml`; Spec v0.14 (0.11 en la rama). 124 pruebas rápidas + 1 lenta; 47 de 48 mutantes mueren (1 equivalente).
+  revisor-spec, revisor-calidad (2 revisiones) y verificador-matematico APROBADO; 4 rondas de mejoras. Corrida real: C
+  elegido 3,16e-3, 49 parámetros, 13 configuraciones; AUC test 0,670, KS 0,247, Brier 0,187 (PD media de test 0,187 frente
+  a una tasa observada de 0,262; tasas de malos: train 0,163, val 0,230, test 0,262). Candidato H-09 (prueba débil).
+- **2026-10-25** — B2 (Andrés): `src/pd/mlp.py` (red Linear→φ→Dropout con salida logit, `MLPPD` según `ModeloPD`),
+  `src/pd/entrenar.py` (bucle genérico, minilotes reproducibles, parada temprana con restauración, L2 por grupos) y
+  `src/common/torch_utils.py`; `tests/test_mlp.py` con 91 pruebas que matan 47 mutantes. Percent format, una celda por
+  función, un comentario por línea. revisor-spec APROBADO; revisor-calidad RECHAZADO 3 veces y APROBADO en la 4.ª;
+  verificador-matematico APROBADO. Candidatos H-05, H-06 (míos), H-07 (implementador) y H-08 (Spec: λ‖W‖² ≠ weight_decay;
+  Spec v0.13, 0.10 en la rama). Sin push: Andrés revisa el código antes.
+- **2026-10-24** — B1 (Andrés): `src/common/metricas.py` en percent format (fórmula antes de cada función; AUC, Gini, KS,
+  Brier, ROC con TPR/FPR aparte, calibración por cuantiles; dependencias inyectadas) + `test_metricas.py` (63 pruebas de caja
+  negra contra sklearn/scipy). TDD con 2 rondas: revisor-spec, revisor-calidad y verificador-matematico APROBADO (27
+  mutantes mueren). H-03 (convención de borde de `calibration_curve`) y H-04 (AUC errónea con ±inf), confirmados por Andrés. Pendiente:
+  TODO(cita) de Murphy (1973); el PR debe declarar que toca `src/common/` (compartido) y esperar a que se fusione el PR #2.
 - **2026-10-23** — Daniel aprueba la partición B y las 15 variables, y pide la sensibilidad con `grade`/`int_rate` (Spec v0.8).
 - **2026-10-23** — revisor-spec: Parte A RECHAZADA en la 1.ª ronda (2 bloqueantes + 9 recomendaciones), APROBADA en la 2.ª tras
   las correcciones (Spec v0.7: `run.py eda`, limpieza de categóricas en §5.2, EDA en memoria para el notebook). Hallazgo H-02.

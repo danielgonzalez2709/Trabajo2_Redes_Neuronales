@@ -1,11 +1,11 @@
-"""Evidencia H-05: la consistencia del QMLE de Bernoulli es una propiedad del modelo paramétrico bien especificado.
+"""Evidencia H-10: la consistencia del QMLE de Bernoulli es una propiedad del modelo paramétrico bien especificado.
 
 Datos con E[y|x] = σ(−0,5 + 1,2·x) e y ~ Beta (no Bernoulli). El QMLE paramétrico (logit lineal) con la BCE fraccional
 de ``src/lgd/perdidas.py`` recupera los coeficientes verdaderos. Esto respalda la frase para el modelo paramétrico; para un
 MLP (no identificable, con L2 y parada temprana) lo que se sostiene es que E[y|x] minimiza la pérdida esperada, no la
 "consistencia" del estimador.
 
-Uso: .venv/bin/python alucinaciones/evidencias/H-05_consistencia_qmle.py
+Uso: .venv/bin/python alucinaciones/evidencias/H-10_consistencia_qmle.py
 """
 
 import sys
