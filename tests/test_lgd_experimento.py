@@ -449,3 +449,50 @@ def test_cli_lgd_hpo(raiz: Path, monkeypatch, capsys):
     assert len(load_json(raiz / demo["salida"] / "hpo_ensayos.json")["ensayos"]) == 2
     assert load_config(raiz / demo["hpo"]["destino"])["busqueda"]["tipo"] == "optuna"
     assert not (raiz / "configs/lgd/mlp_final.yaml").exists()
+
+
+# ---------------------------------------------------------------------------------------------- referencias constantes
+def test_referencias_constantes_a_mano():
+    y_tr = np.array([0.0, 0.5, 1.0, 1.0])          # media 0.625, mediana 0.75
+    y_val = np.array([0.0, 1.0])
+    y_test = np.array([0.5, 0.75, 1.0])
+    r = exp._referencias_constantes(y_tr, y_val, y_test)
+    assert set(r) == {"constante_media", "constante_mediana"}
+    m, md = r["constante_media"], r["constante_mediana"]
+    assert m["valor"] == pytest.approx(0.625) and md["valor"] == pytest.approx(0.75)
+    # media 0.625: val |e| = 0.625, 0.375 → MAE 0.5; e² = 0.390625, 0.140625 → RMSE sqrt(0.265625)
+    assert m["metricas"]["mae_val"] == pytest.approx(0.5)
+    assert m["metricas"]["rmse_val"] == pytest.approx(math.sqrt(0.265625))
+    # test |e| = 0.125, 0.125, 0.375 → MAE 0.625/3; e² = 0.015625, 0.015625, 0.140625 → RMSE sqrt(0.171875/3)
+    assert m["metricas"]["mae_test"] == pytest.approx(0.625 / 3)
+    assert m["metricas"]["rmse_test"] == pytest.approx(math.sqrt(0.171875 / 3))
+    # mediana 0.75: val |e| = 0.75, 0.25 → MAE 0.5, RMSE sqrt((0.5625 + 0.0625)/2) = sqrt(0.3125)
+    assert md["metricas"]["mae_val"] == pytest.approx(0.5)
+    assert md["metricas"]["rmse_val"] == pytest.approx(math.sqrt(0.3125))
+    # test |e| = 0.25, 0, 0.25 → MAE 0.5/3; RMSE sqrt(0.125/3)
+    assert md["metricas"]["mae_test"] == pytest.approx(0.5 / 3)
+    assert md["metricas"]["rmse_test"] == pytest.approx(math.sqrt(0.125 / 3))
+    for ref in r.values():
+        assert ref["n_parametros"] == 1 and ref["n_configuraciones_busqueda"] == 1
+
+
+def test_referencias_constantes_usan_solo_train():
+    y_tr = np.array([0.0, 0.5, 1.0, 1.0])
+    a = exp._referencias_constantes(y_tr, np.array([0.0, 1.0]), np.array([0.5]))
+    b = exp._referencias_constantes(y_tr, np.array([0.9, 0.9, 0.9]), np.array([0.1, 0.2]))
+    for k in ("constante_media", "constante_mediana"):
+        assert a[k]["valor"] == b[k]["valor"]
+
+
+def test_summary_trae_las_referencias(raiz: Path):
+    cfg = _cfg(extra=["semillas.n=1"])
+    s = exp.entrenar_semillas(cfg, raiz)
+    disco = load_json(raiz / cfg["salida"] / "summary.json")
+    assert set(disco["referencias"]) == {"constante_media", "constante_mediana"}
+    assert set(disco["modelos"]) == {"lineal", "mlp"}
+    y_tr = pd.read_parquet(raiz / "data/processed/loans_lgd.parquet").query("split == 'train'")["lgd"]
+    assert disco["referencias"]["constante_mediana"]["valor"] == pytest.approx(float(y_tr.median()))
+    assert disco["referencias"]["constante_media"]["valor"] == pytest.approx(float(y_tr.mean()))
+    assert s["referencias"] == disco["referencias"]
+    pt = pd.read_parquet(raiz / cfg["salida"] / "pred_test.parquet")
+    assert list(pt.columns) == ["id", "y", "pred_lineal", "pred_mlp"]

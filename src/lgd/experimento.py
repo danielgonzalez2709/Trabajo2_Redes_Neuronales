@@ -41,6 +41,9 @@ Semillas (``entrenar_semillas``):
 - ``summary.json``: ``{"modelos": {"lineal": {...}, "mlp": {...}}, ...}`` con, por modelo, ``n_parametros``,
   ``n_configuraciones_busqueda``, ``tiempo_total_s`` y ``metricas`` (MAE y RMSE en val y test:
   ``{media, desv, mejor, peor, n}``; ``desv`` muestral, ddof = 1, y 0 si n = 1; mejor = mínimo).
+- ``referencias`` (fuera de ``modelos``; [DECIDIDO, Camila, 25-oct]): predictor constante con la media y con la
+  mediana de la LGD de **train** (sin fuga), con su valor y MAE/RMSE en val y test; ``n_parametros`` 1 y
+  ``n_configuraciones_busqueda`` 1. No van en ``pred_test``/``pred_pd_test``.
 - La lineal no se recorta: ``pred_lineal`` puede salir de [0, 1], también en ``pred_pd_test.parquet`` (y
   ``src/el/perdida_esperada.py`` rechaza LGD fuera de [0, 1]). ``fuera_de_rango`` cuenta cuántas veces en val, test
   (LGD) y ``pd_test`` (todo el test de ``loans_pd``).
@@ -314,6 +317,23 @@ def _entrenar_mlp(cfg: dict, d: dict, semillas: list[int], carpeta: Path) -> lis
     return corridas
 
 
+def _referencias_constantes(y_train, y_val, y_test) -> dict:
+    """Predictor constante con la media y con la mediana de ``y_train`` (solo train), evaluado en val y test."""
+    y_train = np.asarray(y_train, dtype=np.float64)
+    referencias = {}
+    for nombre, valor in (("constante_media", float(np.mean(y_train))),
+                          ("constante_mediana", float(np.median(y_train)))):
+        metricas = {}
+        for split, y in (("val", y_val), ("test", y_test)):
+            y = np.asarray(y, dtype=np.float64)
+            p = np.full(y.shape, valor)
+            metricas[f"mae_{split}"] = mae(y, p)
+            metricas[f"rmse_{split}"] = rmse(y, p)
+        referencias[nombre] = {"valor": valor, "metricas": {k: metricas[k] for k in METRICAS},
+                               "n_parametros": 1, "n_configuraciones_busqueda": 1}
+    return referencias
+
+
 def _semilla_mediana(corridas: list[dict]) -> int:
     """Semilla de MAE de test mediano: posición (n−1)//2 al ordenar por (mae_test, seed) (mediana inferior si n es par;
     empate → semilla menor)."""
@@ -339,6 +359,7 @@ def _armar_resumen(cfg: dict, d: dict, lineal: dict, corridas: list[dict], seed_
                     "semillas": [r["seed"] for r in regs], "semilla_mediana": seed_mediana,
                     "config": mediana["registro"]["config"]},
         },
+        "referencias": _referencias_constantes(d["y"]["train"], d["y"]["val"], d["y"]["test"]),
         "busqueda": cfg["busqueda"], "base_seed": cfg["base_seed"], "n": d["n"], "muestra": d["muestra"],
         "criterio_semilla_mediana": CRITERIO_MEDIANA,
         "nota_pred_lineal": "pred_lineal no se recorta: puede salir de [0, 1] (ver modelos.lineal.fuera_de_rango)",
@@ -385,6 +406,10 @@ def manejador(cfg: dict | None) -> int:
         print(f"{nombre}: MAE test {met['mae_test']['media']:.4f} ± {met['mae_test']['desv']:.4f} · "
               f"RMSE test {met['rmse_test']['media']:.4f} · n_parametros {m['n_parametros']} · "
               f"configuraciones {m['n_configuraciones_busqueda']} · tiempo {m['tiempo_total_s']:.1f} s")
+    for nombre, ref in r["referencias"].items():
+        met = ref["metricas"]
+        print(f"{nombre} (= {ref['valor']:.4f}, de train): MAE test {met['mae_test']:.4f} · "
+              f"RMSE test {met['rmse_test']:.4f} · MAE val {met['mae_val']:.4f}")
     fr = r["modelos"]["lineal"]["fuera_de_rango"]
     print(f"Lineal fuera de [0, 1]: test LGD {fr['test']['total']} de {fr['test']['n']} · "
           f"test de loans_pd {fr['pd_test']['total']} de {fr['pd_test']['n']}")

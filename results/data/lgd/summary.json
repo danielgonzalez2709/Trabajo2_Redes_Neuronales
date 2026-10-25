@@ -3,7 +3,7 @@
     "lineal": {
       "n_parametros": 49,
       "n_configuraciones_busqueda": 1,
-      "tiempo_total_s": 0.01723925000987947,
+      "tiempo_total_s": 0.013536250044126064,
       "metricas": {
         "mae_val": {
           "media": 0.07586765511393369,
@@ -58,9 +58,9 @@
     "mlp": {
       "n_parametros": 14593,
       "n_configuraciones_busqueda": 30,
-      "tiempo_total_s": 45.62461541808443,
+      "tiempo_total_s": 45.63988387299469,
       "tiempo_busqueda_s": 32.5218260831316,
-      "tiempo_semillas_s": 13.102789334952831,
+      "tiempo_semillas_s": 13.118057789863087,
       "metricas": {
         "mae_val": {
           "media": 0.07616603051924299,
@@ -143,6 +143,30 @@
           "perdida": "bce_fraccional"
         }
       }
+    }
+  },
+  "referencias": {
+    "constante_media": {
+      "valor": 0.9168608093111873,
+      "metricas": {
+        "mae_val": 0.07638222911963986,
+        "rmse_val": 0.09254056194687435,
+        "mae_test": 0.07749692804088885,
+        "rmse_test": 0.08591653644600779
+      },
+      "n_parametros": 1,
+      "n_configuraciones_busqueda": 1
+    },
+    "constante_mediana": {
+      "valor": 0.9431801269669556,
+      "metricas": {
+        "mae_val": 0.07716773778682555,
+        "rmse_val": 0.09593914476653304,
+        "mae_test": 0.0698617749247096,
+        "rmse_test": 0.08114928964228556
+      },
+      "n_parametros": 1,
+      "n_configuraciones_busqueda": 1
     }
   },
   "busqueda": {

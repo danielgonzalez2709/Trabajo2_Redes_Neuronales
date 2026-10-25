@@ -27,7 +27,7 @@
     "rmse_test": 0.08549316292636877
   },
   "n_parametros": 14593,
-  "tiempo_s": 0.5965614999877289,
+  "tiempo_s": 0.6004148339852691,
   "device": "cpu",
   "epocas": 27,
   "n": {
