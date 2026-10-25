@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 0 | 0 |
-| Código | 3 (H-01, H-03, H-04) | 2 (H-03, H-04) |
+| Código | 5 (H-01, H-03, H-04, H-05, H-06) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -136,3 +136,47 @@ falsas se registran como candidatos.
 5. **Corrección:** `validar_entradas` exige valores finitos (`np.isfinite`) y hay una prueba con `inf` (ronda 2 de B1).
 6. **Lección aprendida:** validar "sin NaN" no es validar "número real": ±inf también rompe las diferencias y los
    umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.
+
+### H-05 — Prueba de L2 "con lr y gradiente de la pérdida en 0", que no verifica nada
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) en modo plan · **Fecha:**
+  24-oct-2026 · **Quién lo cazó:** Andrés, al revisar el plan de B2
+1. **Prompt (literal):** `prompts/B2.md`, sección "Prompt de Andrés a la sesión principal".
+2. **Respuesta relevante de la IA:** en el plan de B2, la prueba 10 decía: "Paso a mano de L2: con lr y gradiente de la
+   pérdida en 0 (pérdida constante), un paso de SGD sin momento deja `W ← W(1 − lr·l2)` y el sesgo intacto (confirma
+   (λ/2)‖W‖² y que los sesgos no se penalizan)."
+3. **Cómo sospechamos:** Andrés: "si el lr está en 0, no se supone que no se va a mover por el peso y la prueba no haría
+   nada?". Con lr = 0, la actualización θ ← θ − lr·(∇L + λθ) deja θ igual, así que `W(1 − lr·l2) = W` y la prueba pasaría
+   aunque el L2 no existiera o se aplicara a los sesgos.
+4. **Evidencia:** la regla de actualización de SGD con `weight_decay`, θ ← θ − η(∇L(θ) + λθ). Con η = 0 da θ ← θ para
+   cualquier λ, así que la aserción no distingue un L2 correcto de uno ausente. Lo que se quería decir era η > 0 con
+   ∇L = 0, que da θ ← θ(1 − ηλ). La frase "con lr y gradiente de la pérdida en 0" pone los dos en 0.
+5. **Corrección:** la prueba se eliminó del plan. Además de estar mal escrita, probaba la matemática de `weight_decay`
+   de PyTorch y no nuestro código (criterio de Andrés). El L2 se cubre con la prueba de los grupos de parámetros (pesos con
+   `weight_decay = l2`, sesgos con 0) y con la de "l2 > 0 da pesos de menor norma".
+6. **Lección aprendida:** toda prueba debe poder fallar. Antes de aceptarla, preguntarse qué implementación incorrecta la
+   haría fallar; si ninguna, la prueba no verifica nada.
+
+### H-06 — "La prueba de determinismo y la de dropout al predecir ya cubren los minilotes y `evaluar_perdida`"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 24/25-oct-2026 ·
+  **Quién lo cazó:** el subagente `implementador`, con pruebas de mutantes (fase verde de B2)
+1. **Prompt (literal):** `prompts/B2.md`, "Corrección de Andrés al primer plan" (pide quitar las pruebas redundantes, p. ej.
+   la 11 y la 14) y "2. implementador — fase verde".
+2. **Respuesta relevante de la IA:** el plan corregido de B2 decía: "Pruebas quitadas: … minilotes (15), …
+   `evaluar_perdida` en eval() (14)". En la fase verde, el orquestador repitió "el orden reproducible lo cubre 15" y
+   "lo cubre 14".
+3. **Cómo sospechamos:** el implementador repitió sus mutantes sobre el código real y 3 sobrevivieron.
+4. **Evidencia:** los tres mutantes pasan las 71 pruebas: (a) `range(0, n − batch + 1, batch)`, que con 600 filas y
+   batch 512 descarta 88 filas por época; (b) minilotes sin barajar (`np.arange`): la prueba 15 no lo ve porque otra semilla
+   cambia igual la inicialización; (c) `evaluar_perdida` sin `eval()`: la prueba 14 no lo ve porque `predict_proba` llama a
+   `eval()` por su cuenta, así que la validación se mediría con dropout activo. "Cubre" se afirmó sin preguntarse qué
+   mutante mata cada prueba.
+5. **Corrección:** Andrés decide volver a poner tres pruebas (minilotes: cobertura con lote incompleto; minilotes: orden
+   barajado y reproducible; `evaluar_perdida` con dropout 0.5 da dos medidas iguales).
+6. **Lección aprendida:** "la prueba X cubre el fallo Y" es una afirmación verificable: se comprueba con un mutante de Y.
+   Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
