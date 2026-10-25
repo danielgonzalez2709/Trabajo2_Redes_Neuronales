@@ -6,8 +6,8 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 0 | 0 |
-| Código | 1 (H-01) | 0 |
+| Matemáticas | 1 (H-08) | 0 |
+| Código | 7 (H-01, H-03, H-04, H-05, H-06, H-07, H-09) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -95,3 +95,144 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** una explicación "de sentido común" de un vacío es una afirmación sobre los datos: se cita del
    diccionario o se prueba con los datos, como hace el script de evidencia. Revisar cada frase "X significa Y" contra la fuente.
 
+
+### H-03 — "calibration_curve asigna al bin superior el dato que cae en un borde (`side="right"`)"
+- **Estado:** confirmado (Andrés, 24-oct-2026)
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico` al revisar las pruebas de B1 antes de implementar; el orquestador lo
+  comprobó en el código fuente de sklearn
+1. **Prompt (literal):** `prompts/B1.md`, sección "1. implementador — fase roja".
+2. **Respuesta relevante de la IA:** "Puntos en un borde interno. La interfaz tampoco dice a qué bin van. Las pruebas a mano lo
+   evitan y el contraste con sklearn fija su convención: `searchsorted(bordes[1:-1], p, side="right")`."
+3. **Cómo sospechamos:** el verificador probó una implementación mutante con `side="right"` y pasaba las 52 pruebas: el
+   contraste con sklearn solo usaba datos sin empates, donde ningún dato cae en un borde, así que la prueba no fijaba nada.
+4. **Evidencia:** `sklearn/calibration.py:1332` (scikit-learn 1.9.1): `binids = np.searchsorted(bins[1:-1], y_prob)`, es decir,
+   lado por defecto `"left"`: el dato que cae en un borde va al bin **inferior**. Con datos con empates (p a 2 decimales)
+   8 de los 9 bordes internos coinciden con datos; `side="left"` reproduce `calibration_curve` y `side="right"` no
+   (`evidencias/H-03_calibracion_borde.py` y `.txt`).
+5. **Corrección:** la prueba de contraste con `calibration_curve` se corre también con datos con empates y la implementación
+   usa `side="left"` (ronda verde de B1).
+6. **Lección aprendida:** una afirmación del tipo "la referencia hace X" se comprueba en el código fuente de la referencia;
+   y una prueba de contraste solo fija una convención si sus datos ejercitan el caso (aquí, empates en los bordes).
+
+### H-04 — AUC errónea en silencio cuando el puntaje trae ±inf
+- **Estado:** confirmado (Andrés, 24-oct-2026)
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad`; el orquestador lo reprodujo
+1. **Prompt (literal):** `prompts/B1.md`, sección "3. implementador — fase verde".
+2. **Respuesta relevante de la IA:** `src/common/metricas.py` (commit a11a56c) declara en la celda de la ROC que $p_i \in
+   \mathbb{R}$ y que el umbral `+inf` es "nadie clasificado como malo", pero `validar_entradas` solo rechaza NaN
+   (`np.isnan`), no ±inf.
+3. **Cómo sospechamos:** al revisar casos borde: el logit de una PD saturada en 0 o 1 es ±inf, y la prueba de invariancia
+   recortaba p a [1e-6, 1 − 1e-6], justo para evitar ese caso.
+4. **Evidencia:** con y = [0,1,0,1,0,1] y p = [−inf, −inf, 0.2, 0.5, inf, inf], `auc` devuelve 0.444; por pares
+   (Mann-Whitney, empates ½) la AUC es 5/9 = 0.556. Causa: `np.diff` entre infinitos iguales da NaN (≠ 0), así que los
+   empates en ±inf no se agrupan, y el umbral inicial `+inf` choca con datos que valen `+inf`. `roc_auc_score` rechaza esa
+   entrada. `evidencias/H-04_auc_infinitos.py` y `.txt`.
+5. **Corrección:** `validar_entradas` exige valores finitos (`np.isfinite`) y hay una prueba con `inf` (ronda 2 de B1).
+6. **Lección aprendida:** validar "sin NaN" no es validar "número real": ±inf también rompe las diferencias y los
+   umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.
+
+### H-05 — Prueba de L2 "con lr y gradiente de la pérdida en 0", que no verifica nada
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) en modo plan · **Fecha:**
+  24-oct-2026 · **Quién lo cazó:** Andrés, al revisar el plan de B2
+1. **Prompt (literal):** `prompts/B2.md`, sección "Prompt de Andrés a la sesión principal".
+2. **Respuesta relevante de la IA:** en el plan de B2, la prueba 10 decía: "Paso a mano de L2: con lr y gradiente de la
+   pérdida en 0 (pérdida constante), un paso de SGD sin momento deja `W ← W(1 − lr·l2)` y el sesgo intacto (confirma
+   (λ/2)‖W‖² y que los sesgos no se penalizan)."
+3. **Cómo sospechamos:** Andrés: "si el lr está en 0, no se supone que no se va a mover por el peso y la prueba no haría
+   nada?". Con lr = 0, la actualización θ ← θ − lr·(∇L + λθ) deja θ igual, así que `W(1 − lr·l2) = W` y la prueba pasaría
+   aunque el L2 no existiera o se aplicara a los sesgos.
+4. **Evidencia:** la regla de actualización de SGD con `weight_decay`, θ ← θ − η(∇L(θ) + λθ). Con η = 0 da θ ← θ para
+   cualquier λ, así que la aserción no distingue un L2 correcto de uno ausente. Lo que se quería decir era η > 0 con
+   ∇L = 0, que da θ ← θ(1 − ηλ). La frase "con lr y gradiente de la pérdida en 0" pone los dos en 0.
+5. **Corrección:** la prueba se eliminó del plan. Además de estar mal escrita, probaba la matemática de `weight_decay`
+   de PyTorch y no nuestro código (criterio de Andrés). El L2 se cubre con la prueba de los grupos de parámetros (pesos con
+   `weight_decay = l2`, sesgos con 0) y con la de "l2 > 0 da pesos de menor norma".
+6. **Lección aprendida:** toda prueba debe poder fallar. Antes de aceptarla, preguntarse qué implementación incorrecta la
+   haría fallar; si ninguna, la prueba no verifica nada.
+
+### H-06 — "La prueba de determinismo y la de dropout al predecir ya cubren los minilotes y `evaluar_perdida`"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 24/25-oct-2026 ·
+  **Quién lo cazó:** el subagente `implementador`, con pruebas de mutantes (fase verde de B2)
+1. **Prompt (literal):** `prompts/B2.md`, "Corrección de Andrés al primer plan" (pide quitar las pruebas redundantes, p. ej.
+   la 11 y la 14) y "2. implementador — fase verde".
+2. **Respuesta relevante de la IA:** el plan corregido de B2 decía: "Pruebas quitadas: … minilotes (15), …
+   `evaluar_perdida` en eval() (14)". En la fase verde, el orquestador repitió "el orden reproducible lo cubre 15" y
+   "lo cubre 14".
+3. **Cómo sospechamos:** el implementador repitió sus mutantes sobre el código real y 3 sobrevivieron.
+4. **Evidencia:** los tres mutantes pasan las 71 pruebas: (a) `range(0, n − batch + 1, batch)`, que con 600 filas y
+   batch 512 descarta 88 filas por época; (b) minilotes sin barajar (`np.arange`): la prueba 15 no lo ve porque otra semilla
+   cambia igual la inicialización; (c) `evaluar_perdida` sin `eval()`: la prueba 14 no lo ve porque `predict_proba` llama a
+   `eval()` por su cuenta, así que la validación se mediría con dropout activo. "Cubre" se afirmó sin preguntarse qué
+   mutante mata cada prueba.
+5. **Corrección:** Andrés decide volver a poner tres pruebas (minilotes: cobertura con lote incompleto; minilotes: orden
+   barajado y reproducible; `evaluar_perdida` con dropout 0.5 da dos medidas iguales).
+6. **Lección aprendida:** "la prueba X cubre el fallo Y" es una afirmación verificable: se comprueba con un mutante de Y.
+   Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
+
+### H-07 — "`@dataclass(frozen=True)` hace inmutable el historial de entrenamiento"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad` (3.ª revisión de B2)
+1. **Prompt (literal):** `prompts/B2.md`, sección "8. implementador — ronda 4".
+2. **Respuesta relevante de la IA:** comentarios en el commit af1456a: `src/pd/entrenar.py:316` "inmutable: quien lo reciba
+   (B4, B5, D) no puede alterar el historial"; `src/pd/mlp.py:418` "inmutable: se puede compartir sin copiar";
+   `entrenar.py:34` "resultado inmutable del entrenamiento".
+3. **Cómo sospechamos:** `frozen=True` solo prohíbe reasignar atributos (`r.historial = ...`), y `historial` es una `list`.
+4. **Evidencia:** el revisor ejecutó `r.historial.append(1)` sobre un `ResultadoEntrenamiento` y funcionó sin error: la lista
+   se puede modificar. Es el comportamiento documentado de `dataclasses` (la congelación es superficial).
+5. **Corrección:** comentarios reescritos (commit siguiente a af1456a): "frozen: no se reasignan los campos; la lista del
+   historial sí es mutable". Alternativa no aplicada: guardar `tuple(historial)`.
+6. **Lección aprendida:** "inmutable" de un contenedor congelado no se extiende a sus campos mutables; un comentario
+   también es una afirmación que se verifica.
+
+### H-08 — "Penalizar λ‖W‖² en la pérdida equivale al `weight_decay` de Adam/SGD"
+- **Estado:** candidato (origen por confirmar con Daniel)
+- **Categoría:** Matemáticas
+- **Parte:** B
+- **Herramienta y modelo:** por confirmar. El Spec v0.1 lo generó el puente con Claude (MEMORIA, 19-oct); la línea entra
+  al historial en la v0.4 (commit b562895, 22-oct) · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
+  `verificador-matematico` (B2)
+1. **Prompt (literal):** por confirmar (el que produjo la v0.1–v0.4 del Spec). Verificación: `prompts/B2.md`, sección
+   "9. verificador-matematico".
+2. **Respuesta relevante de la IA:** `docs/spec/partes/B-pd.md` §3.2 (hasta v0.9): "el código debe hacer L2 (término
+   λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente)".
+3. **Cómo sospechamos:** al verificar la celda de L2 de `src/pd/entrenar.py`, que usa (λ/2)‖W‖².
+4. **Evidencia:** ∇(λ‖W‖²) = 2λW, mientras que `weight_decay = λ` suma λW al gradiente: lo equivalente es (λ/2)‖W‖².
+   Numéricamente (5 pasos, scripts en el scratchpad de la sesión): `weight_decay = λ` y "+(λ/2)‖W‖²" dan los mismos pesos
+   (dif. máx. 2,8e-17 con SGD y 5,6e-17 con Adam); con "+λ‖W‖²" difieren (6,1e-3 con SGD y 5,5e-2 con Adam).
+5. **Corrección:** Spec v0.13 (25-oct, Andrés; numerada 0.10 en `dev/andres`): B-pd §3.2 dice (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en los sesgos.
+   El código ya seguía esta convención (decisión de Andrés, 24-oct). El blog 04 (B8) debe escribir (λ/2)‖W‖².
+6. **Lección aprendida:** "equivalente" entre una penalización y un hiperparámetro de la librería se verifica derivando el
+   gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
+
+### H-09 — "La prueba compara `warnings.filters` antes y después de `fit`, así que detecta un filtro global"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el propio `implementador`, con el mutante M30 de la fase verde de B3
+1. **Prompt (literal):** `prompts/B3.md`, sección "1. implementador — fase roja" (prueba 11: "warnings.filters es igual
+   antes y después de fit").
+2. **Respuesta relevante de la IA:** `tests/test_logistica.py` (commit 7d72a68), `test_11_fit_no_altera_los_filtros_globales`,
+   presentada como la prueba que atrapa un `simplefilter("error")` global en lugar de un `catch_warnings` local.
+3. **Cómo sospechamos:** el mutante M30 (quitar el `catch_warnings` local de `ajustar_sin_avisos`) sobrevivía.
+4. **Evidencia:** el `pytestmark` del módulo ya instala `error::ConvergenceWarning` y `error::FutureWarning`; el filtro
+   global del mutante coincidía con uno ya presente y la lista `warnings.filters` no cambiaba. Tras partir de un entorno con
+   `simplefilter("ignore")`, M30 muere (commit dc4cc9d).
+5. **Corrección:** prueba reforzada en la fase verde de B3 (commit dc4cc9d).
+6. **Lección aprendida:** una prueba de "no efectos secundarios" debe partir de un estado distinto del que el efecto
+   produciría; verificarla con un mutante, no por lectura.

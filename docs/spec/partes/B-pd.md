@@ -37,16 +37,24 @@
 `LogisticRegression` con penalización L2 sobre el preprocesamiento común. Búsqueda de `C` en una rejilla logarítmica declarada
 (p. ej. 10 valores) usando validación; el número de configuraciones va a `summary.json`. Determinista con `lbfgs`: se reporta una
 corrida y se explica por qué su desviación entre semillas es 0.
+- Decisiones de B3 [DECIDIDO, Andrés, 25-oct; Spec v0.14]: rejilla de **13** valores de 10⁻⁴ a 10² cada medio orden de magnitud (`configs/pd/base.yaml`, sin duplicados: `n_configuraciones_busqueda = len(rejilla_C)`); criterio = log-loss de validación (`log_loss(..., labels=[0, 1])`), AUC de val al lado; argmin estricto y, en empate exacto, el **menor C**; el modelo final queda entrenado solo con train (sin refit con train + val); `lbfgs`, `max_iter = 1000`, `tol = 1e-6`, un `ConvergenceWarning` es error; sin `class_weight`, `penalty` ni `multi_class`; X en float64. El objetivo de sklearn es (1/n)·Σ BCE + ‖w‖²/(2·C·n) con el intercepto sin penalizar (λ = 1/(C·n) en la L2 de §3.2). `epocas` del JSON de la semilla = iteraciones de lbfgs. `desv` muestral (n = 1 → 0, núcleo §5.4). `en_borde` avisa si C elegido es el mínimo o el máximo. joblib guarda `version_sklearn` y `cargar` falla si no coincide.
 
 ### 3.2 MLP (núcleo §5.3)
 - `Linear → activación → Dropout` repetido; salida `Linear(·, 1)` con logit; pérdida `BCEWithLogitsLoss` (estable).
 - Regularización: dropout, **L2** y parada temprana sobre la pérdida de validación (restaura los mejores pesos).
-  ⚠️ L2 ≠ weight decay desacoplado: `AdamW` no es L2. Si el blog dice "penalización L2", el código debe hacer L2 (término
-  λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente) [VERIFICAR con Loshchilov & Hutter y la
-  documentación de PyTorch].
+  ⚠️ L2 ≠ weight decay desacoplado: `AdamW` no es L2. Si el blog dice "penalización L2", el código debe hacer L2: término
+  **(λ/2)‖W‖²** en la pérdida (gradiente λW) o, de forma equivalente, `weight_decay = λ` de `Adam`/`SGD`, que suma λW al
+  gradiente; los sesgos van sin L2 [DECIDIDO, Andrés, 24-oct; `mlp.l2` = λ]. Ojo: λ‖W‖² (sin el ½) tiene gradiente 2λW y
+  **no** equivale a `weight_decay = λ` (corrección v0.13, hallazgo H-08 del verificador-matematico). Loshchilov & Hutter
+  (2019), arXiv:1711.05101: L2 y weight decay coinciden en SGD pero no en Adam [VERIFICAR: TODO(cita) en el blog].
 - Desbalance [PROPUESTO]: `pos_weight = 1` por defecto para no descalibrar la PD (la PD alimenta la scorecard y la E[L]). Otro
   valor solo como sensibilidad, reportando su efecto en Brier y calibración.
 - `entrenar.py` es genérico (recibe pérdida y modelo): D lo reutiliza para la LGD.
+- Decisiones de B2 [DECIDIDO, Andrés, 24/25-oct]: `pos_weight` va dentro del bloque `mlp` (`mlp.pos_weight`, obligatorio,
+  1 por defecto); parada temprana con `min_delta = 0` (mejora = pérdida de validación estrictamente menor); pérdida no finita
+  en train o val → `FloatingPointError` con la época y la fase (B4 marca el ensayo como fallido); `predict_logit` en una sola
+  pasada; épocas numeradas desde 1; `cargar()` reconstruye en CPU (la config guardada conserva el `device` de
+  entrenamiento). `iterar_minilotes(n, batch, rng, device)` recibe el dispositivo (D, si la llama directo).
 
 ### 3.3 Búsqueda [PROPUESTO]
 - Optuna TPE, **40 ensayos** (`configs/pd/hpo.yaml`; demo: 5), semilla del muestreador fija.
@@ -69,8 +77,8 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
 | B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | Andrés |
-| B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | Andrés |
-| B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | Andrés |
+| ✅ B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | Andrés |
+| ✅ B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | Andrés |
 | B4 | Optuna del MLP (con datos reales, de noche) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
 | B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | Andrés |
 | B6 | Demo | B2, B3 | **< 2 min en CPU medido** | auditor-reproducibilidad | sáb 24 | Andrés |
