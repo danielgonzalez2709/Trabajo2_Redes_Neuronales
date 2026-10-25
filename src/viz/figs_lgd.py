@@ -321,13 +321,21 @@ def _exigir(ruta: Path, insumo: str) -> Path:
     return ruta
 
 
+def insumos_de_corrida(carpeta: Path, obs: dict) -> dict:
+    """`datos` para `generar` desde la carpeta de una corrida de `run.py lgd` (p. ej. la demo del notebook 04 en una
+    carpeta temporal): `summary.json`, `pred_test.parquet` y `semillas/mlp_seed*.json`; `obs` se pasa aparte
+    (descriptivo["observado"], que la corrida no escribe)."""
+    carpeta = Path(carpeta)
+    resumen = load_json(_exigir(carpeta / "summary.json", "summary.json"))
+    pred = pd.read_parquet(_exigir(carpeta / "pred_test.parquet", "pred_test.parquet"))
+    sem = carpeta / "semillas"
+    semillas = [load_json(r) for r in sorted(sem.glob("mlp_seed*.json"))] if sem.is_dir() else []
+    return {"obs": obs, "resumen": resumen, "pred": pred, "semillas": semillas}
+
+
 def _leer_insumos(entrada: Path) -> dict:
     obs = load_json(_exigir(entrada / "descriptivo.json", "descriptivo.json"))["observado"]
-    resumen = load_json(_exigir(entrada / "summary.json", "summary.json"))
-    pred = pd.read_parquet(_exigir(entrada / "pred_test.parquet", "pred_test.parquet"))
-    carpeta = entrada / "semillas"
-    semillas = [load_json(r) for r in sorted(carpeta.glob("mlp_seed*.json"))] if carpeta.is_dir() else []
-    return {"obs": obs, "resumen": resumen, "pred": pred, "semillas": semillas}
+    return insumos_de_corrida(entrada, obs)
 
 
 def _guardar(fig, ruta: Path) -> Path:
