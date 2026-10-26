@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from _lgd_resultados_reales import MOTIVO_SALTO, summary_real_con_formato_d10
 
 from src.viz.figs_lgd import (BANDAS_LGD, _etiqueta_mae, cuantiles_qq, generar, mae_por_banda, mae_semilla_mediana,
                               tabla_error_por_banda)
@@ -172,7 +171,6 @@ def test_sin_semillas_da_error(tmp_path):
 
 
 @pytest.mark.lento
-@pytest.mark.skipif(not summary_real_con_formato_d10(), reason=MOTIVO_SALTO)
 def test_generar_con_resultados_reales(tmp_path):
     rutas = generar(raiz=RAIZ, destino=tmp_path)
     assert sorted(r.name for r in rutas) == NOMBRES

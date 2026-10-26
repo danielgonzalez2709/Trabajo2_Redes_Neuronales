@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from _lgd_resultados_reales import MOTIVO_SALTO, summary_real_con_formato_d10
 
 from src.common.results import save_json
 from src.lgd.tablas import (comparacion, describir_mlp, redirigir_salidas, tabla_efecto_transformaciones,
@@ -255,7 +254,6 @@ def test_insumos_de_corrida_sin_summary_da_error(tmp_path):
         insumos_de_corrida(tmp_path, obs={})
 
 
-@pytest.mark.skipif(not summary_real_con_formato_d10(), reason=MOTIVO_SALTO)
 def test_tablas_con_los_resultados_reales():
     from src.common.results import load_json
 
