@@ -369,7 +369,7 @@
   "fraccion_principal_pendiente_media_castigados": 0.838881547332407,
   "evidencia": {
     "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
-    "sha256_pred_pd": "0e9cad311c724667dc0a69819365137239ef7fdf346928dcd7a2e15017fcd048",
+    "sha256_pred_pd": "90b99329ecdde0a399e2b284b92b9903cf9538e5a5844e3650a8cd04540bc1c7",
     "sha256_pred_lgd": "27571e5abc0db619cc4941776017af2975197cf502c375587288bd48a61b6a42"
   }
 }
