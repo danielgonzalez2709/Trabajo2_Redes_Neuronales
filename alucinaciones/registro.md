@@ -8,7 +8,7 @@
 |---|---|---|
 | Matemáticas | 2 (H-08, H-10) | 1 (H-08) |
 | Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
-| Datos del mundo real | 1 (H-02) | 0 |
+| Datos del mundo real | 2 (H-02, H-13) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
 
@@ -311,3 +311,28 @@ falsas se registran como candidatos.
    texto, objeto, complejo) antes de convertir, con pruebas parametrizadas sobre las cuatro funciones.
 6. **Lección aprendida:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X; una regla de
    validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
+
+### H-13 — "La pérdida observada es la misma construcción de la LGD de D" y "en mora es parcial"
+- **Estado:** candidato
+- **Categoría:** Datos del mundo real
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, la sesión orquestadora de Daniel, que escribió
+  la 1.ª versión de `src/el/` sin subagente · **Fecha:** 24-oct-2026 · **Quién lo cazó:** el subagente
+  `verificador-matematico` en la revisión de E5 (26-oct); el revisor-spec, en paralelo, señaló el contraste por banda
+1. **Prompt (literal):** "Vamos haciendo lo de la parte E" (Daniel, 24-oct, en la sesión del puente); la verificación está en
+   `prompts/E5.md`, sección 3.
+2. **Respuesta relevante de la IA:** docstring de `src/el/perdida_esperada.py` (commit de E5 del 24-oct): la pérdida
+   observada `max(0, (funded_amnt − total_rec_prncp) − (recoveries − collection_recovery_fee))` "es la misma construcción de
+   la LGD de la Parte D (D §3.2) multiplicada por la EAD al incumplimiento. En los créditos en mora […] su pérdida observada
+   es parcial y se marca", aplicada a todos los estados de test.
+3. **Cómo sospechamos:** el verificador recalculó la pérdida por estado y la contrastó con la población de la LGD de D
+   (solo castigados).
+4. **Evidencia:** `evidencias/H-13_perdida_observada.py` y `.txt`: de los 231,2 M USD "observados", 168,2 M son pérdida
+   realizada de castigados; 1 284 créditos `Fully Paid` suman 1,67 M (197 con más de 1 USD) porque su principal recibido
+   no llega al desembolsado; y los 5 460 en mora suman 61,3 M (26,5 %) con `recoveries` = 0 en todos: no es una pérdida
+   "parcial" (cota inferior) sino LGD = 1 supuesta, una cifra provisional y pesimista. Con eso, la razón E[L]/observada
+   salía 0,85 ("el modelo subestima") cuando en los créditos resueltos es 1,06.
+5. **Corrección:** ronda 2 de E5 (26-oct): pérdida realizada solo en castigados, 0 en pagados (la diferencia se reporta
+   como anomalía de los datos), pérdida provisional aparte en mora y contraste solo con los resueltos, total y por banda.
+6. **Lección aprendida:** una pérdida "observada" se define por estado del crédito y con la misma población que la LGD; antes
+   de llamar "parcial" a una cifra, se mira si de verdad es una cota (aquí las recuperaciones en mora eran 0).

@@ -85,13 +85,13 @@ def _el(cfg: dict | None) -> int:
 
 
 def _figures(cfg: dict | None) -> int:
-    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A y la Parte D (D6)."""
+    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A, la Parte D (D6) y la Parte E (E5)."""
     import time
 
-    from src.viz import figs_datos, figs_lgd
+    from src.viz import figs_datos, figs_el, figs_lgd
 
     inicio = time.perf_counter()
-    for ruta in [*figs_datos.generar(), *figs_lgd.generar()]:
+    for ruta in [*figs_datos.generar(), *figs_lgd.generar(), *figs_el.generar()]:
         print(ruta.as_posix())
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0

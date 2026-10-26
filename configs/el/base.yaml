@@ -1,14 +1,17 @@
 # Parte E — pérdida esperada E[L] = PD · LGD · EAD (Parte E §3.2). Lo lee `python run.py el --config configs/el/base.yaml`.
+# Hereda el bloque `scorecard` de la Parte C (base, odds_base, pdo): el puntaje de cada crédito define las bandas, y
+# `--set scorecard.pdo=40` cambia los rangos de puntaje de cada banda (no qué créditos caen en cada decil).
+hereda: ../scorecard/base.yaml
 base_seed: 0
 datos:
   loans: data/processed/loans_pd.parquet
   montos: data/processed/montos.parquet
 pd:
   predicciones: results/data/pd/pred_test.parquet       # entrega de B (núcleo §5.4)
-  modelo: mlp                                           # columna pred_<modelo>
+  modelo: logistica   # columna pred_<modelo>; pasa a `mlp` cuando exista B5 y se decida el modelo de la app (núcleo §13)
 lgd:
   predicciones: results/data/lgd/pred_pd_test.parquet   # entrega de D: LGD para todo el test (núcleo §5.4)
   modelo: mlp
 bandas:
-  n: 10            # deciles de PD; con la scorecard de C se pasa a bandas de puntaje
+  n: 10            # deciles del puntaje de la scorecard: banda 1 = menor puntaje (más riesgo)
 salida: results/data/el
