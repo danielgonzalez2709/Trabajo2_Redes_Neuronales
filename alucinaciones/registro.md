@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 2 (H-08, H-10) | 1 (H-08) |
+| Matemáticas | 3 (H-08, H-10, H-14) | 1 (H-08) |
 | Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
 | Datos del mundo real | 2 (H-02, H-13) | 0 |
 | Bibliografía | 0 | 0 |
-| Conceptos | 0 | 0 |
+| Conceptos | 1 (H-15) | 0 |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -336,3 +336,45 @@ falsas se registran como candidatos.
    como anomalía de los datos), pérdida provisional aparte en mora y contraste solo con los resueltos, total y por banda.
 6. **Lección aprendida:** una pérdida "observada" se define por estado del crédito y con la misma población que la LGD; antes
    de llamar "parcial" a una cifra, se mira si de verdad es una cota (aquí las recuperaciones en mora eran 0).
+
+### H-14 — "Montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia la produce la PD"
+- **Estado:** candidato
+- **Categoría:** Matemáticas
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién
+  lo cazó:** el subagente `cazador-alucinaciones` y, en paralelo, el `verificador-matematico`, en la revisión del blog 09
+1. **Prompt (literal):** `prompts/E7.md`, sección 1 (punto 5: "explica con cuidado […] SIN afirmar más de lo que muestran
+   los datos"); la verificación, en la sección 2.
+2. **Respuesta relevante de la IA:** `blog/secciones/09-perdida-esperada.md` (borrador sin commit, línea 95): la E[L] de la
+   banda 1 es casi diez veces la de la banda 10 "con montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia
+   la produce la PD (de 0,416 a 0,063)".
+3. **Cómo sospechamos:** la frase llama "parecidos" a dos montos que ella misma cita y que difieren en un 49 %.
+4. **Evidencia:** `evidencias/H-14_bandas_1_y_10.py` y `.txt`: la razón 9,92 entre las E[L] de las bandas 1 y 10 se
+   reparte en PD × 6,64, EAD × 1,49 y LGD × 1,01; en escala logarítmica la PD explica el 82,5 % y la EAD el 17,4 %. La PD
+   pesa más, pero no es "la" diferencia. Además, las bandas son deciles del puntaje, que es una transformación monótona de
+   la misma PD (correlación de rangos −1): parte de la conclusión es por construcción.
+5. **Corrección:** ronda 2 del blog 09: "sobre todo la PD", con el factor de la EAD, y aclaración de que las bandas
+   ordenan por la PD de la logística.
+6. **Lección aprendida:** un adjetivo cualitativo ("parecidos", "la causa") junto a cifras se comprueba con las cifras
+   mismas; una descomposición multiplicativa dice cuánto aporta cada factor.
+
+### H-15 — "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos"
+- **Estado:** candidato
+- **Categoría:** Conceptos
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `cazador-alucinaciones` (Claude Opus 5.5), en su propia ronda 1 de
+  verificación del blog 09 · **Fecha:** 26-oct-2026 · **Quién lo cazó:** el mismo subagente, en la ronda 2 (lo reportó
+  como error propio)
+1. **Prompt (literal):** `prompts/E7.md`, sección 2 (verificación del blog 09); la frase pasó al encargo de la ronda 2 del
+   redactor (sección 3, punto 5), que la copió en el texto.
+2. **Respuesta relevante de la IA:** informe de la ronda 1 del cazador: "Lo que hace alta la razón de la banda 10 es el
+   factor EAD, el mayor de todos (1,275)".
+3. **Cómo sospechamos:** en la ronda 2, el cazador comparó los factores de las bandas 8 a 10 y los del orden alternativo de
+   la descomposición.
+4. **Evidencia:** `evidencias/H-15_factor_ead_banda_10.py` y `.txt`: la banda 8 tiene casi el mismo factor EAD (1,2742
+   frente a 1,2747) y razón 1,002; la 9, 1,2718 y razón 1,107. Lo que separa a la banda 10 es su factor PD (0,981 frente a
+   0,818 y 0,903). Con el orden alternativo, el factor EAD máximo es el de la banda 8 (1,2706 frente a 1,2696).
+5. **Corrección:** el orquestador aplicó al blog 09 la redacción que propuso el cazador: la razón de la banda 10 combina un
+   factor PD cercano a 1 con el factor EAD más alto, comparada con las bandas 2, 8 y 9.
+6. **Lección aprendida:** un verificador también puede atribuir una causa única donde hay dos que se combinan; antes de
+   explicar un extremo por un factor, se mira si otra banda con ese factor igual tiene el mismo resultado.
