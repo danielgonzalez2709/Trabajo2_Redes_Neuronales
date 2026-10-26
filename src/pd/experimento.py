@@ -23,20 +23,27 @@
 """Experimento de la PD: matrices por split, métricas, resúmenes y archivos de resultados (núcleo §5.4)."""
 
 import contextlib  # borrar el temporal si la escritura falla
+import copy  # copias de los bloques validados (B5)
 import hashlib  # SHA-256 de la evidencia de comparación justa
 import os  # os.replace para la escritura atómica del parquet
+import re  # nombre de los archivos de semilla del MLP (B5)
 import tempfile  # temporal en la misma carpeta del destino
+import time  # reloj por defecto del fit y del subcomando (B5)
 from dataclasses import dataclass  # rutas inyectables e inmutables
 from pathlib import Path  # rutas
 
 import numpy as np  # medias, desviaciones y alineación
 import pandas as pd  # parquet de datos y de predicciones
+import torch  # versión e hilos registrados en los JSON del MLP (B5)
 
+from src.common.config import load_config  # relee mlp_final.yaml (B5)
 from src.common.metricas import auc, brier, gini, ks  # métricas comunes (B1)
 from src.common.preprocesamiento import Preprocesador  # preprocesador común (núcleo §5.2)
 from src.common.results import load_json, save_json  # JSON sin NaN y escritura atómica (núcleo §5.4)
-from src.common.seeds import validar_entero  # semilla entera ≥ 0
+from src.common.seeds import seeds_for_runs, validar_entero  # semillas efectivas y enteros de la config
+from src.common.torch_utils import resolver_device  # device efectivo que se registra (B5)
 from src.pd.logistica import LogisticaPD, bloque_logistica, esta_en_borde, logloss  # modelo de referencia
+from src.pd.mlp import CLAVES_MLP, MLPPD, validar_cfg_mlp  # MLP de PD y reglas del bloque mlp (B2)
 
 __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "RutasPD", "RUTAS_PD", "huella_particion", "huella_archivo", "cargar_matrices",  # datos y evidencia
@@ -44,6 +51,12 @@ __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "METRICAS", "SENTIDO", "evaluar", "medir", "resumir",  # métricas
     "actualizar_summary", "actualizar_pred_test", "escribir_semilla",  # archivos de resultados
     "correr_logistica",  # experimento de la logística
+    "MODELO_MLP", "ARCHIVO_MODELO_MLP", "RUTA_MLP_FINAL", "TIPO_OPTUNA", "CLAVES_BUSQUEDA",  # B5: nombres
+    "CRITERIO_SEMILLA_MEDIANA", "AVISO_SUMMARY_VIEJO",  # B5: textos de las reglas
+    "validar_cfg_mlp_final", "claves_distintas", "leer_mlp_final", "procedencia", "presupuesto_busqueda",  # B5
+    "borrar_semillas_mlp", "entrenar_semilla", "huella_particion_rapida", "calibracion_global",  # B5: piezas
+    "registro_semilla_mlp", "semilla_mediana", "entrada_summary_mlp", "correr_mlp",  # B5: MLP
+    "rutas_de", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
 ]
 
 COLUMNA_ID = "id"  # identificador del crédito (núcleo §5.1)
@@ -450,3 +463,513 @@ def correr_logistica(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=LogisticaP
     rutas.modelos.mkdir(parents=True, exist_ok=True)  # carpeta de modelos
     modelo.guardar(rutas.modelos / ARCHIVO_MODELO_LOGISTICA)  # joblib
     return entrada  # entrada "logistica" del summary
+
+
+# %% [markdown]
+# # B5: 30 semillas del MLP final y `run.py pd` (Parte B §3.5, Spec v0.16)
+#
+# `python run.py pd --config configs/pd/base.yaml` corre la logística (arriba) y después el MLP con el bloque `mlp`
+# resuelto (herencia de `mlp_final.yaml` y luego `--set`) en `semillas.n` semillas efectivas $s_k$ = `base_seed` + k,
+# $k = 0, \dots, n-1$ (`seeds_for_runs`). Cada semilla entrena un `MLPPD` nuevo y escribe
+# `semillas/mlp_seed{s}.json`; al final se escriben la entrada `mlp` de `summary.json`, la columna `pred_mlp` de
+# `pred_test.parquet` (de la semilla mediana) y `models/pd_mlp.pt` (la red de la semilla mediana, sin reentrenar).
+#
+# Constantes: nombres de archivo del núcleo §5.4, la ruta de `mlp_final.yaml` (la reescribe `run.py pd-hpo`), las claves
+# del bloque `busqueda` que escribe `hpo.armar_busqueda` y el texto de las reglas. `TIPO_OPTUNA` repite
+# `hpo.TIPO_BUSQUEDA` sin importar `src.pd.hpo` (que importa este módulo: el import sería circular); una prueba
+# comprueba que son iguales.
+
+# %%
+MODELO_MLP = "mlp"  # nombre del modelo en los resultados (núcleo §5.4)
+ARCHIVO_MODELO_MLP = "pd_mlp.pt"  # red de la semilla mediana (núcleo §5.4)
+RUTA_MLP_FINAL = Path("configs/pd/mlp_final.yaml")  # YAML que reescribe pd-hpo (relativo a la raíz)
+TIPO_OPTUNA = "optuna"  # = hpo.TIPO_BUSQUEDA (constante local: evita el import circular hpo → experimento)
+CLAVES_BUSQUEDA = ("tipo", "ensayo", "n_ensayos", "tiempo_s", "evidencia", "fecha")  # las de hpo.armar_busqueda
+PATRON_SEMILLA_MLP = re.compile(r"mlp_seed\d+\.json", re.ASCII)  # mlp_seed<entero>.json (con fullmatch)
+CRITERIO_SEMILLA_MEDIANA = ("orden ascendente por (logloss_val, seed); posición (n - 1) // 2 "
+                            "(n par: mediana inferior; empate: semilla menor)")  # regla de B-pd §3.5
+AVISO_SUMMARY_VIEJO = ("summary.json conserva la entrada mlp anterior, que ya no corresponde a semillas/; "
+                       "vuelve a correr run.py pd")  # texto exacto (Spec v0.16)
+CLAVES_CFG_MLP_FINAL = ("semillas", "base_seed", "mlp", "busqueda")  # bloques que necesita correr_mlp
+
+
+# %% [markdown]
+# ## Validación: enteros de la config
+#
+# `seeds.validar_entero` (int de Python o de numpy, nunca bool) con su `TypeError` convertido en `ValueError`: toda
+# falla de la config es `ValueError`. `semillas.n` es un entero $\ge 1$ dentro del mapeo `semillas`.
+#
+# TODO(refactor-post-B5): es otra copia del envoltorio TypeError → ValueError (`_semilla_valida` arriba, `_entero` de
+# `hpo.py` y `_entero_config` de `mlp.py` y `logistica.py`); se unifica en el refactor posterior a B5.
+
+# %%
+def _entero_cfg(valor, nombre: str, minimo: int) -> int:
+    """``seeds.validar_entero`` con su TypeError convertido en ValueError."""
+    try:  # regla única de enteros del proyecto
+        return validar_entero(valor, nombre, minimo=minimo)  # ValueError si es < minimo
+    except TypeError as exc:  # flotante, bool, texto…
+        raise ValueError(str(exc)) from exc  # mismo mensaje, ValueError
+
+
+def _n_semillas(cfg: dict) -> int:
+    """``semillas.n`` como entero ≥ 1 (``semillas`` debe ser un mapeo con ``n``)."""
+    semillas = cfg["semillas"]  # bloque semillas
+    if not isinstance(semillas, dict) or "n" not in semillas:  # p. ej. semillas: 30
+        raise ValueError(f"semillas debe ser un mapeo con la clave n; se recibió {semillas!r}")  # forma
+    return _entero_cfg(semillas["n"], "semillas.n", minimo=1)  # al menos una semilla
+
+
+# %% [markdown]
+# ## Validación: bloque `busqueda`
+#
+# Mapeo con **exactamente** las claves que escribe `hpo.armar_busqueda` (`CLAVES_BUSQUEDA`); devuelve una copia.
+
+# %%
+def _validar_busqueda(busqueda) -> dict:
+    """Copia de ``busqueda`` si es un mapeo con exactamente CLAVES_BUSQUEDA; si no, ValueError."""
+    if not isinstance(busqueda, dict):  # p. ej. busqueda: optuna
+        raise ValueError(f"El bloque busqueda debe ser un mapeo; se recibió {busqueda!r}")  # tipo
+    faltan, sobran = set(CLAVES_BUSQUEDA) - set(busqueda), set(busqueda) - set(CLAVES_BUSQUEDA)  # diferencias
+    if faltan or sobran:  # el bloque debe ser exacto
+        raise ValueError(f"El bloque busqueda es inválido: faltan {sorted(faltan)}, sobran {sorted(sobran)}")  # cuáles
+    return copy.deepcopy(busqueda)  # copia: no comparte la evidencia con la config
+
+
+# %% [markdown]
+# ## Validación de la config del MLP
+#
+# Antes de leer datos: los bloques `semillas`, `base_seed`, `mlp` y `busqueda` existen; `semillas.n` entero $\ge 1$,
+# `base_seed` entero $\ge 0$, `mlp` pasa `validar_cfg_mlp` (B2) y `busqueda` tiene sus 6 claves. Toda falla →
+# `ValueError`. Devuelve copias: la config del llamador no se muta.
+
+# %%
+def validar_cfg_mlp_final(cfg: dict) -> tuple[int, int, dict, dict]:
+    """(n, base_seed, mlp validado, busqueda validada) antes de leer datos; cualquier falla → ValueError."""
+    if not isinstance(cfg, dict):  # sin config no hay corrida
+        raise ValueError(f"La config de run.py pd debe ser un mapeo; se recibió {type(cfg).__name__}")  # tipo
+    faltan = [c for c in CLAVES_CFG_MLP_FINAL if c not in cfg]  # bloques necesarios
+    if faltan:  # p. ej. una config sin semillas
+        raise ValueError(f"La config de run.py pd no tiene {faltan}")  # cuáles
+    n = _n_semillas(cfg)  # número de semillas
+    base_seed = _entero_cfg(cfg["base_seed"], "base_seed", minimo=0)  # semilla base
+    if not isinstance(cfg["mlp"], dict):  # validar_cfg_mlp indexa el bloque
+        raise ValueError(f"El bloque mlp debe ser un mapeo; se recibió {cfg['mlp']!r}")  # tipo
+    return n, base_seed, validar_cfg_mlp(cfg["mlp"]), _validar_busqueda(cfg["busqueda"])  # todo validado
+
+
+# %% [markdown]
+# ## Procedencia: claves que difieren
+#
+# Claves de `CLAVES_MLP` (en su orden) cuyo valor en el bloque de la corrida difiere del de la búsqueda (pura).
+
+# %%
+def claves_distintas(mlp: dict, mlp_busqueda: dict) -> list[str]:
+    """Claves de CLAVES_MLP cuyo valor difiere entre ``mlp`` y ``mlp_busqueda``."""
+    return [k for k in CLAVES_MLP if mlp[k] != mlp_busqueda[k]]  # en el orden de CLAVES_MLP
+
+
+# %% [markdown]
+# ## Procedencia: `mlp_final.yaml`
+#
+# Relee el YAML que generó `run.py pd-hpo` con `load_config` y valida sus bloques `mlp` y `busqueda` (mismas reglas).
+
+# %%
+def leer_mlp_final(ruta) -> tuple[dict, dict]:
+    """(mlp validado, busqueda validada) de ``ruta`` (mlp_final.yaml generado por pd-hpo)."""
+    final = load_config(ruta)  # mismo cargador que el CLI
+    faltan = [c for c in ("mlp", "busqueda") if c not in final]  # bloques que escribe pd-hpo
+    if faltan:  # archivo ajeno o editado a mano
+        raise ValueError(f"{ruta} no tiene {faltan}; repite pd-hpo")  # cuáles
+    if not isinstance(final["mlp"], dict):  # validar_cfg_mlp indexa el bloque
+        raise ValueError(f"El bloque mlp de {ruta} debe ser un mapeo")  # tipo
+    return validar_cfg_mlp(final["mlp"]), _validar_busqueda(final["busqueda"])  # validados
+
+
+# %% [markdown]
+# ## Procedencia: ¿es la config de la búsqueda?
+#
+# `config_de_busqueda` = (el `mlp` validado de la corrida es igual al de `mlp_final.yaml`) ∧ (el `busqueda` también).
+# Devuelve además las claves que difieren (con `"busqueda"` al final si difiere ese bloque) para el aviso.
+
+# %%
+def procedencia(mlp: dict, busqueda: dict, ruta_mlp_final) -> tuple[bool, list[str]]:
+    """(config_de_busqueda, claves que difieren) frente a ``ruta_mlp_final``."""
+    mlp_final, busqueda_final = leer_mlp_final(ruta_mlp_final)  # lo que eligió pd-hpo
+    difieren = claves_distintas(mlp, mlp_final)  # claves del bloque mlp
+    if busqueda != busqueda_final:  # otra procedencia
+        difieren.append("busqueda")  # se nombra el bloque
+    return not difieren, difieren  # true solo si nada difiere
+
+
+# %% [markdown]
+# ## Presupuesto de la búsqueda
+#
+# Con `config_de_busqueda` true, la búsqueda debe ser de Optuna y con los **mismos datos** (`busqueda.evidencia` =
+# huellas de esta corrida); si no → `ValueError`. Entonces el presupuesto del MLP es
+# `n_configuraciones_busqueda = busqueda.n_ensayos` y `tiempo_busqueda_s = busqueda.tiempo_s`. Con false, los tres
+# campos quedan en `None` (el presupuesto de la búsqueda no corresponde a esta config).
+
+# %%
+def presupuesto_busqueda(busqueda: dict, de_busqueda: bool, huellas: dict) -> dict:
+    """{n_configuraciones_busqueda, tiempo_busqueda_s, busqueda}; ValueError si la búsqueda no es coherente."""
+    if not de_busqueda:  # otra config: sin presupuesto de búsqueda
+        return {"n_configuraciones_busqueda": None, "tiempo_busqueda_s": None, "busqueda": None}  # null
+    if busqueda["tipo"] != TIPO_OPTUNA:  # procedencia desconocida
+        raise ValueError(f"busqueda.tipo debe ser {TIPO_OPTUNA!r}; se recibió {busqueda['tipo']!r}; repite pd-hpo")
+    if busqueda["evidencia"] != huellas:  # otra partición u otro preprocesador
+        raise ValueError("busqueda.evidencia no coincide con la de esta corrida: la búsqueda se hizo con otros "
+                         "datos; repite pd-hpo")  # texto de B-pd §3.5
+    return {"n_configuraciones_busqueda": busqueda["n_ensayos"], "tiempo_busqueda_s": busqueda["tiempo_s"],
+            "busqueda": busqueda}  # presupuesto de la búsqueda
+
+
+# %% [markdown]
+# ## Aviso de procedencia
+#
+# Si la config no es la de la búsqueda (p. ej. `--set mlp.capas=[8]`), la consola dice qué claves difieren.
+
+# %%
+def _avisar_procedencia(de_busqueda: bool, difieren: list[str]) -> None:
+    """Imprime qué claves difieren si la config no es la de la búsqueda."""
+    if not de_busqueda:  # config cambiada
+        print(f"Aviso: la config del MLP no es la de la búsqueda (difieren: {', '.join(difieren)}); "
+              "n_configuraciones_busqueda, tiempo_busqueda_s y busqueda quedan en null")  # B-pd §3.5
+
+
+# %% [markdown]
+# ## Borrado de las semillas anteriores
+#
+# Antes de entrenar se borran **solo** los archivos cuyo nombre completo es `mlp_seed<entero>.json` (`fullmatch`):
+# las semillas de la logística, otros nombres parecidos y las carpetas quedan. Carpeta inexistente → 0.
+
+# %%
+def borrar_semillas_mlp(carpeta) -> int:
+    """Borra los archivos mlp_seed<entero>.json de ``carpeta`` y devuelve cuántos."""
+    carpeta = Path(carpeta)  # acepta texto o Path
+    if not carpeta.is_dir():  # primera corrida
+        return 0  # nada que borrar
+    viejos = [p for p in carpeta.iterdir() if p.is_file() and PATRON_SEMILLA_MLP.fullmatch(p.name)]  # solo MLP
+    for p in viejos:  # uno por uno
+        p.unlink()  # borra
+    return len(viejos)  # cuántos
+
+
+# %% [markdown]
+# ## Salidas previas incompatibles
+#
+# Falla **antes del primer fit** (no se pierden 30 entrenamientos) si `summary.json` existe con una raíz que no es
+# diccionario o si `pred_test.parquet` existe con otro conjunto de ids o con otra $y$: las mismas reglas de
+# `actualizar_summary` y `actualizar_pred_test` (se reutilizan `_tabla_nueva` y `_combinar`), sin escribir nada.
+
+# %%
+def _verificar_salidas(rutas: RutasPD, ids_test, y_test) -> None:
+    """ValueError si summary.json o pred_test.parquet existentes no admitirían la entrada del MLP."""
+    ruta_summary = rutas.resultados / ARCHIVO_SUMMARY  # summary previo
+    if ruta_summary.exists() and not isinstance(load_json(ruta_summary), dict):  # archivo ajeno
+        raise ValueError(f"{ruta_summary} debe tener un diccionario en la raíz")  # como actualizar_summary
+    ruta_pred = rutas.resultados / ARCHIVO_PRED_TEST  # pred_test previo
+    if ruta_pred.exists():  # se combinará por id
+        columna = PREFIJO_PRED + MODELO_MLP  # pred_mlp
+        nuevo = _tabla_nueva(ids_test, y_test, columna, np.zeros(len(ids_test)))  # PD provisional (no se escribe)
+        _combinar(pd.read_parquet(ruta_pred), nuevo, columna)  # ValueError si ids o y no coinciden
+
+
+# %% [markdown]
+# ## Una semilla: entrenamiento cronometrado
+#
+# Un `modelo_cls()` **nuevo** por semilla, entrenado con `{"mlp": cfg_mlp}` y la semilla $s$; $t_s$ = `reloj()` después
+# − `reloj()` antes del `fit` (solo el fit: ni la carga ni la medición). Si el fit diverge (`FloatingPointError`, B2)
+# el error sale del **mismo tipo** con la semilla y el aviso de que `summary.json` quedó viejo.
+
+# %%
+def entrenar_semilla(modelo_cls, datos: dict, cfg_mlp: dict, seed: int, reloj) -> tuple:
+    """(modelo entrenado, tiempo del fit en s) para la semilla ``seed``."""
+    X_tr, y_tr, _ = datos["train"]  # entrenamiento
+    X_val, y_val, _ = datos["val"]  # validación (parada temprana)
+    modelo = modelo_cls()  # modelo nuevo por semilla
+    inicio = reloj()  # comienzo del fit
+    try:  # solo la divergencia se reetiqueta
+        modelo.fit(X_tr, y_tr, X_val, y_val, {"mlp": cfg_mlp}, seed=seed)  # entrena (no muta cfg_mlp)
+    except FloatingPointError as exc:  # pérdida no finita
+        raise FloatingPointError(f"semilla {seed}: {exc}. {AVISO_SUMMARY_VIEJO}") from exc  # mismo tipo
+    return modelo, reloj() - inicio  # tiempo de solo el fit
+
+
+# %% [markdown]
+# ## Huella rápida de la partición
+#
+# Para el pre-chequeo de `correr_pd`, antes de la logística: la misma `evidencia` leyendo del parquet **solo** las
+# columnas `id` y `split` (mismo orden de filas). Una prueba exige que coincida con la del DataFrame completo.
+
+# %%
+def huella_particion_rapida(ruta_parquet, ruta_preprocesador) -> dict:
+    """``evidencia`` del parquet leyendo solo id y split."""
+    df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # dos columnas
+    return evidencia(df, ruta_preprocesador)  # misma función que correr_mlp
+
+
+# %% [markdown]
+# ## Calibración global
+#
+# Para cada split $s \in \{\text{val}, \text{test}\}$ con $n_s$ créditos:
+#
+# $$\bar p_s = \frac1{n_s}\sum_{i \in s} p_i, \qquad \bar y_s = \frac1{n_s}\sum_{i \in s} y_i,$$
+#
+# la PD media del modelo y la tasa de malos observada (calibración en el agregado).
+
+# %%
+def calibracion_global(modelo, datos: dict) -> dict:
+    """{pd_media_val, tasa_val, pd_media_test, tasa_test}."""
+    resultado = {}  # en el orden del núcleo §5.4
+    for split in SPLITS_MEDIDOS:  # val y test
+        X, y, _ = datos[split]  # matrices del split
+        resultado[f"pd_media_{split}"] = float(np.mean(modelo.predict_proba(X)))  # p̄
+        resultado[f"tasa_{split}"] = float(np.mean(y))  # ȳ
+    return resultado  # cuatro valores
+
+
+# %% [markdown]
+# ## Registro de una semilla
+#
+# `semillas/mlp_seed{s}.json`: las claves del núcleo §5.4 (`epocas` = épocas corridas) + la evidencia + los extras de
+# PD mlp (v0.16): `mejor_epoca`, `mejor_perdida_val`, `historial`, `hilos_torch`, `version_torch`,
+# `calibracion_global` y `n` (filas por split).
+
+# %%
+def registro_semilla_mlp(modelo, cfg_mlp: dict, metricas: dict, seed: int, tiempo_s: float, device: str,
+                         huellas: dict, datos: dict) -> dict:
+    """Contenido de semillas/mlp_seed{seed}.json."""
+    resultado = modelo.resultado  # ResultadoEntrenamiento del fit
+    return {  # núcleo §5.4 (v0.16)
+        "modelo": MODELO_MLP,  # nombre
+        "seed": seed,  # semilla efectiva
+        "config": cfg_mlp,  # bloque mlp validado
+        "metricas": metricas,  # {m}_{split}
+        "n_parametros": modelo.n_parametros(),  # parámetros entrenables
+        "tiempo_s": tiempo_s,  # solo el fit
+        "device": device,  # dispositivo efectivo
+        "epocas": resultado.epocas_corridas,  # épocas entrenadas
+        "evidencia": huellas,  # huellas de la partición y del preprocesador
+        "mejor_epoca": resultado.mejor_epoca,  # época de los pesos restaurados
+        "mejor_perdida_val": resultado.mejor_perdida_val,  # BCE de val de esa época
+        "historial": copy.deepcopy(resultado.historial),  # [{epoca, perdida_train, perdida_val}]
+        "hilos_torch": torch.get_num_threads(),  # hilos de CPU (determinismo)
+        "version_torch": str(torch.__version__),  # versión de PyTorch
+        "calibracion_global": calibracion_global(modelo, datos),  # p̄ y ȳ de val y test
+        "n": {split: int(len(datos[split][1])) for split in SPLITS},  # filas por split
+    }
+
+
+# %% [markdown]
+# ## Semilla mediana
+#
+# Con las corridas ordenadas de menor a mayor por la clave $(\text{logloss\_val}, s)$, la mediana es la de la posición
+#
+# $$k^{*} = \left\lfloor \frac{n - 1}{2} \right\rfloor \quad (\text{desde } 0),$$
+#
+# así que con $n$ par es la mediana inferior y un empate se resuelve por la semilla menor. Decide validación, como la
+# búsqueda (B-pd §3.3): test nunca decide.
+
+# %%
+def semilla_mediana(corridas: list[dict]) -> int:
+    """Semilla de la posición (n − 1) // 2 al ordenar por (logloss_val, seed)."""
+    if not corridas:  # sin corridas no hay mediana
+        raise ValueError("semilla_mediana necesita al menos una corrida")  # vacío
+    ordenadas = sorted(corridas, key=lambda c: (c["metricas"]["logloss_val"], c["seed"]))  # val y desempate
+    return ordenadas[(len(ordenadas) - 1) // 2]["seed"]  # mediana inferior
+
+
+# %% [markdown]
+# ## Entrada `mlp` de `summary.json`
+#
+# Presupuesto (núcleo §6) con $t_s$ el tiempo del fit de la semilla $s$:
+#
+# $$\texttt{tiempo\_semillas\_s} = \sum_{s} t_s, \qquad \texttt{tiempo\_total\_s} = \begin{cases}
+# \texttt{tiempo\_busqueda\_s} + \sum_s t_s & \text{si config\_de\_busqueda} \\ \sum_s t_s & \text{si no.}
+# \end{cases}$$
+#
+# Métricas resumidas con `resumir` (media, desv muestral, mejor, peor, n); `n_parametros`, `hilos_torch` y
+# `version_torch` de la semilla mediana (son iguales en todas).
+
+# %%
+def entrada_summary_mlp(corridas: list[dict], cfg_mlp: dict, presupuesto: dict, de_busqueda: bool, seed_med: int,
+                        huellas: dict) -> dict:
+    """Entrada "mlp" de summary.json (núcleo §5.4, v0.16)."""
+    mediana = next(c for c in corridas if c["seed"] == seed_med)  # registro de la semilla mediana
+    tiempo_semillas = sum((c["tiempo_s"] for c in corridas), 0.0)  # Σ de los fit
+    tiempo_total = presupuesto["tiempo_busqueda_s"] + tiempo_semillas if de_busqueda else tiempo_semillas  # total
+    return {  # en el orden del núcleo §5.4
+        "n_parametros": mediana["n_parametros"],  # complejidad
+        "n_configuraciones_busqueda": presupuesto["n_configuraciones_busqueda"],  # ensayos de la búsqueda o null
+        "tiempo_total_s": tiempo_total,  # presupuesto de tiempo
+        "tiempo_busqueda_s": presupuesto["tiempo_busqueda_s"],  # de mlp_final.yaml o null
+        "tiempo_semillas_s": tiempo_semillas,  # Σ de los fit
+        "metricas": resumir([c["metricas"] for c in corridas]),  # media, desv, mejor, peor, n
+        "evidencia": huellas,  # huellas de la partición y del preprocesador
+        "semillas": [c["seed"] for c in corridas],  # semillas efectivas
+        "semilla_mediana": seed_med,  # la de pd_mlp.pt y pred_mlp
+        "criterio_semilla_mediana": CRITERIO_SEMILLA_MEDIANA,  # regla
+        "config": cfg_mlp,  # bloque mlp validado
+        "config_de_busqueda": de_busqueda,  # ¿es la config de la búsqueda?
+        "busqueda": presupuesto["busqueda"],  # bloque de mlp_final.yaml o null
+        "hilos_torch": mediana["hilos_torch"],  # hilos de CPU
+        "version_torch": mediana["version_torch"],  # versión de PyTorch
+    }
+
+
+# %% [markdown]
+# ## Todas las semillas
+#
+# Por cada semilla efectiva: entrena (cronometrado), mide val y test, arma el registro y lo escribe. Los modelos
+# quedan en memoria (`{seed: modelo}`) para guardar el de la mediana sin reentrenar.
+
+# %%
+def _correr_semillas(modelo_cls, datos: dict, cfg_mlp: dict, semillas: list[int], reloj, rutas: RutasPD,
+                     device: str, huellas: dict) -> tuple[list[dict], dict]:
+    """(registros en orden de semilla, {seed: modelo entrenado})."""
+    corridas, modelos = [], {}  # registros y modelos
+    for seed in semillas:  # base_seed + 0…n−1
+        modelo, tiempo_s = entrenar_semilla(modelo_cls, datos, cfg_mlp, seed, reloj)  # fit cronometrado
+        registro = registro_semilla_mlp(modelo, cfg_mlp, medir(modelo, datos), seed, tiempo_s, device, huellas,
+                                        datos)  # contenido del archivo
+        escribir_semilla(rutas, MODELO_MLP, seed, registro)  # semillas/mlp_seed{seed}.json
+        corridas.append(registro)  # en memoria
+        modelos[seed] = modelo  # para la mediana
+    return corridas, modelos  # todo lo entrenado
+
+
+# %% [markdown]
+# ## Escrituras finales del MLP
+#
+# Entrada `mlp` de `summary.json` (conserva la de la logística), `pred_mlp` de `pred_test.parquet` (PD de test de la
+# red mediana, alineada por id) y `models/pd_mlp.pt` (la misma red, sin reentrenar).
+
+# %%
+def _escribir_mlp(rutas: RutasPD, entrada: dict, modelo, datos: dict) -> None:
+    """Escribe la entrada del summary, la columna pred_mlp y pd_mlp.pt."""
+    X_te, y_te, ids_te = datos["test"]  # prueba
+    actualizar_summary(rutas.resultados / ARCHIVO_SUMMARY, MODELO_MLP, entrada)  # conserva las ajenas
+    actualizar_pred_test(rutas.resultados / ARCHIVO_PRED_TEST, ids_te, y_te, PREFIJO_PRED + MODELO_MLP,
+                         modelo.predict_proba(X_te))  # alineada por id
+    rutas.modelos.mkdir(parents=True, exist_ok=True)  # carpeta de modelos
+    modelo.guardar(rutas.modelos / ARCHIVO_MODELO_MLP)  # red de la semilla mediana
+
+
+# %% [markdown]
+# ## Experimento del MLP
+#
+# Valida (antes de leer datos), carga una vez, compara con la búsqueda (antes de borrar y de entrenar), verifica las
+# salidas previas, borra las semillas viejas, entrena las $n$ semillas, elige la mediana y escribe. `cargar` se
+# resuelve **al llamar** (`cargar_datos`), como en `hpo.py`. Devuelve la entrada `mlp` del summary.
+
+# %%
+def correr_mlp(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=MLPPD, cargar=None, reloj=time.perf_counter,
+               ruta_mlp_final=RUTA_MLP_FINAL) -> dict:
+    """30 semillas (semillas.n) del MLP final: semillas/, entrada mlp, pred_mlp y pd_mlp.pt."""
+    n, base_seed, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # antes de leer datos
+    cargar = cargar_datos if cargar is None else cargar  # al llamar
+    df, datos = cargar(rutas)  # una sola lectura
+    huellas = evidencia(df, rutas.preprocesador)  # huellas del mismo df
+    de_busqueda, difieren = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda?
+    presupuesto = presupuesto_busqueda(busqueda, de_busqueda, huellas)  # ValueError antes de borrar
+    _avisar_procedencia(de_busqueda, difieren)  # aviso si no es la de la búsqueda
+    _verificar_salidas(rutas, datos["test"][2], datos["test"][1])  # antes del 1.er fit
+    borrados = borrar_semillas_mlp(rutas.resultados / CARPETA_SEMILLAS)  # semillas viejas del MLP
+    print(f"Semillas anteriores del MLP borradas: {borrados}")  # consola
+    device = str(resolver_device(cfg_mlp["device"]))  # dispositivo efectivo
+    corridas, modelos = _correr_semillas(modelo_cls, datos, cfg_mlp, seeds_for_runs(base_seed, n), reloj, rutas,
+                                         device, huellas)  # n semillas
+    seed_med = semilla_mediana(corridas)  # decide val
+    entrada = entrada_summary_mlp(corridas, cfg_mlp, presupuesto, de_busqueda, seed_med, huellas)  # summary
+    _escribir_mlp(rutas, entrada, modelos[seed_med], datos)  # summary, pred_mlp y pd_mlp.pt
+    return entrada  # entrada "mlp" del summary
+
+
+# %% [markdown]
+# ## Rutas de `run.py pd`
+#
+# Entradas de `RUTAS_PD` (leídas al llamar) y salidas de la config: `resultados = salida` y `modelos = modelos`
+# (carpetas, texto no vacío; si no → `ValueError`).
+
+# %%
+def rutas_de(cfg: dict) -> RutasPD:
+    """RutasPD con el parquet y el preprocesador de RUTAS_PD y las carpetas salida y modelos de la config."""
+    for clave in ("salida", "modelos"):  # carpetas de salida
+        valor = cfg.get(clave) if isinstance(cfg, dict) else None  # sin la clave → None
+        if not isinstance(valor, str) or not valor.strip():  # '' o un número no son rutas
+            raise ValueError(f"{clave} debe ser una ruta (texto no vacío); se recibió {valor!r}")  # tipo
+    return RutasPD(RUTAS_PD.parquet, RUTAS_PD.preprocesador, Path(cfg["salida"]), Path(cfg["modelos"]))  # rutas
+
+
+# %% [markdown]
+# ## Pre-chequeo de `run.py pd`
+#
+# Antes de la logística: las mismas validaciones de `correr_mlp` y, si la config es la de la búsqueda, la evidencia
+# de la búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto
+# `huella_particion_rapida`). Así una búsqueda hecha con otros datos no cuesta la corrida de la logística.
+
+# %%
+def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=RUTA_MLP_FINAL, leer_particion=None) -> None:
+    """ValueError si la config es inválida o la búsqueda se hizo con otros datos (sin leer las matrices)."""
+    _, _, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # mismas reglas que correr_mlp
+    leer = huella_particion_rapida if leer_particion is None else leer_particion  # al llamar
+    huellas = leer(rutas.parquet, rutas.preprocesador)  # solo id y split
+    de_busqueda, _ = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda?
+    presupuesto_busqueda(busqueda, de_busqueda, huellas)  # ValueError si los datos no son los de la búsqueda
+
+
+# %% [markdown]
+# ## `run.py pd`: composición
+#
+# Rutas de la config → pre-chequeo → logística (semilla `base_seed`) → MLP. Las tres piezas se inyectan.
+
+# %%
+def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, comprobar=comprobar_antes) -> dict:
+    """{"logistica", "mlp", "rutas"}: pre-chequeo, logística y MLP con las mismas rutas."""
+    rutas = rutas_de(cfg)  # salidas de la config
+    comprobar(cfg, rutas)  # antes de la logística
+    entrada_log = correr_log(cfg, rutas, seed=cfg["base_seed"])  # logística (B3)
+    entrada_mlp = correr_red(cfg, rutas)  # MLP (B5)
+    return {"logistica": entrada_log, "mlp": entrada_mlp, "rutas": rutas}  # en ese orden
+
+
+# %% [markdown]
+# ## Línea de un modelo en la consola
+#
+# AUC, KS y Brier de test (media ± desv con varias corridas; valor único con una), parámetros, configuraciones de la
+# búsqueda y tiempo total (núcleo §6).
+
+# %%
+def _linea_modelo(nombre: str, entrada: dict) -> str:
+    """Texto de una línea con las métricas de test y el presupuesto de ``entrada``."""
+    partes = []  # piezas de la línea
+    for metrica, etiqueta in (("auc_test", "AUC"), ("ks_test", "KS"), ("brier_test", "Brier")):  # de test
+        m = entrada["metricas"][metrica]  # resumen
+        texto = f"{m['media']:.4f} ± {m['desv']:.4f}" if m["n"] > 1 else f"{m['media']:.4f}"  # media ± desv
+        partes.append(f"{etiqueta} test {texto}")  # pieza
+    configs = entrada["n_configuraciones_busqueda"]  # puede ser null (MLP fuera de la búsqueda)
+    partes.append(f"{entrada['n_parametros']} parámetros")  # complejidad
+    partes.append(f"{configs} configuraciones" if configs is not None else "sin presupuesto de búsqueda")  # búsqueda
+    partes.append(f"{entrada['tiempo_total_s']:.1f} s")  # tiempo
+    return f"{nombre}: " + " · ".join(partes)  # una línea
+
+
+# %% [markdown]
+# ## `run.py pd`
+#
+# Corre todo e imprime una línea por modelo, la semilla mediana y su criterio, si la config es la de la búsqueda,
+# dónde quedaron los archivos y el tiempo total (núcleo §4.1). La config resuelta ya la imprime el CLI.
+
+# %%
+def manejador(cfg: dict | None) -> int:
+    """`run.py pd`: logística + MLP; imprime métricas, mediana, procedencia, rutas y tiempo."""
+    inicio = time.perf_counter()  # tiempo total del subcomando
+    res = correr_pd(cfg)  # corrida completa (valida la config)
+    mlp, rutas = res["mlp"], res["rutas"]  # atajos
+    print(_linea_modelo(MODELO_LOGISTICA, res["logistica"]))  # logística
+    print(_linea_modelo(MODELO_MLP, mlp))  # MLP
+    print(f"Semilla mediana: {mlp['semilla_mediana']} ({mlp['criterio_semilla_mediana']})")  # pd_mlp.pt
+    print(f"Config de la búsqueda: {'sí' if mlp['config_de_busqueda'] else 'no'}")  # procedencia
+    print(f"Resultados: {rutas.resultados.as_posix()} · Modelos: {rutas.modelos.as_posix()}")  # archivos
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")  # núcleo §4.1
+    return 0  # éxito

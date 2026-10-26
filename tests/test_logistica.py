@@ -1086,9 +1086,10 @@ def test_a03_logloss_con_una_sola_clase():
 
 
 def test_a04_config_base_valida():
-    """configs/pd/base.yaml tiene el bloque logistica, válido, con 13 valores de C (desde B4 hereda además mlp)."""
+    """configs/pd/base.yaml tiene el bloque logistica, válido, con 13 valores de C (desde B4 hereda además mlp; desde
+    B5 declara semillas, salida y modelos)."""
     cfg = load_config(ROOT / "configs" / "pd" / "base.yaml")  # config declarada
-    assert set(cfg) == {"logistica", "mlp", "busqueda", "base_seed"}  # B4: mlp y busqueda heredados + base_seed
+    assert set(cfg) == {"logistica", "mlp", "busqueda", "base_seed", "semillas", "salida", "modelos"}  # B4 + B5
     validado = validar_cfg_logistica(cfg["logistica"])  # pasa la validación
     assert validado == CFG_PRUEBA["logistica"]  # los valores declarados en el prompt
     assert len(validado["rejilla_C"]) == N_REJILLA_BASE  # 13 configuraciones
