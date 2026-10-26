@@ -7,6 +7,7 @@ import { acotar, esValido } from "../lib/campo";
 import type { EntradaNum } from "../lib/contrato";
 import { etiquetaSinUnidad, formatearNumero, unidad } from "../lib/formato";
 import estilos from "./Control.module.css";
+import { Info } from "./Info";
 
 interface Props {
   entrada: EntradaNum;
@@ -38,9 +39,12 @@ export function ControlNumerico({ entrada: e, valor, valorBase, onCambio }: Prop
   return (
     <div className={estilos.control}>
       <div className={estilos.cabeza}>
-        <label className={estilos.etiqueta} id={`${id}-etiqueta`} htmlFor={`${id}-campo`}>
-          {etiquetaSinUnidad(e)}
-        </label>
+        <span className={estilos.etiquetaFila}>
+          <label className={estilos.etiqueta} id={`${id}-etiqueta`} htmlFor={`${id}-campo`}>
+            {etiquetaSinUnidad(e)}
+          </label>
+          <Info etiqueta={etiquetaSinUnidad(e)} texto={e.ayuda_es} />
+        </span>
         <span className={estilos.campoCaja}>
           <input
             id={`${id}-campo`}
@@ -61,7 +65,7 @@ export function ControlNumerico({ entrada: e, valor, valorBase, onCambio }: Prop
           </span>
         </span>
       </div>
-      <p className={estilos.ayuda} id={`${id}-ayuda`}>
+      <p className="oculta" id={`${id}-ayuda`}>
         {e.ayuda_es}
       </p>
       <div className={estilos.pista}>

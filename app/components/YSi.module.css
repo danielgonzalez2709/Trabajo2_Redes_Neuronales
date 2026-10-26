@@ -104,3 +104,8 @@
     padding: 1rem;
   }
 }
+
+/* El encabezado recibe el foco al aplicar un cambio (tabIndex -1): sin anillo si no se llegó con el teclado. */
+.titulo:focus:not(:focus-visible) {
+  outline: none;
+}

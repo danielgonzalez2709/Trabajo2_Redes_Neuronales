@@ -1,60 +1,98 @@
+/* Tinte lavanda derivado de #4a3aa7 (src/viz/paleta.py; no es el color de ningún modelo): 12 % sobre blanco. */
 .tarjeta {
+  position: relative;
   display: grid;
   gap: 1rem;
-  padding: 1.25rem;
-  background: var(--ds-fondo);
-  border: 1px solid var(--ds-borde);
-  border-radius: var(--ds-radio);
+  margin-top: 0.75rem;
+  padding: 1.25rem 1.35rem 1.1rem;
+  background: #e9e7f4;
+  border: 1px solid rgba(74, 58, 167, 0.14);
+  border-radius: 24px;
   box-shadow: var(--ds-sombra);
 }
 
-.cifras {
+.cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.titulos {
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: end;
-  gap: 1.5rem;
+  justify-items: start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* Píldora oscura con el modelo elegido (16:1); el punto conserva el color del modelo. */
+.pildora {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #ffffff;
+  background: #1d1d1f;
+  border-radius: 999px;
+}
+
+.cifras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.columna {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
 }
 
 .cifra {
   display: grid;
-  gap: 0.1rem;
-  min-width: 0;
+  gap: 0.05rem;
 }
 
 .rotulo {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--ds-texto-suave);
+  color: var(--ds-texto-suave); /* 6,5:1 sobre el tinte */
 }
 
+/* Puntaje grande en semibold. */
 .puntaje {
-  font-size: 4rem;
-  font-weight: 700;
+  font-size: 4.25rem;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
 
 .pd {
-  font-size: 2rem;
-  font-weight: 650;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.nota {
-  margin: -0.5rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--ds-texto-suave);
 }
 
 .comparacion {
   display: flex;
   flex-wrap: wrap;
   gap: 0.15rem 0.75rem;
-  margin: -0.4rem 0 0;
+  margin: -0.25rem 0 0;
   font-size: 0.875rem;
   line-height: 1.4;
   color: var(--ds-texto-suave);
@@ -66,16 +104,30 @@
   white-space: nowrap;
 }
 
+/* Verde y rojo más oscuros que los tokens para seguir en AA sobre el tinte (5,0:1 y 6,1:1); siempre con ▲/▼ y texto. */
 .sube {
-  color: var(--ds-sube);
+  color: #17702f;
 }
 
 .baja {
-  color: var(--ds-baja);
+  color: #a51f15;
 }
 
 .igual {
   color: var(--ds-texto);
+}
+
+.frase {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+.frase strong {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .acciones {
@@ -91,7 +143,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--ds-texto);
-  background: var(--ds-relleno);
+  background: rgba(255, 255, 255, 0.75);
   border: 0;
   border-radius: 999px;
   cursor: pointer;
@@ -99,34 +151,52 @@
 }
 
 .accion:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.09);
+  background: #ffffff;
 }
 
 .accion:disabled {
   color: var(--ds-texto-suave);
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--ds-borde);
+  box-shadow: inset 0 0 0 1px rgba(74, 58, 167, 0.22);
   cursor: default;
 }
 
+.explicaciones {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.pregunta {
+  margin: 0 0 0.1rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.respuesta {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-texto-suave);
+}
+
+/* Fila del otro modelo en una píldora clara. */
 .otro {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   margin: 0;
-  padding: 0.65rem 0.8rem;
+  padding: 0.65rem 0.95rem;
   font-size: 0.875rem;
   line-height: 1.4;
-  color: var(--ds-texto-suave);
-  background: var(--ds-superficie);
-  border: 1px solid var(--ds-borde);
-  border-radius: var(--ds-radio-control);
+  color: var(--ds-texto);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
   font-variant-numeric: tabular-nums;
 }
 
 .otro strong {
-  font-weight: 600;
-  color: var(--ds-texto);
+  font-weight: 650;
   white-space: nowrap;
 }
 
@@ -135,68 +205,36 @@
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
+}
+
+.otro .punto {
   transform: translateY(-0.05rem);
 }
 
-.poblacion {
-  display: grid;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--ds-borde);
-}
-
-.subtitulo {
+.desempeno {
   margin: 0;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--ds-texto-suave);
-}
-
-.frase {
-  margin: 0;
-  font-size: 1.0625rem;
-  line-height: 1.35;
-  letter-spacing: -0.005em;
-}
-
-.frase strong {
-  font-weight: 650;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.referencia {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--ds-texto-suave);
 }
 
 /* Móvil: la tarjeta va arriba y compacta. */
 @media (max-width: 899px) {
   .tarjeta {
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 0.85rem;
+    padding: 1.1rem 1rem 1rem;
+    border-radius: 20px;
   }
 
   .puntaje {
-    font-size: 3rem;
+    font-size: 3.5rem;
   }
 
   .pd {
-    font-size: 1.625rem;
+    font-size: 1.5rem;
   }
 
-  .cifras {
-    gap: 1.25rem;
-  }
-
-  .nota {
-    margin-top: -0.35rem;
-  }
-
-  .poblacion {
-    padding-top: 0.75rem;
+  .otro {
+    border-radius: 14px;
   }
 }

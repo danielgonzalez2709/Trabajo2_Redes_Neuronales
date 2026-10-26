@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Entrada, EntradaNum } from "../lib/contrato";
 import {
-  deltaPuntaje, etiquetaSinUnidad, formatearDelta, formatearNumero, formatearPD, formatearPercentil, formatearPuntaje,
-  formatearPuntos, formatearValor, nombreReferencia, unidad,
+  deltaPuntaje, etiquetaSinUnidad, formatearCifra, formatearDelta, formatearMetricas, formatearNumero, formatearPD,
+  formatearPercentil, formatearPuntaje, formatearPuntos, formatearValor, fraseScorecard, nombreReferencia, unidad,
 } from "../lib/formato";
 
 const num = (etiqueta_es: string): EntradaNum => ({
@@ -80,5 +80,31 @@ describe("formato", () => {
     expect(formatearPuntos(13)).toBe("+13 puntos");
     expect(formatearPuntos(-1)).toBe("−1 punto");
     expect(formatearPuntos(0)).toBe("0 puntos");
+  });
+});
+
+describe("textos de la tarjeta desde el JSON", () => {
+  it("cifra para leer: entera sin decimales, decimal con coma (hasta 2) y punto de miles", () => {
+    expect(formatearCifra(600)).toBe("600");
+    expect(formatearCifra(50)).toBe("50");
+    expect(formatearCifra(1.5)).toBe("1,5");
+    expect(formatearCifra(20.125)).toBe("20,13");
+    expect(formatearCifra(1200)).toBe("1.200");
+  });
+
+  it("frase del puntaje con base, odds_base y pdo del bloque scorecard", () => {
+    expect(fraseScorecard({ base: 600, odds_base: 50, pdo: 20, factor: 28.85, offset: 487.12 })).toBe(
+      "600 puntos equivalen a 50 personas que pagan por cada una que no paga, y cada 20 puntos más duplican esa proporción.",
+    );
+    expect(fraseScorecard({ base: 500, odds_base: 1.5, pdo: 40, factor: 1, offset: 1 })).toBe(
+      "500 puntos equivalen a 1,5 personas que pagan por cada una que no paga, y cada 40 puntos más duplican esa proporción.",
+    );
+  });
+
+  it("desempeño en prueba desde `metricas`: AUC y Brier con 2 decimales, KS en % con 1", () => {
+    expect(formatearMetricas({ auc_test: 0.6715602681405541, ks_test: 0.24883859191283958, brier_test: 0.18398490825649588 }))
+      .toBe("AUC 0,67 · KS 24,9 % · Brier 0,18");
+    expect(formatearMetricas({ auc_test: 0.6696471920866485, ks_test: 0.24650160083183942, brier_test: 0.186521674060379 }))
+      .toBe("AUC 0,67 · KS 24,7 % · Brier 0,19");
   });
 });

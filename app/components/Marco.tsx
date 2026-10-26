@@ -6,8 +6,7 @@ import estilos from "./Marco.module.css";
 export function Encabezado() {
   return (
     <header className={estilos.encabezado}>
-      <h1 className={estilos.titulo}>¿Me prestas?</h1>
-      <p className={estilos.lema}>Conoce tu puntaje y tu probabilidad de incumplimiento.</p>
+      <h1 className={estilos.titulo}>Conoce tu puntaje y tu probabilidad de incumplimiento</h1>
       <p className={estilos.detalle}>
         Describe tu préstamo y tu historial: dos modelos entrenados con préstamos históricos calculan, en tu navegador, qué
         tan probable es que no se pague.

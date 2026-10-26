@@ -1,4 +1,6 @@
 // Control segmentado accesible: un grupo de radios nativos (teclado y lector de pantalla sin trabajo extra).
+import type { ReactNode } from "react";
+import { useId } from "react";
 import estilos from "./Segmentado.module.css";
 
 export interface OpcionSegmentada {
@@ -16,12 +18,19 @@ interface Props {
   valor: string;
   onCambio: (valor: string) => void;
   ayudaId?: string;
+  /** Junto a la leyenda (p. ej. el botón de ayuda); el nombre del grupo sigue siendo solo la leyenda. */
+  extra?: ReactNode;
 }
 
-export function Segmentado({ nombre, leyenda, leyendaVisible = true, opciones, valor, onCambio, ayudaId }: Props) {
+export function Segmentado(p: Props) {
+  const { nombre, leyenda, leyendaVisible = true, opciones, valor, onCambio, ayudaId, extra } = p;
+  const leyendaId = `${useId()}-leyenda`;
   return (
-    <fieldset className={estilos.grupo} aria-describedby={ayudaId}>
-      <legend className={leyendaVisible ? estilos.leyenda : "oculta"}>{leyenda}</legend>
+    <fieldset className={estilos.grupo} aria-describedby={ayudaId} aria-labelledby={extra ? leyendaId : undefined}>
+      <legend className={leyendaVisible ? estilos.leyenda : "oculta"}>
+        <span id={leyendaId}>{leyenda}</span>
+        {extra}
+      </legend>
       <div className={estilos.pista} style={{ gridTemplateColumns: `repeat(${opciones.length}, minmax(0, 1fr))` }}>
         {opciones.map((o) => (
           <label key={o.valor} className={estilos.opcion}>

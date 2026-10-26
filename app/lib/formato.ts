@@ -1,6 +1,6 @@
 // Formato de lo que se muestra (no cambia ningún cálculo). Dominio puro.
 import { decimales } from "./campo";
-import type { Entrada } from "./contrato";
+import type { Entrada, ModeloPD, Scorecard } from "./contrato";
 
 const UNIDAD_FINAL = /\s*\(([^()]+)\)\s*$/; // "Monto solicitado (USD)" -> "USD"
 
@@ -65,4 +65,26 @@ const REFERENCIAS: Record<string, string> = { test: "prueba", val: "validación"
 /** Nombre en español de `poblacion.referencia` (partición; src/viz/paleta.py NOMBRE_SPLIT). */
 export function nombreReferencia(r: string): string {
   return REFERENCIAS[r] ?? r;
+}
+
+/** Cifra para leer en un texto: sin decimales si es entera, si no hasta 2 (coma decimal, punto de miles). */
+export function formatearCifra(x: number): string {
+  const r = Math.round(x * 100) / 100;
+  const paso = Number.isInteger(r) ? 1 : Number.isInteger(Math.round(r * 100) / 10) ? 0.1 : 0.01;
+  return formatearNumero(r, paso);
+}
+
+/** "¿Qué es el puntaje?" con los números del bloque `scorecard` del JSON (nunca escritos a mano). */
+export function fraseScorecard(sc: Scorecard): string {
+  return (
+    `${formatearCifra(sc.base)} puntos equivalen a ${formatearCifra(sc.odds_base)} personas que pagan por cada una ` +
+    `que no paga, y cada ${formatearCifra(sc.pdo)} puntos más duplican esa proporción.`
+  );
+}
+
+const dos = (x: number) => x.toFixed(2).replace(".", ",");
+
+/** Desempeño en prueba desde `metricas`: "AUC 0,67 · KS 24,9 % · Brier 0,18". */
+export function formatearMetricas(m: ModeloPD["metricas"]): string {
+  return `AUC ${dos(m.auc_test)} · KS ${formatearPD(m.ks_test)} · Brier ${dos(m.brier_test)}`;
 }

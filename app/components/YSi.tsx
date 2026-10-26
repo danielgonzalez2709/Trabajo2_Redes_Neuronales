@@ -1,4 +1,5 @@
 // "¿Y si…?": los cambios de una sola variable que más suben el puntaje del escenario; tocar uno lo aplica.
+import { useRef } from "react";
 import type { Entrada } from "../lib/contrato";
 import type { Cambio } from "../lib/escenarios";
 import { deltaPuntaje, etiquetaSinUnidad, formatearPD, formatearPuntos, formatearValor } from "../lib/formato";
@@ -16,9 +17,11 @@ interface Props {
 
 export function YSi({ entradas, cambios, modeloFrase, pendiente, onAplicar }: Props) {
   const porNombre = new Map(entradas.map((e) => [e.nombre, e]));
+  // La tarjeta tocada desaparece al recalcular: el foco vuelve al encabezado de la sección para no perderse.
+  const titulo = useRef<HTMLHeadingElement>(null);
   return (
     <section className={estilos.bloque} aria-labelledby="titulo-ysi" aria-busy={pendiente}>
-      <h2 id="titulo-ysi" className={estilos.titulo}>
+      <h2 id="titulo-ysi" className={estilos.titulo} ref={titulo} tabIndex={-1}>
         ¿Y si…?
       </h2>
       <p className={estilos.explica}>
@@ -26,7 +29,7 @@ export function YSi({ entradas, cambios, modeloFrase, pendiente, onAplicar }: Pr
         Toca uno para probarlo. Son lo que dice el modelo, no consejos.
       </p>
       {cambios.length === 0 ? (
-        <p className={estilos.nada}>Ningún cambio de una sola variable sube el puntaje del escenario.</p>
+        <p className={estilos.nada}>Ningún cambio de una sola variable sube el puntaje del escenario al menos 1 punto.</p>
       ) : (
         <ol className={`${estilos.lista} ${pendiente ? estilos.pendiente : ""}`}>
           {cambios.map((c) => {
@@ -38,7 +41,10 @@ export function YSi({ entradas, cambios, modeloFrase, pendiente, onAplicar }: Pr
                   type="button"
                   className={estilos.cambio}
                   disabled={pendiente}
-                  onClick={() => onAplicar(c.nombre, c.hasta)}
+                  onClick={() => {
+                    onAplicar(c.nombre, c.hasta);
+                    titulo.current?.focus();
+                  }}
                 >
                   <span className={estilos.que}>
                     {etiquetaSinUnidad(e)}{" "}

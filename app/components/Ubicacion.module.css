@@ -1,0 +1,79 @@
+.tarjeta {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 1.1rem 1.25rem 1.15rem;
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  border-radius: var(--ds-radio);
+}
+
+.cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.referencia {
+  font-size: 0.8125rem;
+  color: var(--ds-texto-suave);
+  white-space: nowrap;
+}
+
+.figura {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.barra {
+  transition: fill-opacity 200ms ease, stroke-opacity 200ms ease;
+}
+
+.marca {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tu {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.eje {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ds-texto-suave);
+}
+
+.sentido {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ds-texto-suave);
+}
+
+.pie {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-texto-suave);
+}
+
+@media (max-width: 899px) {
+  .tarjeta {
+    padding: 1rem;
+  }
+}

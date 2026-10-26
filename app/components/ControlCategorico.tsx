@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { EntradaCat } from "../lib/contrato";
 import estilos from "./Control.module.css";
+import { Info } from "./Info";
 import { Segmentado } from "./Segmentado";
 
 const MAX_SEGMENTADO = 3;
@@ -16,8 +17,9 @@ interface Props {
 export function ControlCategorico({ entrada: e, valor, onCambio }: Props) {
   const id = useId();
   const opciones = e.categorias.map((c) => ({ valor: c, etiqueta: e.etiquetas_categorias[c] ?? c }));
+  const info = <Info etiqueta={e.etiqueta_es} texto={e.ayuda_es} />;
   const ayuda = (
-    <p className={estilos.ayuda} id={`${id}-ayuda`}>
+    <p className="oculta" id={`${id}-ayuda`}>
       {e.ayuda_es}
     </p>
   );
@@ -32,6 +34,7 @@ export function ControlCategorico({ entrada: e, valor, onCambio }: Props) {
           valor={valor}
           onCambio={onCambio}
           ayudaId={`${id}-ayuda`}
+          extra={info}
         />
         {ayuda}
       </div>
@@ -40,9 +43,12 @@ export function ControlCategorico({ entrada: e, valor, onCambio }: Props) {
 
   return (
     <div className={estilos.control}>
-      <label className={estilos.etiqueta} htmlFor={`${id}-lista`}>
-        {e.etiqueta_es}
-      </label>
+      <span className={estilos.etiquetaFila}>
+        <label className={estilos.etiqueta} htmlFor={`${id}-lista`}>
+          {e.etiqueta_es}
+        </label>
+        {info}
+      </span>
       {ayuda}
       <select
         id={`${id}-lista`}

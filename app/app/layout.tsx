@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "¿Me prestas? Puntaje y probabilidad de incumplimiento",
+  title: "Conoce tu puntaje y tu probabilidad de incumplimiento",
   description: "Herramienta académica: puntaje y probabilidad de incumplimiento con regresión logística y red neuronal.",
 };
 

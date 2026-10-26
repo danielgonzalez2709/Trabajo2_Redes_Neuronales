@@ -3,18 +3,19 @@
 // presentacionales.
 import { Suspense, useDeferredValue, useMemo } from "react";
 import { Aviso, Encabezado, Pie } from "../components/Marco";
-import { TITULO_MODELO_FRASE } from "../components/modelos";
+import { COLOR_MODELO, TITULO_MODELO_FRASE } from "../components/modelos";
 import { PanelEntradas } from "../components/PanelEntradas";
 import { TarjetaResultado } from "../components/TarjetaResultado";
+import { Ubicacion } from "../components/Ubicacion";
 import { YSi } from "../components/YSi";
 import { ESPERA_URL_MS, useEntradas } from "../hooks/useEntradas";
 import { useEstable } from "../hooks/useEstable";
 import { useModelos } from "../hooks/useModelos";
 import type { ModeloPD, NombreModelo } from "../lib/contrato";
-import { densidadDesdePercentiles } from "../lib/densidad";
+import { barrasDesdePercentiles } from "../lib/densidad";
 import type { Valores } from "../lib/entradas";
 import { mejoresCambios, mismosValores, type Cambio } from "../lib/escenarios";
-import { deltaPuntaje, formatearPD, formatearPuntaje, formatearPuntos } from "../lib/formato";
+import { deltaPuntaje, formatearPD, formatearPuntaje, formatearPuntos, nombreReferencia } from "../lib/formato";
 import { inferir, type Resultado } from "../lib/modelo";
 import estilos from "./page.module.css";
 
@@ -59,8 +60,8 @@ function Panel() {
     () => (modelos && valores && base ? calcular(modelos, modelo, valores, base) : null),
     [modelos, modelo, valores, base],
   );
-  const tramos = useMemo(
-    () => (modelos ? densidadDesdePercentiles(modelos[modelo].poblacion.percentiles_score) : []),
+  const barras = useMemo(
+    () => (modelos ? barrasDesdePercentiles(modelos[modelo].poblacion.percentiles_score) : []),
     [modelos, modelo],
   );
 
@@ -95,8 +96,15 @@ function Panel() {
               onGuardarBase={guardarBase}
               onVolverABase={volverABase}
               anuncio={anuncio}
-              poblacion={modelos[modelo].poblacion}
-              tramos={tramos}
+              json={modelos[modelo]}
+            />
+            <Ubicacion
+              barras={barras}
+              puntaje={salida.calculo.resultados[modelo].score}
+              percentil={salida.calculo.resultados[modelo].percentil}
+              color={COLOR_MODELO[modelo]}
+              referencia={nombreReferencia(modelos[modelo].poblacion.referencia)}
+              modeloFrase={TITULO_MODELO_FRASE[modelo]}
             />
             {cambios && (
               <YSi

@@ -1,46 +1,49 @@
-// Densidad de la población a partir de sus percentiles del puntaje (`poblacion.percentiles_score`). Dominio puro.
+// Distribución de la población por barras de puntaje a partir de sus percentiles (`poblacion.percentiles_score`).
+// Dominio puro.
+import { percentil } from "./modelo";
 
-export interface Tramo {
+export interface Barra {
   desde: number;
   hasta: number;
-  /** Probabilidad del tramo (con la de los tramos de ancho 0 fusionados). */
+  /** Proporción de la población con puntaje en [desde, hasta): F(hasta) − F(desde). */
   masa: number;
-  /** masa / (hasta - desde): el área del tramo es su probabilidad. */
-  densidad: number;
 }
 
-/** Percentiles por tramo de la densidad: 20 tramos de 5 percentiles con los 101 de p0..p100 (menos ruido que 100). */
-export const PERCENTILES_POR_TRAMO = 5;
+/** Barras de ancho de puntaje igual entre p0 y p100. */
+export const BARRAS = 25;
 
 /**
- * Los tramos van de p[c·j] a p[c·(j+1)] con c = porTramo; en cada uno cae c/(n-1) de la población (0,05 con los 101
- * de p0..p100 y c = 5), así que su densidad es 0,05 / (p[5(j+1)] - p[5j]). Un tramo de ancho 0 (percentiles
- * repetidos) no tiene densidad finita: su masa se suma al siguiente tramo con ancho (o al anterior si está al final).
- * El área total es 1.
+ * `n` barras de ancho igual entre p0 y p100. La función de distribución F se interpola linealmente entre los 101
+ * percentiles (F(p_k) = k/100 con p0..p100): es la misma regla del percentil que se muestra (`percentil` de lib/modelo), así que
+ * la barra de la persona y su percentil cuadran. masa = F(hasta) − F(desde); las masas suman 1 (F(p0) = 0, F(p100) = 1).
+ * Sin rango (todos los percentiles iguales) o con menos de 2 valores no hay barras.
  */
-export function densidadDesdePercentiles(p: number[], porTramo = PERCENTILES_POR_TRAMO): Tramo[] {
-  if (p.length < 2) return [];
+export function barrasDesdePercentiles(p: number[], n = BARRAS): Barra[] {
+  if (!Number.isInteger(n) || n < 1) throw new Error(`número de barras inválido: ${n}`);
   for (let k = 0; k < p.length; k++) {
     if (!Number.isFinite(p[k])) throw new Error(`percentiles_score[${k}] no es finito`);
     if (k > 0 && p[k] < p[k - 1]) throw new Error(`percentiles_score decrece en el índice ${k}`);
   }
-  if (!Number.isInteger(porTramo) || porTramo < 1 || (p.length - 1) % porTramo !== 0) {
-    throw new Error(`porTramo = ${porTramo} no divide los ${p.length - 1} tramos entre percentiles`);
-  }
-  const q = p.filter((_, k) => k % porTramo === 0); // p0, p5, …, p100
-  const masaTramo = 1 / (q.length - 1);
-  const tramos: Tramo[] = [];
-  let pendiente = 0; // masa de los tramos de ancho 0 aún sin asignar
-  for (let k = 0; k < q.length - 1; k++) {
-    if (q[k + 1] === q[k]) {
-      pendiente += masaTramo;
-      continue;
-    }
-    tramos.push({ desde: q[k], hasta: q[k + 1], masa: masaTramo + pendiente, densidad: 0 });
-    pendiente = 0;
-  }
-  if (tramos.length === 0) return [];
-  tramos[tramos.length - 1].masa += pendiente;
-  for (const t of tramos) t.densidad = t.masa / (t.hasta - t.desde);
-  return tramos;
+  if (p.length < 2) return [];
+  const min = p[0];
+  const max = p[p.length - 1];
+  if (max === min) return [];
+  const ancho = (max - min) / n;
+  // `percentil` da el índice fraccionario entre percentiles (con 101 valores, el %) y acota a 100 desde p100.
+  const F = (x: number) => (x >= max ? 1 : percentil(x, p) / (p.length - 1));
+  const borde = (j: number) => (j === n ? max : min + j * ancho); // el último borde es p100 exacto
+  return Array.from({ length: n }, (_, j) => {
+    const desde = borde(j);
+    const hasta = borde(j + 1);
+    return { desde, hasta, masa: F(hasta) - F(desde) };
+  });
+}
+
+/** Índice de la barra que contiene el puntaje (el borde va con la barra de la derecha); fuera, se acota; sin barras, -1. */
+export function indiceBarra(barras: Barra[], puntaje: number): number {
+  if (barras.length === 0) return -1;
+  const min = barras[0].desde;
+  const ancho = (barras[barras.length - 1].hasta - min) / barras.length;
+  const j = Math.floor((puntaje - min) / ancho);
+  return Math.min(Math.max(j, 0), barras.length - 1);
 }
