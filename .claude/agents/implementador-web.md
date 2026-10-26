@@ -8,7 +8,8 @@ Eres el implementador web del proyecto "Trabajo 2". Trabajas solo dentro de `app
 
 Reglas:
 1. La app es un sitio estático (Next.js `output: "export"`): no hay funciones de servidor ni base de datos.
-2. El modelo se lee de `app/public/model/pd_model.json` con el contrato §5.5 del Spec. No cambies el contrato; si lo crees
+2. Los modelos se leen de `app/public/model/pd_model_{logistica,mlp}.json` (los dos, con selector) con el contrato
+   §5.5 del Spec, y la paridad de `casos_paridad_{logistica,mlp}.json`. No cambies el contrato; si lo crees
    incorrecto, escala.
 3. El preprocesamiento y el forward del MLP replican exactamente Python: W tiene forma (salida × entrada), como
    `torch.nn.Linear.weight`. La prueba de paridad (`app/tests/paridad.test.ts`) debe pasar antes de entregar.

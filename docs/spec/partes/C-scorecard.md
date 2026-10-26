@@ -24,9 +24,9 @@
 
 | Entrego | A | Cuándo |
 |---|---|---|
-| `pd_model.json` **de juguete** en el formato del contrato | E (app) | **vie 23** |
+| `pd_model_{logistica,mlp}.json` **de juguete** en el formato del contrato | E (app) | **vie 23** |
 | `scorecard.json`, SHAP, `hipotesis.json` | E (blog) | sáb 24 |
-| `pd_model.json` **real** + `casos_paridad.json` | E (app) | **sáb 24, noche** |
+| `pd_model_{logistica,mlp}.json` **real** + `casos_paridad_{logistica,mlp}.json` | E (app) | **sáb 24, noche** |
 | Sección 07 del blog | E | dom 25, 8 p. m. |
 
 ## 3. Especificación
@@ -42,8 +42,7 @@ Con odds de buen pagador o = (1 − p)/p (p = PD):
   estandarizada).
 - **MLP:** SHAP φⱼ sobre el **logit**: logit(p) = φ₀ + Σ φⱼ ⇒ puntosⱼ = −factor · φⱼ y puntos base = offset − factor · φ₀. La
   suma de puntos reproduce el score exacto (aditividad; se comprueba en una prueba).
-- [PENDIENTE: sáb 24, con B] ¿Qué modelo va a la app? Si el MLP no mejora de forma consistente, la logística es una opción
-  legítima y se discute.
+- [DECIDIDO, Daniel, 26-oct; núcleo v0.17] Los dos modelos van a la app (logística y MLP, con selector); ver §3.5.
 
 ### 3.3 Interpretabilidad [PROPUESTO]
 SHAP (Lundberg & Lee, 2017 [VERIFICAR]) global (media de |φ|) y por individuo + importancia por permutación en test como
@@ -57,18 +56,19 @@ concluyente**, con tabla en el blog.
 `pd_model_{modelo}.json` y `casos_paridad_{modelo}.json` **para los dos modelos** (`logistica` y `mlp`; Spec v0.17)
 exactamente según núcleo §5.5: W con forma salida × entrada, percentiles del score de cada modelo sobre test, entradas de
 `features.yaml` con `en_app: true`. En las categóricas, `categorias` sin `OTRA` y `etiquetas_categorias` copiado de
-`categorias_es` (núcleo §5.5, v0.12). El exportador ya soporta el MLP (`export.modelo: mlp`; comprobado el 26-oct: paridad
-propia |ΔPD| ≤ 6,7e-9 en los casos y ≤ 4,5e-8 frente a `pd_mlp.pt` en todo el test); falta que escriba los dos archivos de
-una corrida con su nombre por modelo.
+`categorias_es` (núcleo §5.5, v0.12). Desde C5 (26-oct), `python run.py export` escribe los cuatro archivos en una corrida
+(`export.modelos: [logistica, mlp]`; todo o nada: si falla un modelo no escribe ninguno). Los dos `casos_paridad` usan la
+**misma muestra** de 1 000 créditos (mismos id, orden y entradas crudas): la app compara los dos modelos con las mismas
+entradas. Receta del JSON frente al modelo en todo el test: |ΔPD| ≤ 1,5e-8 (logística) y ≤ 4,5e-8 (MLP).
 
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
 | ✅ C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
 | ✅ C2 | Exportador + `pd_model.json` (25-oct: con la logística REAL de B3 en vez del de juguete, y con los casos de paridad adelantados de C5; decisión de Juan José) | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | Juan José |
-| C3 | Scorecard de la logística | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
+| ✅ C3 | Scorecard de la logística (26-oct: `src/scorecard/puntos.py`, `run.py scorecard`, `results/data/scorecard/scorecard.json`) | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
 | C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
-| C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
+| ✅ C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
 | C6 | Cierre de hipótesis | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
 | C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
 | C7 | Blog 07 | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
