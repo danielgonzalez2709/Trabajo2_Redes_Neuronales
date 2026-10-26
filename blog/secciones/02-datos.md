@@ -86,8 +86,8 @@ Dejamos por fuera, con su razón:
 
 El enunciado pide al menos una partición temporal según la fecha de originación. La primera propuesta era entrenar con los
 créditos hasta 2013, validar con 2014 y probar con 2015. Los datos la descartaron: la [[fig:datos-anio]] muestra que la
-fracción de créditos sin desenlace crece con el año y llega al **93 % en 2015**. Los pocos créditos de 2015 que ya tienen
-desenlace son, sobre todo, los que incumplieron pronto, y forman una muestra de prueba muy sesgada.
+fracción de créditos sin desenlace crece con el año y llega al **93 % en 2015**. Entre los pocos créditos de 2015 que ya
+tienen desenlace están sobrerrepresentados los que incumplieron pronto, y forman una muestra de prueba muy sesgada.
 
 ::: figura datos-anio
 Título: Créditos sin desenlace y tasa de malos por año de originación, con la partición elegida

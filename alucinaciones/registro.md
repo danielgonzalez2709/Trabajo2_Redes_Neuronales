@@ -10,7 +10,7 @@
 | Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
 | Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 2 (H-15, H-16) | 1 (H-15) |
+| Conceptos | 3 (H-15, H-16, H-21) | 1 (H-15) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -477,3 +477,22 @@ falsas se registran como candidatos.
    pruebas para el umbral exacto de `fraccion_min_categoria` y para el error de aditividad rota.
 6. **Lección aprendida:** en un caso de prueba, los parámetros que deben distinguirse no pueden coincidir por casualidad
    (aquí, rango = extremos de la tabla); verificar cada prueba con el mutante que debería matar.
+
+### H-21 — "Los dos modelos aprendieron la tasa de malos de las cosechas hasta 2012"
+- **Estado:** candidato
+- **Categoría:** Conceptos
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico` y, en paralelo, el `cazador-alucinaciones`, en la revisión del blog 10
+1. **Prompt (literal):** `prompts/E7.md`, sección 4 (redacción del blog 10); la verificación, en la sección 7.
+2. **Respuesta relevante de la IA:** `blog/secciones/10-discusion.md` (borrador sin commit): la PD media de prueba queda por
+   debajo de la tasa observada porque "los dos aprendieron la tasa de las cosechas hasta 2012".
+3. **Cómo sospechamos:** la PD media del MLP en prueba (0,204) era distinta de la de la logística (0,187); si los dos
+   hubieran aprendido la misma tasa de entrenamiento, deberían coincidir en nivel.
+4. **Evidencia:** `evidencias/H-21_pd_media_por_conjunto.py` y `.txt`: con los modelos guardados, la PD media en
+   entrenamiento es 0,1630 en la logística (igual a la tasa, como corresponde a la máxima verosimilitud con intercepto) y
+   0,1884 en el MLP, por encima de la tasa; en prueba, 0,1868 y 0,2041 frente a 0,2622. Además, la PD del MLP está más
+   comprimida: en su decil de mayor riesgo predice 0,382 frente a una tasa de 0,478 (la logística, 0,416 frente a 0,476).
+5. **Corrección:** ronda 2 del blog 10: las PD medias por conjunto de cada modelo, sin afirmar la causa del nivel del MLP.
+6. **Lección aprendida:** "los dos modelos hacen X" se comprueba con cada modelo por separado; una red con parada temprana
+   en otra cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.

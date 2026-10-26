@@ -83,11 +83,11 @@ mar 27 6 p. m. entrega.
 8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Candidatos nuevos: 5 (H-16 Conceptos, H-17–H-19 Código, Parte B; H-20 Código, Parte C) · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código. Candidato de C sin confirmar: H-20 Código (C3).
+Confirmados: 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Candidatos nuevos: 6 (H-16 Conceptos, H-17–H-19 Código, Parte B; H-20 Código, Parte C; H-21 Conceptos, Parte E) · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código. Candidato de C sin confirmar: H-20 Código (C3).
 
 ## 📓 Bitácora
-- **2026-10-26** — Spec v0.18 (Daniel): §5.4 de la E[L] (evidencia con las huellas de las predicciones, pérdida realizada)
-  y workflow `blog.yml` que publica el blog en GitHub Pages al cambiar `blog/` en `main`.
+- **2026-10-26** — Blog 10 (discusión): 2 rondas; verificador-matematico y cazador APROBADO. Corregidas la 2.4 y la 09; H-21.
+- **2026-10-26** — Spec v0.18 (Daniel): §5.4 de la E[L] y workflow `blog.yml` (Pages al cambiar `blog/` en `main`).
 - **2026-10-26** — PR #12 fusionado (2:46 p. m.; revisado por Daniel): C3 y C5 en `main`; los dos JSON de la app verificados aparte.
 - **2026-10-26** — PR #11 fusionado (1:12 p. m.): Spec v0.17, los dos modelos de PD en la app; el exportador de C ya sirve para el MLP.
 - **2026-10-26** — C5 (Juan José): los 4 JSON de la app (logística y MLP) en `app/public/model/`; receta vs modelo |ΔPD| ≤ 4,5e-8;
