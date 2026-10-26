@@ -1,16 +1,18 @@
-"""Pruebas del exportador de la app: ``pd_model.json`` y ``casos_paridad.json`` (Parte C §3.5, tarea C2; núcleo §5.5).
+"""Pruebas del exportador de la app: ``pd_model_{modelo}.json`` y ``casos_paridad_{modelo}.json`` para los DOS modelos
+de PD (Parte C §3.5, tareas C2 y C5; núcleo §5.5, Spec v0.17).
 
 Solo se usa la interfaz pública de ``src.export.exportar_app`` y, para construir las referencias independientes, la de
 los módulos que el exportador consume (preprocesador, logística, MLP, scorecard de C1, métricas comunes y config).
 
-Datos y modelo: los REALES del repositorio (``data/processed/loans_pd.parquet``, ``models/preprocesador_pd.json``,
-``models/pd_logistica.joblib`` de B3 y ``results/data/pd/summary.json``). El MLP de B5 aún no existe: el camino del MLP
-se prueba con un ``MLPPD`` pequeño entrenado aquí con una etiqueta SINTÉTICA de regla fija (no el objetivo real) sobre
-una submuestra de train; solo sirve para comparar el JSON con el modelo, ninguna cifra sale de él (núcleo §0.8).
+Datos y modelos: los REALES del repositorio (``data/processed/loans_pd.parquet``, ``models/preprocesador_pd.json``,
+``models/pd_logistica.joblib`` de B3, ``models/pd_mlp.pt`` de B5 (semilla mediana), ``results/data/pd/summary.json`` y
+``results/data/pd/semillas/mlp_seed{s}.json``). Además, las activaciones relu, leaky_relu y tanh de la receta se prueban
+con un ``MLPPD`` pequeño entrenado aquí con una etiqueta SINTÉTICA de regla fija (no el objetivo real) sobre una
+submuestra de train; solo sirve para comparar el JSON con el modelo, ninguna cifra sale de él (núcleo §0.8).
 
 Toda escritura va a ``tmp_path``; nunca a ``app/public/model`` (se comprueba con SHA-256).
 
-Qué se prueba (numeración de la tarea C2):
+Qué se prueba (numeración de la tarea C2; lo de C5 va marcado "C5"):
 
 1. Contrato §5.5: claves y tipos de primer nivel y de cada bloque.
 2. Entradas del formulario: solo ``en_app``, orden de ``features.yaml``, claves por tipo, rejilla del paso (redondeo
@@ -21,9 +23,15 @@ Qué se prueba (numeración de la tarea C2):
 6. ``metricas`` = las de ``results/data/pd/summary.json``.
 7. Referencia JSON vs modelo en TODO el test (logística real y MLP pequeño con relu, leaky_relu y tanh).
 8. Casos de paridad: 1 000, cobertura de los grupos forzados, reproducibles, entradas crudas.
-9. ``exportar`` escribe los dos archivos sin NaN ni inf.
-10. ``validar_cfg_export`` rechaza configs inválidas.
-11. ``configs/scorecard/export.yaml`` hereda ``base.yaml`` y es válida.
+9. ``exportar`` escribe EXACTAMENTE los 4 archivos (2 por modelo) sin NaN ni inf, en el orden de ``export.modelos``.
+10. ``validar_cfg_export`` rechaza configs inválidas (``export.modelos``: lista no vacía, sin repetidos, valores de
+    ``MODELOS``).
+11. ``configs/scorecard/export.yaml`` hereda ``base.yaml``, es válida y exporta ``[logistica, mlp]``.
+
+C5 (los dos modelos): nombres por modelo (``archivos_modelo``); ``entradas``, ``preprocesamiento`` y
+``scorecard`` idénticos en los dos ``pd_model``; red del MLP real = ``state_dict`` de ``models/pd_mlp.pt``; métricas
+del MLP = las de su semilla mediana; percentiles del puntaje del MLP; receta vs modelo en todo el test para cada
+modelo; casos de paridad con la MISMA muestra en los dos modelos.
 
 Fuga de información (núcleo §5.7): los estadísticos del formulario (mediana, recorte, moda) salen solo de train; de test
 solo salen los percentiles del puntaje y las métricas (pruebas 2 y 5).
@@ -46,13 +54,15 @@ from src.common.metricas import auc, brier, ks
 from src.common.preprocesamiento import Preprocesador
 from src.common.results import load_json
 from src.common.seeds import make_rng
+import src.export.exportar_app as exportar_app
 from src.export.exportar_app import (
-    ARCHIVO_MODELO,
-    ARCHIVO_PARIDAD,
     MODELOS,
+    PLANTILLA_MODELO,
+    PLANTILLA_PARIDAD,
     RUTA_CONFIG,
     TOLERANCIA_PARIDAD,
     VERSION_CONTRATO,
+    archivos_modelo,
     capas_logistica,
     capas_mlp,
     commit_actual,
@@ -75,11 +85,18 @@ from src.scorecard.scorecard import bloque_scorecard, parametros_scorecard, scor
 RAIZ = Path(__file__).resolve().parents[1]
 RUTA_EXPORT_YAML = RAIZ / "configs" / "scorecard" / "export.yaml"
 RUTA_SUMMARY = RAIZ / "results" / "data" / "pd" / "summary.json"
+CARPETA_SEMILLAS = RAIZ / "results" / "data" / "pd" / "semillas"
+RUTA_MLP_REAL = RAIZ / "models" / "pd_mlp.pt"
 CARPETA_APP_MODELO = RAIZ / "app" / "public" / "model"
 
 CLAVES_PRIMER_NIVEL = {"version_contrato", "generado", "commit", "modelo", "entradas", "preprocesamiento", "red",
                        "scorecard", "poblacion", "metricas"}
-CLAVES_EXPORT = {"modelo", "rutas", "destino", "n_casos_paridad", "n_forzados_por_grupo", "base_seed", "pasos"}
+CLAVES_EXPORT = {"modelos", "rutas", "destino", "n_casos_paridad", "n_forzados_por_grupo", "base_seed", "pasos"}
+MODELOS_CONFIG = ["logistica", "mlp"]  # export.modelos de configs/scorecard/export.yaml (tarea C5)
+# Nombres por modelo del núcleo §5.5 (Spec v0.17): pd_model_{modelo}.json y casos_paridad_{modelo}.json.
+NOMBRES_ESPERADOS = {"logistica": ("pd_model_logistica.json", "casos_paridad_logistica.json"),
+                     "mlp": ("pd_model_mlp.json", "casos_paridad_mlp.json")}
+NOMBRES_VIEJOS = {"pd_model.json", "casos_paridad.json"}  # los de C2: ya no se escriben
 CLAVES_RUTAS = {"logistica", "mlp", "preprocesador", "datos", "features"}
 CLAVES_NUM = {"nombre", "tipo", "etiqueta_es", "ayuda_es", "min", "max", "paso", "valor_defecto"}
 CLAVES_CAT = {"nombre", "tipo", "etiqueta_es", "ayuda_es", "categorias", "valor_defecto", "etiquetas_categorias"}
@@ -101,10 +118,18 @@ CFG_MLP_PEQUENO = {"capas": [8, 4], "dropout": 0.1, "l2": 0.0, "optimizador": "a
 # Cota del MLP pequeño (JSON en float64 vs MLPPD en float32), medida en las 74 154 filas de test el 25-oct:
 # máx |dPD| = 2.357e-07 (relu), 2.243e-07 (leaky_relu), 2.316e-07 (tanh); máx |dscore| = 4.915e-05, 5.525e-05,
 # 2.695e-05. Cota ≈ 10 × el máximo medido, redondeada hacia arriba: 3e-6 en la PD y 6e-4 en el puntaje. Solo compara la
-# receta con el modelo de Python; la paridad de la app (núcleo §5.5) se mide contra la receta en casos_paridad.json.
+# receta con el modelo de Python; la paridad de la app (núcleo §5.5) se mide contra la receta en
+# casos_paridad_{modelo}.json.
 COTA_MLP = {"pd": 3e-6, "score": 6e-4}
 
 N_CASOS_PEQUENO = 40  # casos para comparar dos semillas sin elegir 1 000 dos veces
+# Métricas del MLP real contra results/data/pd/semillas/mlp_seed{s}.json. Medido el 26-oct (código de C2 con
+# export.modelo: mlp, models/pd_mlp.pt de B5): |dAUC| = 3.76e-09, |dKS| = 0, |dBrier| = 4.8e-13. La AUC es de rangos:
+# un par (malo, bueno) cuyo orden cambia por el redondeo de float32 en la PD (otro número de hilos o de lotes que en el
+# entrenamiento) mueve la AUC en 1/(n_malos · n_buenos) ≈ 9.4e-10 en el test real, así que 3.76e-09 son ~4 pares. KS y
+# Brier quedan en 1e-9 (tolerancia de la tarea); la AUC se afloja a 1e-8 (≈ 10 pares, ~2.7 × lo medido). DECLARADO en el
+# reporte de C5: la tarea pedía 1e-9 en las tres.
+TOL_METRICAS_MLP = {"auc_test": 1e-8, "ks_test": 1e-9, "brier_test": 1e-9}
 TOL_PERCENTILES = 1e-9  # percentiles del puntaje: mismo camino de Python que el exportador
 TOL_REL_MULTIPLO = 1e-9 # tolerancia relativa para "es múltiplo del paso" (0.1 no es exacto en binario)
 
@@ -124,7 +149,7 @@ def _con_rutas_absolutas(cfg: dict) -> dict:
 
 @pytest.fixture(scope="module")
 def cfg_real() -> dict:
-    """Config de ``configs/scorecard/export.yaml`` (modelo logística) con rutas absolutas."""
+    """Config de ``configs/scorecard/export.yaml`` (modelos logística y MLP) con rutas absolutas."""
     return _con_rutas_absolutas(load_config(RUTA_EXPORT_YAML))
 
 
@@ -169,9 +194,38 @@ def params_sc(cfg_real) -> dict:
 
 
 @pytest.fixture(scope="module")
+def mlp_real() -> MLPPD:
+    """MLP de PD de B5 (semilla mediana), el que va a la app."""
+    return MLPPD.cargar(RUTA_MLP_REAL)
+
+
+@pytest.fixture(scope="module")
+def modelos_py(logistica, mlp_real) -> dict:
+    """{modelo: modelo de Python} para recorrer los dos modelos."""
+    return {"logistica": logistica, "mlp": mlp_real}
+
+
+@pytest.fixture(scope="module")
+def summary() -> dict:
+    return load_json(RUTA_SUMMARY)
+
+
+@pytest.fixture(scope="module")
 def modelo_json(cfg_real) -> dict:
-    """``pd_model.json`` de la logística real, construido en memoria."""
-    return construir_pd_model(cfg_real)
+    """``pd_model_logistica.json`` de la logística real, construido en memoria."""
+    return construir_pd_model(cfg_real, "logistica")
+
+
+@pytest.fixture(scope="module")
+def modelo_json_mlp(cfg_real) -> dict:
+    """``pd_model_mlp.json`` del MLP real (``models/pd_mlp.pt``), construido en memoria."""
+    return construir_pd_model(cfg_real, "mlp")
+
+
+@pytest.fixture(scope="module")
+def pd_models(modelo_json, modelo_json_mlp) -> dict:
+    """{modelo: pd_model en memoria} de los dos modelos."""
+    return {"logistica": modelo_json, "mlp": modelo_json_mlp}
 
 
 @pytest.fixture(scope="module")
@@ -180,10 +234,15 @@ def nombres_en_app(features) -> list[str]:
 
 
 @pytest.fixture(scope="module")
-def casos(cfg_real, modelo_json, df_test, pre_json) -> dict:
-    """``casos_paridad.json`` de la logística real con los parámetros de la config."""
+def df_casos(cfg_real, df_test, pre_json) -> pd.DataFrame:
+    """Filas de test de los casos de paridad con los parámetros de la config (una sola elección)."""
     exp = cfg_real["export"]
-    df_casos = elegir_casos(df_test, pre_json, exp["n_casos_paridad"], exp["n_forzados_por_grupo"], exp["base_seed"])
+    return elegir_casos(df_test, pre_json, exp["n_casos_paridad"], exp["n_forzados_por_grupo"], exp["base_seed"])
+
+
+@pytest.fixture(scope="module")
+def casos(modelo_json, df_casos) -> dict:
+    """``casos_paridad_logistica.json`` de la logística real, en memoria."""
     return construir_casos_paridad(modelo_json, df_casos)
 
 
@@ -207,22 +266,41 @@ def test_00_constantes_publicas():
     assert MODELOS == ("logistica", "mlp")
     assert Path(RUTA_CONFIG) == Path("configs/scorecard/export.yaml")
     assert TOLERANCIA_PARIDAD == {"pd": 1e-6, "score": 1e-3}  # núcleo §5.5
-    assert ARCHIVO_MODELO == "pd_model.json"
-    assert ARCHIVO_PARIDAD == "casos_paridad.json"
+    assert PLANTILLA_MODELO == "pd_model_{modelo}.json"  # núcleo §5.5 (Spec v0.17)
+    assert PLANTILLA_PARIDAD == "casos_paridad_{modelo}.json"
+
+
+def test_00b_nombres_viejos_ya_no_existen():
+    """C5: un solo par de archivos ya no existe; quedan las plantillas por modelo."""
+    assert not hasattr(exportar_app, "ARCHIVO_MODELO")
+    assert not hasattr(exportar_app, "ARCHIVO_PARIDAD")
+
+
+@pytest.mark.parametrize("modelo", MODELOS_CONFIG)
+def test_00c_archivos_modelo(modelo):
+    assert archivos_modelo(modelo) == NOMBRES_ESPERADOS[modelo]
+    assert archivos_modelo(modelo) == (PLANTILLA_MODELO.format(modelo=modelo), PLANTILLA_PARIDAD.format(modelo=modelo))
+
+
+def test_00d_archivos_modelo_rechaza_otro_modelo():
+    with pytest.raises(ValueError):
+        archivos_modelo("svm")
 
 
 # ------------------------------------------------------------------------------------------------------------------
-# 1. Contrato §5.5: primer nivel
+# 1. Contrato §5.5: primer nivel (los dos modelos)
 # ------------------------------------------------------------------------------------------------------------------
 
 
-def test_01_contrato_primer_nivel(modelo_json):
+@pytest.mark.parametrize("nombre_modelo", MODELOS_CONFIG)
+def test_01_contrato_primer_nivel(pd_models, nombre_modelo):
+    modelo_json = pd_models[nombre_modelo]
     assert set(modelo_json) == CLAVES_PRIMER_NIVEL
     assert modelo_json["version_contrato"] == 1 and isinstance(modelo_json["version_contrato"], int)
     assert isinstance(modelo_json["generado"], str)
     datetime.fromisoformat(modelo_json["generado"])  # ISO 8601 parseable (ValueError si no)
     assert isinstance(modelo_json["commit"], str) and modelo_json["commit"]
-    assert modelo_json["modelo"] == "logistica"
+    assert modelo_json["modelo"] == nombre_modelo
     assert isinstance(modelo_json["entradas"], list)
     assert isinstance(modelo_json["preprocesamiento"], dict)
     assert set(modelo_json["red"]) == {"capas", "salida"}
@@ -236,6 +314,21 @@ def test_01b_commit_actual_es_sha_o_desconocido():
     commit = commit_actual()
     assert isinstance(commit, str)
     assert commit == "desconocido" or re.fullmatch(r"[0-9a-f]{40}", commit)
+
+
+def test_01c_construir_pd_model_rechaza_otro_modelo(cfg_real):
+    with pytest.raises(ValueError):
+        construir_pd_model(cfg_real, "svm")
+
+
+def test_01d_partes_comunes_identicas_y_propias_distintas(modelo_json, modelo_json_mlp):
+    """Núcleo §5.5 (v0.17): entradas, preprocesamiento y scorecard iguales en los dos; red, población y métricas de
+    cada modelo."""
+    for clave in ("entradas", "preprocesamiento", "scorecard"):
+        assert modelo_json[clave] == modelo_json_mlp[clave], clave
+    assert (modelo_json["modelo"], modelo_json_mlp["modelo"]) == ("logistica", "mlp")
+    for clave in ("red", "poblacion", "metricas"):
+        assert modelo_json[clave] != modelo_json_mlp[clave], clave
 
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -420,6 +513,28 @@ def test_04_red_logistica(modelo_json, pre_json, logistica):
     assert capas_logistica(logistica) == [{"W": [w.tolist()], "b": [b], "activacion": "identidad"}]
 
 
+def test_04b_red_mlp_real(modelo_json_mlp, pre_json, summary):
+    """C5: red del MLP real. Formas y activaciones salen de summary.json["mlp"]["config"] (no de números fijos):
+    d = len(columnas_salida), una capa por oculta y la de salida con una neurona; W y b = state_dict del .pt."""
+    cfg_mlp = summary["mlp"]["config"]
+    d = len(pre_json["columnas_salida"])
+    anchos = [d, *cfg_mlp["capas"], 1]  # entrada, ocultas, logit
+    formas = [(anchos[i + 1], anchos[i]) for i in range(len(anchos) - 1)]  # salida × entrada
+    capas = modelo_json_mlp["red"]["capas"]
+    _comprobar_red(modelo_json_mlp["red"], d)
+    assert [np.asarray(c["W"]).shape for c in capas] == formas
+    assert [len(c["b"]) for c in capas] == [f[0] for f in formas]
+    assert [c["activacion"] for c in capas] == [cfg_mlp["activacion"]] * len(cfg_mlp["capas"]) + ["identidad"]
+    paquete = torch.load(RUTA_MLP_REAL, map_location="cpu", weights_only=True)
+    assert paquete["config"] == cfg_mlp  # el .pt es el MLP que describe summary.json
+    estado = paquete["state_dict"]
+    pesos = [k for k in estado if k.endswith(".weight")]  # una por nn.Linear, en orden (Dropout no tiene pesos)
+    assert len(pesos) == len(capas)
+    for capa, k in zip(capas, pesos):
+        np.testing.assert_array_equal(np.asarray(capa["W"]), estado[k].numpy())
+        np.testing.assert_array_equal(np.asarray(capa["b"]), estado[k.replace(".weight", ".bias")].numpy())
+
+
 # ------------------------------------------------------------------------------------------------------------------
 # 5. Scorecard y población
 # ------------------------------------------------------------------------------------------------------------------
@@ -451,6 +566,17 @@ def test_05b_poblacion(modelo_json, score_modelo_test):
     np.testing.assert_allclose(pct, np.percentile(score_modelo_test, np.arange(101)), rtol=0, atol=tol)
 
 
+def test_05b2_poblacion_mlp(modelo_json_mlp, mlp_real, pre, df_test, params_sc):
+    """C5: percentiles del puntaje del MLP real en test, por el camino de Python (predict_logit → score_desde_logit)."""
+    pob = modelo_json_mlp["poblacion"]
+    assert pob["referencia"] == "test"
+    pct = np.asarray(pob["percentiles_score"], dtype=float)
+    assert pct.shape == (101,)
+    assert np.all(np.diff(pct) >= 0)
+    score_py = score_desde_logit(mlp_real.predict_logit(pre.transform(df_test)), params_sc)
+    np.testing.assert_allclose(pct, np.percentile(score_py, np.arange(101)), rtol=0, atol=TOL_PERCENTILES)
+
+
 def test_05c_percentiles_score_a_mano():
     # np.percentile(0..100, k) = k (interpolación lineal sobre 101 puntos equiespaciados).
     assert percentiles_score(np.arange(101.0)) == pytest.approx(list(range(101)))
@@ -465,10 +591,21 @@ def test_05c_percentiles_score_a_mano():
 # ------------------------------------------------------------------------------------------------------------------
 
 
-def test_06_metricas_iguales_al_summary(modelo_json):
-    summary = load_json(RUTA_SUMMARY)["logistica"]["metricas"]
+def test_06_metricas_iguales_al_summary(modelo_json, summary):
+    metricas = summary["logistica"]["metricas"]
     for nombre in ("auc_test", "ks_test", "brier_test"):
-        assert modelo_json["metricas"][nombre] == pytest.approx(summary[nombre]["media"], abs=1e-12), nombre
+        assert modelo_json["metricas"][nombre] == pytest.approx(metricas[nombre]["media"], abs=1e-12), nombre
+
+
+def test_06a_metricas_mlp_iguales_a_su_semilla_mediana(modelo_json_mlp, summary):
+    """C5: el .pt es la semilla mediana, así que sus métricas son las de mlp_seed{s}.json (no la media de las 30)."""
+    s = summary["mlp"]["semilla_mediana"]
+    semilla = load_json(CARPETA_SEMILLAS / f"mlp_seed{s}.json")
+    assert semilla["seed"] == s
+    for nombre in ("auc_test", "ks_test", "brier_test"):
+        diferencia = abs(modelo_json_mlp["metricas"][nombre] - semilla["metricas"][nombre])
+        print(f"\nMLP, semilla {s}: |d{nombre}| = {diferencia:.3e}")
+        assert diferencia <= TOL_METRICAS_MLP[nombre], nombre
 
 
 def test_06b_metricas_test_usa_las_comunes():
@@ -614,13 +751,17 @@ def test_07d7_preprocesar_rechaza_entrada_faltante(pre_json, df_test, nombres_en
         preprocesar_desde_json(pre_json, filas)
 
 
-def test_07e_logistica_json_vs_modelo_en_todo_el_test(modelo_json, logistica, pre, df_test, params_sc):
-    pd_json, score_json = inferir_desde_json(modelo_json, df_test)
+@pytest.mark.parametrize("nombre_modelo", MODELOS_CONFIG)
+def test_07e_json_vs_modelo_real_en_todo_el_test(pd_models, modelos_py, nombre_modelo, pre, df_test, params_sc):
+    """Receta del pd_model de cada modelo REAL (logística de B3 y MLP de B5) vs su modelo de Python en todo el test,
+    con la tolerancia de paridad del núcleo §5.5 (C5: se vuelve a medir con el MLP real)."""
+    modelo = modelos_py[nombre_modelo]
+    pd_json, score_json = inferir_desde_json(pd_models[nombre_modelo], df_test)
     X = pre.transform(df_test)
-    pd_py = logistica.predict_proba(X)
-    score_py = score_desde_logit(logistica.predict_logit(X), params_sc)
+    pd_py = modelo.predict_proba(X)
+    score_py = score_desde_logit(modelo.predict_logit(X), params_sc)
     d_pd, d_score = np.max(np.abs(pd_json - pd_py)), np.max(np.abs(score_json - score_py))
-    print(f"\nlogística, {len(df_test)} filas de test: máx |dPD| = {d_pd:.3e}, máx |dscore| = {d_score:.3e}")
+    print(f"\n{nombre_modelo}, {len(df_test)} filas de test: máx |dPD| = {d_pd:.3e}, máx |dscore| = {d_score:.3e}")
     assert pd_json.shape == score_json.shape == (len(df_test),)
     assert d_pd < TOLERANCIA_PARIDAD["pd"]
     assert d_score < TOLERANCIA_PARIDAD["score"]
@@ -658,7 +799,7 @@ def test_07f_capas_mlp(mlp_pequeno, pre_json):
 
 
 def test_07g_mlp_json_vs_modelo_en_todo_el_test(mlp_pequeno, modelo_json, pre, df_test, params_sc):
-    """Receta del JSON con las capas del MLP (sin reconstruir todo pd_model.json) vs MLPPD en todo el test."""
+    """Receta del JSON con las capas del MLP (sin reconstruir todo pd_model_mlp.json) vs MLPPD en todo el test."""
     ruta, activacion = mlp_pequeno
     capas, modelo = capas_mlp(ruta)
     json_mlp = {**copy.deepcopy(modelo_json), "modelo": "mlp", "red": {"capas": capas, "salida": "sigmoid"}}
@@ -675,12 +816,12 @@ def test_07g_mlp_json_vs_modelo_en_todo_el_test(mlp_pequeno, modelo_json, pre, d
 
 @pytest.mark.parametrize("mlp_pequeno", ["relu"], indirect=True)
 def test_07h_construir_pd_model_con_mlp(mlp_pequeno, cfg_real, pre, df_test, params_sc):
-    """pd_model.json completo con modelo: mlp (una sola activación): red, métricas y percentiles del propio MLP."""
+    """pd_model_mlp.json completo con otro .pt en export.rutas.mlp (una sola activación): red, métricas y percentiles
+    del propio MLP (no del real de models/)."""
     ruta, _ = mlp_pequeno
     cfg = copy.deepcopy(cfg_real)
-    cfg["export"]["modelo"] = "mlp"
     cfg["export"]["rutas"]["mlp"] = str(ruta)
-    modelo_json = construir_pd_model(cfg)
+    modelo_json = construir_pd_model(cfg, "mlp")
     assert modelo_json["modelo"] == "mlp"
     _comprobar_red(modelo_json["red"], len(pre.nombres_salida()))
     assert modelo_json["red"]["capas"] == capas_mlp(ruta)[0]
@@ -802,6 +943,44 @@ def test_08f_casos_reproducen_la_receta_desde_list_dict(casos, modelo_json):
     np.testing.assert_allclose(score_r, [c["score"] for c in casos["casos"]], rtol=0, atol=1e-9)
 
 
+@pytest.fixture(scope="module")
+def casos_exportados(exportados) -> dict:
+    """{modelo: casos_paridad_{modelo}.json} leídos del destino temporal de la corrida de exportar."""
+    return {m: _leer_json(exportados["destino"] / NOMBRES_ESPERADOS[m][1]) for m in MODELOS_CONFIG}
+
+
+def test_08g_misma_muestra_en_los_dos_modelos(casos_exportados, casos):
+    """C5: la muestra se elige UNA vez (elegir_casos con base_seed) y es la MISMA para los dos modelos."""
+    log, mlp = casos_exportados["logistica"], casos_exportados["mlp"]
+    assert [c["id"] for c in log["casos"]] == [c["id"] for c in mlp["casos"]]  # mismos id, mismo orden
+    assert [c["entradas"] for c in log["casos"]] == [c["entradas"] for c in mlp["casos"]]  # mismas entradas crudas
+    assert (log["modelo"], mlp["modelo"]) == ("logistica", "mlp")
+    assert log["tolerancia"] == mlp["tolerancia"] == TOLERANCIA_PARIDAD
+    assert log["version_contrato"] == mlp["version_contrato"] == VERSION_CONTRATO
+    assert [c["id"] for c in log["casos"]] == [c["id"] for c in casos["casos"]]  # la de la config (como en C2)
+
+
+@pytest.mark.parametrize("nombre_modelo", MODELOS_CONFIG)
+def test_08h_casos_exportados_de_cada_modelo(casos_exportados, pd_models, nombre_modelo):
+    """En cada archivo: score = score_desde_pd(pd) de C1, y pd y score = la receta (inferir_desde_json) con el
+    pd_model de ESE modelo sobre las entradas crudas del archivo."""
+    filas = casos_exportados[nombre_modelo]["casos"]
+    modelo_json = pd_models[nombre_modelo]
+    pd_c = np.array([c["pd"] for c in filas])
+    score_c = np.array([c["score"] for c in filas])
+    np.testing.assert_allclose(score_c, score_desde_pd(pd_c, modelo_json["scorecard"]), rtol=0, atol=1e-9)
+    pd_r, score_r = inferir_desde_json(modelo_json, [c["entradas"] for c in filas])
+    np.testing.assert_array_equal(pd_r, pd_c)
+    np.testing.assert_array_equal(score_r, score_c)
+
+
+def test_08i_casos_de_los_dos_modelos_dan_pd_distintas(casos_exportados):
+    """Control: si los dos archivos trajeran la PD del mismo modelo, test_08h no lo vería en uno de ellos."""
+    pd_log = np.array([c["pd"] for c in casos_exportados["logistica"]["casos"]])
+    pd_mlp = np.array([c["pd"] for c in casos_exportados["mlp"]["casos"]])
+    assert np.max(np.abs(pd_log - pd_mlp)) > TOLERANCIA_PARIDAD["pd"]
+
+
 # ------------------------------------------------------------------------------------------------------------------
 # 9. Exportar escribe los dos archivos
 # ------------------------------------------------------------------------------------------------------------------
@@ -820,21 +999,84 @@ def _huellas(carpeta: Path) -> dict[str, str]:
             for r in sorted(carpeta.rglob("*")) if r.is_file()}
 
 
-def test_09_exportar_escribe_en_destino(cfg_real, tmp_path):
+def _leer_json(ruta) -> dict:
+    """JSON escrito por exportar; ValueError si trae NaN o ±inf."""
+    return json.loads(Path(ruta).read_text(encoding="utf-8"), parse_constant=_rechazar_constante)
+
+
+@pytest.fixture(scope="module")
+def exportados(cfg_real, tmp_path_factory) -> dict:
+    """Una corrida de ``exportar`` con la config real (modelos logística y MLP) y destino temporal.
+
+    Devuelve {"destino", "rutas" (lo que devolvió exportar), "app_antes", "app_despues" (huellas de app/public/model)}.
+    """
+    destino = tmp_path_factory.mktemp("export") / "app"
     cfg = copy.deepcopy(cfg_real)
-    cfg["export"]["destino"] = str(tmp_path / "app")
+    cfg["export"]["destino"] = str(destino)
     antes = _huellas(CARPETA_APP_MODELO)
-    ruta_modelo, ruta_casos = exportar(cfg)
-    assert Path(ruta_modelo) == tmp_path / "app" / ARCHIVO_MODELO
-    assert Path(ruta_casos) == tmp_path / "app" / ARCHIVO_PARIDAD
-    for ruta in (ruta_modelo, ruta_casos):
-        texto = Path(ruta).read_text(encoding="utf-8")
-        json.loads(texto, parse_constant=_rechazar_constante)  # sin NaN ni ±inf
-    modelo = json.loads(Path(ruta_modelo).read_text(encoding="utf-8"))
-    casos = json.loads(Path(ruta_casos).read_text(encoding="utf-8"))
-    assert set(modelo) == CLAVES_PRIMER_NIVEL and modelo["modelo"] == "logistica"
-    assert len(casos["casos"]) == 1000
-    assert _huellas(CARPETA_APP_MODELO) == antes  # nada cambia en app/public/model
+    rutas = exportar(cfg)
+    return {"destino": destino, "rutas": rutas, "app_antes": antes, "app_despues": _huellas(CARPETA_APP_MODELO)}
+
+
+def test_09_exportar_escribe_los_4_archivos(exportados):
+    """C5: una corrida escribe EXACTAMENTE pd_model y casos de cada modelo (ninguno con el nombre viejo) y devuelve sus
+    rutas en el orden de export.modelos, y por modelo primero pd_model y luego casos."""
+    destino = exportados["destino"]
+    esperadas = [destino / nombre for modelo in MODELOS_CONFIG for nombre in NOMBRES_ESPERADOS[modelo]]
+    assert isinstance(exportados["rutas"], list)
+    assert [Path(r) for r in exportados["rutas"]] == esperadas
+    escritos = {r.name for r in destino.rglob("*") if r.is_file()}
+    assert escritos == {nombre for modelo in MODELOS_CONFIG for nombre in NOMBRES_ESPERADOS[modelo]}
+    assert not escritos & NOMBRES_VIEJOS
+    assert exportados["app_despues"] == exportados["app_antes"]  # nada cambia en app/public/model
+
+
+@pytest.mark.parametrize("nombre_modelo", MODELOS_CONFIG)
+def test_09a_archivos_exportados_validos(exportados, pd_models, nombre_modelo, cfg_real):
+    """Cada archivo es JSON sin NaN ni ±inf; su contenido es el del modelo de su nombre."""
+    nombre_pd, nombre_casos = NOMBRES_ESPERADOS[nombre_modelo]
+    modelo = _leer_json(exportados["destino"] / nombre_pd)
+    casos = _leer_json(exportados["destino"] / nombre_casos)
+    assert set(modelo) == CLAVES_PRIMER_NIVEL and modelo["modelo"] == nombre_modelo
+    assert modelo["red"] == pd_models[nombre_modelo]["red"]
+    assert modelo["metricas"] == pd_models[nombre_modelo]["metricas"]
+    assert casos["modelo"] == nombre_modelo
+    assert len(casos["casos"]) == cfg_real["export"]["n_casos_paridad"]
+
+
+def _cfg_pequena(cfg_real: dict, destino: Path, modelos: list[str]) -> dict:
+    """Copia de la config con otro destino, otros modelos y casos pequeños (1 forzada por grupo, como en test_08c) para
+    no elegir 1 000 otra vez."""
+    cfg = copy.deepcopy(cfg_real)
+    cfg["export"].update({"modelos": modelos, "destino": str(destino), "n_casos_paridad": N_CASOS_PEQUENO,
+                          "n_forzados_por_grupo": 1})
+    return cfg
+
+
+def test_09b_exportar_sigue_el_orden_de_export_modelos(cfg_real, tmp_path):
+    """Con modelos = ["mlp"] (subconjunto y otro orden que la config a la vez) las rutas siguen export.modelos y solo
+    se escriben los dos archivos del MLP."""
+    modelos = ["mlp"]
+    cfg = _cfg_pequena(cfg_real, tmp_path / "app", modelos)
+    antes = _huellas(CARPETA_APP_MODELO)
+    rutas = exportar(cfg)
+    esperadas = [tmp_path / "app" / nombre for modelo in modelos for nombre in NOMBRES_ESPERADOS[modelo]]
+    assert [Path(r) for r in rutas] == esperadas
+    assert {r.name for r in (tmp_path / "app").rglob("*") if r.is_file()} == {r.name for r in esperadas}
+    assert _huellas(CARPETA_APP_MODELO) == antes
+
+
+def test_09c_exportar_no_escribe_nada_si_falla_un_modelo(cfg_real, tmp_path):
+    """Todo o nada: si el segundo modelo no se puede construir (rutas.mlp a un .pt inexistente), el destino queda sin
+    archivos; no se mezclan los del primero con los viejos del otro modelo."""
+    destino = tmp_path / "app"
+    cfg = _cfg_pequena(cfg_real, destino, ["logistica", "mlp"])
+    cfg["export"]["rutas"]["mlp"] = str(tmp_path / "no_existe.pt")
+    antes = _huellas(CARPETA_APP_MODELO)
+    with pytest.raises(FileNotFoundError):
+        exportar(cfg)
+    assert not destino.exists() or not any(destino.rglob("*")), sorted(r.name for r in destino.rglob("*"))
+    assert _huellas(CARPETA_APP_MODELO) == antes
 
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -844,7 +1086,7 @@ def test_09_exportar_escribe_en_destino(cfg_real, tmp_path):
 
 def _export_valido() -> dict:
     return {
-        "modelo": "logistica",
+        "modelos": ["logistica", "mlp"],
         "rutas": {"logistica": "models/pd_logistica.joblib", "mlp": "models/pd_mlp.pt",
                   "preprocesador": "models/preprocesador_pd.json", "datos": "data/processed/loans_pd.parquet",
                   "features": "configs/features.yaml"},
@@ -880,7 +1122,13 @@ CASOS_INVALIDOS = {
     "falta_pasos": _mutar(("pasos",), borrar=True),
     "falta_destino": _mutar(("destino",), borrar=True),
     "sobra_clave": _mutar(("otra",), 1),
-    "modelo_desconocido": _mutar(("modelo",), "lightgbm"),
+    "modelos_vacia": _mutar(("modelos",), []),
+    "modelos_repetidos": _mutar(("modelos",), ["logistica", "logistica"]),
+    "modelos_desconocido": _mutar(("modelos",), ["svm"]),
+    "modelos_uno_desconocido": _mutar(("modelos",), ["logistica", "lightgbm"]),
+    "modelos_texto": _mutar(("modelos",), "logistica"),
+    "modelos_bool": _mutar(("modelos",), [True]),
+    "modelos_none": _mutar(("modelos",), None),
     "rutas_falta": _mutar(("rutas", "mlp"), borrar=True),
     "rutas_sobra": _mutar(("rutas", "lgd"), "models/lgd_mlp.pt"),
     "pasos_falta": _mutar(("pasos", "loan_amnt"), borrar=True),
@@ -912,6 +1160,30 @@ def test_10c_validar_rechaza_si_no_es_dict(features):
         validar_cfg_export(["modelo", "logistica"], features)
 
 
+def test_10c2_mensaje_nombra_la_clave(features):
+    """El error de un modelo inválido de la config nombra su posición en export.modelos."""
+    exp = _export_valido()
+    exp["modelos"] = ["logistica", "svm"]
+    with pytest.raises(ValueError, match=r"export\.modelos\[1\]"):
+        validar_cfg_export(exp, features)
+
+
+def test_10d_validar_rechaza_la_clave_vieja_modelo(features):
+    """C5: la clave de C2 ``modelo`` ya no existe: sobra ``modelo`` y falta ``modelos``."""
+    exp = _export_valido()
+    del exp["modelos"]
+    exp["modelo"] = "logistica"
+    with pytest.raises(ValueError):
+        validar_cfg_export(exp, features)
+
+
+@pytest.mark.parametrize("modelos", [["mlp"], ["logistica"], ["mlp", "logistica"]])
+def test_10e_validar_acepta_subconjuntos_y_otro_orden(features, modelos):
+    exp = _export_valido()
+    exp["modelos"] = modelos
+    assert validar_cfg_export(exp, features)["modelos"] == modelos
+
+
 # ------------------------------------------------------------------------------------------------------------------
 # 11. configs/scorecard/export.yaml
 # ------------------------------------------------------------------------------------------------------------------
@@ -922,3 +1194,5 @@ def test_11_config_export_hereda_base_y_es_valida(features):
     assert {"scorecard", "export"} <= set(cfg)  # C3 puede añadir bloques a base.yaml
     assert cfg["scorecard"] == {"base": 600, "odds_base": 50, "pdo": 20}
     assert validar_cfg_export(cfg["export"], features) == _export_valido()  # rutas, destino, n, semilla y pasos
+    assert cfg["export"]["modelos"] == MODELOS_CONFIG  # C5: los dos modelos van a la app (núcleo §5.5, v0.17)
+    assert set(cfg["export"]) == CLAVES_EXPORT

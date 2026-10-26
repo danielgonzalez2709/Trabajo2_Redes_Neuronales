@@ -19,7 +19,7 @@
 #
 # **Quién lo consume:** el exportador de la app (C2) y las scorecards de la logística (C3) y del MLP (C4). El bloque
 # de cinco claves que produce `parametros_scorecard` (`base`, `odds_base`, `pdo`, `factor`, `offset`) es el bloque
-# `"scorecard"` de `pd_model.json` (núcleo §5.5) y la cabecera de `scorecard.json` (núcleo §5.4).
+# `"scorecard"` de `pd_model_{modelo}.json` (núcleo §5.5) y la cabecera de `scorecard.json` (núcleo §5.4).
 #
 # Referencia de la construcción (puntaje lineal en el logaritmo de las odds con base, odds de referencia y PDO):
 # Siddiqi, N. (2017). *Intelligent Credit Scoring: Building and Implementing Better Credit Risk Scorecards* (2.ª ed.).
@@ -44,7 +44,7 @@ __all__ = [  # interfaz pública acordada (tarea C1); lo demás es interno
 ]
 
 CLAVES_SCORECARD = ("base", "odds_base", "pdo")  # claves exactas del bloque scorecard de la config
-CLAVES_PARAMETROS = ("base", "odds_base", "pdo", "factor", "offset")  # bloque "scorecard" de pd_model.json (§5.5)
+CLAVES_PARAMETROS = ("base", "odds_base", "pdo", "factor", "offset")  # bloque "scorecard" de pd_model_{modelo}.json
 
 
 # %% [markdown]

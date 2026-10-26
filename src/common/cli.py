@@ -112,7 +112,8 @@ def _figures(cfg: dict | None) -> int:
 
 
 def _export(cfg: dict | None) -> int:
-    """Parte C (C2): pd_model.json y casos_paridad.json para la app. Lee `exportar_app.RUTA_CONFIG` al llamarse."""
+    """Parte C (C2, C5): pd_model_{modelo}.json y casos_paridad_{modelo}.json de los dos modelos de PD para la app.
+    Lee `exportar_app.RUTA_CONFIG` al llamarse."""
     import time
 
     from src.export import exportar_app
@@ -124,6 +125,18 @@ def _export(cfg: dict | None) -> int:
         print(ruta.as_posix())
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0
+
+
+def _scorecard(cfg: dict | None) -> int:
+    """Parte C (C3): scorecard de la logística → <salida>/scorecard.json."""
+    import time
+
+    from src.scorecard.puntos import manejador
+
+    inicio = time.perf_counter()
+    codigo = manejador(cfg)
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return codigo
 
 
 def _notebooks(cfg: dict | None) -> int:
@@ -140,7 +153,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pd_hpo),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
-    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
+    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _scorecard),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _export),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),

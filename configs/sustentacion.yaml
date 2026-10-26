@@ -23,7 +23,7 @@ demos:
     parte: C
     subcomando: scorecard
     config: configs/scorecard/base.yaml
-    salida_temporal: null
+    salida_temporal: salida
   el:
     parte: E
     subcomando: el
