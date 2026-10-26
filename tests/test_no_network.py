@@ -42,8 +42,8 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 
 @pytest.mark.parametrize(
     "argv",
-    [["eda", "--config", "configs/datos.yaml"], ["figures"]],
-    ids=["eda", "figures"],
+    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["pd-hpo", "--config", "configs/pd/hpo.yaml"]],
+    ids=["eda", "figures", "pd-hpo"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -51,6 +51,10 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
         argv = [*argv, "--set", f"eda.salida={tmp_path.as_posix()}"]
+    if argv[0] == "pd-hpo":  # escribe resultados y mlp_final.yaml: a tmp_path, nunca a configs/ ni a results/
+        argv = [*argv, "--set", "hpo.n_ensayos=1", "--set", "mlp.max_epocas=1",
+                "--set", f"hpo.destino={(tmp_path / 'mlp_final.yaml').as_posix()}",
+                "--set", f"hpo.salida={tmp_path.as_posix()}"]
     if argv[0] == "figures":
         from src.viz import figs_datos
 

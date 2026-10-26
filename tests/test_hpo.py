@@ -39,6 +39,13 @@
 # - `test_a05_buscar_no_muta_la_config`: el CLI y B5 reutilizan la config después de la búsqueda.
 # - `test_a06_destino_relativo_al_directorio_actual`: `hpo.destino` y `hpo.salida` relativos se resuelven contra el
 #   directorio actual (decisión de Andrés), no contra la carpeta del YAML ni la del módulo.
+# - `test_a07_objetivo_devuelve_la_logloss_de_val`: el valor que minimiza Optuna es la log-loss de val (revisor-calidad,
+#   ronda 2: ninguna prueba veía `return -auc`).
+# - `test_a08_armar_resumen_usa_el_mejor`: `mejor` y `en_borde` salen del ganador y no del ensayo 0 (ronda 2).
+# - `test_04_en_borde_limites_exactos_simetricos`: ≤ en ambos extremos con límites exactos en binario (ronda 2).
+# - `test_a09_describir_lee_el_muestreador_efectivo`, `test_a10_fecha_sin_microsegundos` y
+#   `test_a11_manejador_cuenta_los_fallidos`: matan mutantes que sobrevivían en la ronda 2 (`multivariate` fijo,
+#   `isoformat()` sin `timespec`, "0 fallidos" fijo).
 
 # %%
 """Pruebas de src/pd/hpo.py: búsqueda Optuna TPE del MLP de PD (Parte B §3.3, tarea B4)."""
@@ -75,8 +82,10 @@ from src.pd.experimento import RutasPD, cargar_datos, cargar_matrices, evidencia
 from src.pd.hpo import (  # interfaz pública de B4
     CLAVES_BUSCADAS,  # claves del bloque mlp que se buscan
     FRACCION_BORDE,  # 5 % del ancho del rango
+    armar_resumen,  # contenido de hpo_ensayos.json
     buscar,  # búsqueda completa
     crear_estudio,  # estudio TPE + NopPruner en memoria
+    crear_objetivo,  # función objetivo de Optuna
     describir_muestreador,  # muestreador efectivo para el JSON
     elegir_mejor,  # argmin de logloss_val entre los completos
     en_borde,  # regla del 5 %
@@ -362,7 +371,7 @@ def test_01_espacio_prohibido_con_mensaje(clave, tmp_path):
     PD, o mezclar dispositivos entre ensayos, con un mensaje genérico que no dice por qué)."""
     cfg = _cfg(tmp_path)  # config válida
     cfg["hpo"]["espacio"][clave] = [1.0, 2.0] if clave == "pos_weight" else ["cpu", "cuda"]  # clave prohibida
-    with pytest.raises(ValueError, match=clave):  # mensaje específico
+    with pytest.raises(ValueError, match=rf"no puede buscar.*{clave}"):  # mensaje propio, no el genérico de claves
         validar_cfg(cfg)  # sin datos
 
 
@@ -517,6 +526,19 @@ def test_04_en_borde(params, esperado):
     assert en_borde(params, ESPACIO_B33) == esperado  # exacto
 
 
+@pytest.mark.parametrize(("dropout", "esperado"), [
+    (0.125, "min"),  # 0.125 − 0 = 0.25 · 0.5 exacto: en el borde (≤)
+    (0.126, None),  # justo fuera del mínimo
+    (0.375, "max"),  # 0.5 − 0.375 = 0.25 · 0.5 exacto: en el borde (≤)
+    (0.374, None),  # justo fuera del máximo
+], ids=["min_justo", "min_fuera", "max_justo", "max_fuera"])
+def test_04_en_borde_limites_exactos_simetricos(dropout, esperado):
+    """Con fraccion = 0.25 y dropout ∈ [0, 0.5] los límites son exactos en binario (0.125 y 0.375): ≤ en ambos
+    extremos (atrapa usar < en el mínimo o en el máximo). Con f = 0.05, 0.5 − 0.475 = 0.025000000000000022 > 0.025
+    en coma flotante, por eso no se usa 0.475."""
+    assert en_borde(_params(dropout=dropout), ESPACIO_B33, fraccion=0.25)["dropout"] == esperado  # regla ≤
+
+
 def test_04_en_borde_rango_degenerado_y_fraccion():
     """mín = máx → None; la fracción es inyectable (atrapa dividir entre un ancho 0 o ignorar ``fraccion``)."""
     espacio = {**ESPACIO_B33, "lr": [1.0e-3, 1.0e-3], "dropout": [0.0, 0.0], "l2": [1.0e-4, 1.0e-4]}  # degenerado
@@ -575,6 +597,14 @@ def test_06_crear_estudio_y_describir(semilla):
     defecto = inspect.signature(optuna.samplers.TPESampler).parameters["n_startup_trials"].default  # de la firma
     assert describir_muestreador(estudio) == {  # muestreador efectivo
         "nombre": "TPESampler", "semilla": semilla, "n_startup_trials": defecto, "multivariate": True}
+
+
+def test_a09_describir_lee_el_muestreador_efectivo():
+    """Con un TPESampler(multivariate=False) armado a mano, describir_muestreador dice False (atrapa escribir
+    multivariate: True a mano en lugar de leer el comportamiento efectivo del muestreador)."""
+    estudio = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=0, multivariate=False))  # univariado
+    estudio.set_user_attr("semilla_muestreador", 0)  # lo que guarda crear_estudio
+    assert describir_muestreador(estudio)["multivariate"] is False  # comportamiento efectivo
 
 
 def test_06_semilla_llega_al_muestreador():
@@ -669,7 +699,7 @@ def test_09_forma_del_json(corrida):
     assert j["espacio"] == ESPACIO_PRUEBA  # espacio validado
     assert j["mlp_base"] == {k: MLP_PRUEBA[k] for k in CLAVES_FIJAS}  # solo las claves fijas
     assert j["n_ensayos"] == N_ENSAYOS  # presupuesto en configuraciones
-    assert {k: v for k, v in j["estados"].items() if v} == {"COMPLETE": N_ENSAYOS}  # conteo por estado
+    assert j["estados"] == {"COMPLETE": N_ENSAYOS}  # conteo por estado presente
     assert [e["numero"] for e in j["ensayos"]] == list(range(N_ENSAYOS))  # en orden
     for e in j["ensayos"]:  # cada ensayo
         assert set(e) == CLAVES_ENSAYO  # sin "error" si completó
@@ -751,6 +781,62 @@ def test_a04_medir_ensayo_usa_lo_inyectado():
     assert all(y is y_val and p is p_fija for _, y, p in recibidos)  # sobre (y_val, p de val)
 
 
+class _ModeloFijo:
+    """Modelo falso: fit no entrena; PD fija y resultado con valores conocidos (para crear_objetivo)."""
+
+    P_VAL = np.array([0.2, 0.7, 0.4, 0.9, 0.1, 0.6])  # PD fija de val (AUC ≠ 1 − log-loss)
+
+    class resultado:  # ResultadoEntrenamiento falso
+        mejor_perdida_val, epocas_corridas, mejor_epoca = 0.5, 3, 2  # valores cualesquiera
+
+    def fit(self, *args, **kwargs):
+        return self  # sin entrenar
+
+    def predict_proba(self, X):
+        return self.P_VAL  # PD fija
+
+    def n_parametros(self):
+        return 10  # parámetros
+
+
+def test_a07_objetivo_devuelve_la_logloss_de_val():
+    """El objetivo devuelve exactamente logloss(y_val, p) = user_attrs["logloss_val"] (atrapa que Optuna minimice
+    otra cosa, p. ej. −AUC: el JSON seguiría mostrando la log-loss, pero el TPE optimizaría otro criterio)."""
+    X_val = np.zeros((6, 2), dtype=np.float32)  # val de juguete (el modelo falso no la mira)
+    y_val = np.array([0, 1, 0, 1, 0, 0])  # etiquetas 0/1
+    fijos = {"n_capas": 1, "neuronas_capa1": 4, "activacion": "relu", "dropout": 0.0, "l2": 1.0e-4,
+             "optimizador": "adam", "lr": 1.0e-3, "batch": 32}  # un ensayo del ESPACIO_PRUEBA
+    trial = optuna.trial.FixedTrial(fijos)  # ensayo fijo con user_attrs
+    objetivo = crear_objetivo((X_val, y_val), (X_val, y_val), MLP_PRUEBA, ESPACIO_PRUEBA, 0,
+                              modelo_cls=_ModeloFijo, reloj=_reloj())  # objetivo con el modelo falso
+    valor = objetivo(trial)  # lo que minimiza Optuna
+    assert valor == logloss(y_val, _ModeloFijo.P_VAL)  # el criterio de la búsqueda
+    assert valor == trial.user_attrs["logloss_val"]  # el mismo que va al JSON
+    assert trial.user_attrs["tiempo_s"] == PASO_RELOJ  # un paso del reloj por fit
+
+
+def _fila(numero, logloss_val, **params):
+    """Fila COMPLETE de un ensayo con lr, l2 y dropout dados (tiempo_s = PASO_RELOJ)."""
+    return {"numero": numero, "estado": "COMPLETE", "parametros": _params(**params), "logloss_val": logloss_val,
+            "auc_val": 0.7, "perdida_val_entrenar": logloss_val, "epocas": 3, "mejor_epoca": 2,
+            "n_parametros": 100 + numero, "tiempo_s": PASO_RELOJ}  # todas las claves de una fila
+
+
+def test_a08_armar_resumen_usa_el_mejor():
+    """Con 2 filas donde gana la #1 (al centro) y la #0 está en los bordes: mejor y en_borde son los de la #1, con
+    valores fijos (atrapa calcular en_borde o el bloque mejor sobre ensayos[0])."""
+    ensayos = [_fila(0, 0.6, lr=1.05e-4, l2=9.0e-3, dropout=0.02),  # en los tres bordes, peor
+               _fila(1, 0.5)]  # al centro, mejor
+    huellas = {"sha256_particion": "a" * 64, "sha256_preprocesador": "b" * 64}  # evidencia cualquiera
+    r = armar_resumen(crear_estudio(0), ensayos, elegir_mejor(ensayos), ESPACIO_B33, MLP_PRUEBA, 0, 9.0, huellas)
+    assert r["mejor"] == {"numero": 1, "parametros": _params(), "logloss_val": 0.5, "auc_val": 0.7,
+                          "n_parametros": 101}  # el ganador
+    assert r["en_borde"] == {"lr": None, "l2": None, "dropout": None}  # el del ganador, no el de la #0
+    assert r["estados"] == {"COMPLETE": 2}  # conteo
+    assert (r["n_ensayos"], r["tiempo_total_s"], r["tiempo_reloj_s"]) == (2, 2 * PASO_RELOJ, 9.0)  # presupuesto
+    assert r["evidencia"] == huellas  # evidencia recibida
+
+
 # %% [markdown]
 # ## 11. Test nunca se usa
 #
@@ -787,7 +873,7 @@ def test_12_ensayo_divergente_queda_fail(tmp_path):
     assert fallido["tiempo_s"] == PASO_RELOJ  # cronometrado aunque falló
     assert all(fallido[k] is None for k in CLAVES_METRICAS_ENSAYO)  # sin métricas
     assert [e["estado"] for e in j["ensayos"]] == ["COMPLETE", "FAIL", "COMPLETE"]  # la búsqueda siguió
-    assert {k: v for k, v in j["estados"].items() if v} == {"COMPLETE": 2, "FAIL": 1}  # conteo
+    assert j["estados"] == {"COMPLETE": 2, "FAIL": 1}  # conteo por estado presente
     assert j["tiempo_total_s"] == N_ENSAYOS * PASO_RELOJ  # incluye el FAIL
     assert j["mejor"]["numero"] != 1  # el fallido no gana
 
@@ -910,6 +996,14 @@ def test_17_mlp_final(corrida):
     base = destino.parent / "base_temporal.yaml"  # base que lo hereda, junto al destino
     base.write_text(f"hereda: {destino.name}\nbase_seed: 0\n", encoding="utf-8")  # como configs/pd/base.yaml
     assert load_config(base)["mlp"] == cfg["mlp"]  # B5 hereda el ganador
+
+
+def test_a10_fecha_sin_microsegundos(tmp_path):
+    """busqueda.fecha es ISO 8601 al segundo aunque `ahora` traiga microsegundos (atrapa isoformat() sin
+    timespec, que haría la fecha distinta en cada corrida dentro del mismo segundo y más larga que la del contrato)."""
+    con_micro = datetime(2026, 10, 25, 12, 0, 0, 123456)  # con microsegundos
+    _, _, destino, _, _ = _correr(tmp_path, cfg=_cfg(tmp_path, n_ensayos=1), ahora=lambda: con_micro)  # búsqueda
+    assert load_config(destino)["busqueda"]["fecha"] == "2026-10-25T12:00:00"  # truncada al segundo
 
 
 # %% [markdown]
@@ -1113,11 +1207,26 @@ def test_22_cli(tmp_path, monkeypatch, capsys):
     assert (tmp_path / "mlp_final.yaml").is_file()  # YAML escrito
     assert (ROOT / "configs" / "pd" / "mlp_final.yaml").read_bytes() == real  # el versionado no cambió
     assert cli.CABECERA_CONFIG in salida  # config resuelta
+    assert "Ensayos: 2 (2 completos, 0 fallidos)" in salida.splitlines()  # línea exacta de los estados
     minusculas = salida.lower()  # para buscar palabras
     for palabra in ("complet", "fallid", "log-loss", "auc"):  # ensayos y métricas del mejor
         assert palabra in minusculas  # se reporta
     assert "hpo_ensayos.json" in salida and "mlp_final.yaml" in salida  # dónde quedaron
     assert "Tiempo de ejecución:" in salida  # tiempo total (núcleo §4.1)
+
+
+def test_a11_manejador_cuenta_los_fallidos(monkeypatch, capsys):
+    """Con un resumen de 3 ensayos (2 completos, 1 FAIL), el manejador imprime "Ensayos: 3 (2 completos, 1
+    fallidos)" (atrapa un conteo de fallidos fijo o que no sale de `estados`; la prueba 22 solo ve 0 fallidos)."""
+    resumen = {"n_ensayos": 3, "estados": {"COMPLETE": 2, "FAIL": 1}, "tiempo_total_s": 3.0,  # presupuesto
+               "mejor": {"numero": 2, "logloss_val": 0.5, "auc_val": 0.7, "n_parametros": 10}}  # ganador
+    monkeypatch.setattr(hpo, "buscar", lambda cfg: resumen)  # sin búsqueda real
+    nivel = optuna.logging.get_verbosity()  # nivel de log antes
+    try:  # restaura el log global de Optuna al salir
+        assert hpo.manejador_hpo({"hpo": {"salida": "res", "destino": "mlp_final.yaml"}}) == 0  # éxito
+    finally:
+        optuna.logging.set_verbosity(nivel)  # sin efectos en otras pruebas
+    assert "Ensayos: 3 (2 completos, 1 fallidos)" in capsys.readouterr().out.splitlines()  # conteo real
 
 
 def test_a06_destino_relativo_al_directorio_actual(tmp_path, monkeypatch):

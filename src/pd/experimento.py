@@ -139,8 +139,9 @@ def evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
 # $X_s = \text{pre.transform}(\text{filas de } s)$ con el preprocesador **guardado** (`from_dict`, sin `fit`): fue
 # ajustado solo con train por A. $y_s$ = `target` y los ids en el orden del parquet.
 #
-# `cargar_datos` (pública desde B4, la reutiliza la búsqueda Optuna) lee el parquet **una vez** y devuelve el DataFrame junto con las matrices: el experimento usa el
-# DataFrame para la huella de la partición. `cargar_matrices` conserva su firma pública y solo devuelve las matrices.
+# `cargar_datos` (pública desde B4, la reutiliza la búsqueda Optuna) lee el parquet **una vez** y devuelve el
+# DataFrame junto con las matrices: el experimento usa el DataFrame para la huella de la partición.
+# `cargar_matrices` conserva su firma pública y solo devuelve las matrices.
 
 # %%
 def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
@@ -365,7 +366,7 @@ def _fila_elegida(filas: list[dict], C: float) -> dict:
     return next(f for f in filas if f["C"] == C)  # la rejilla no tiene duplicados
 
 
-def _semilla_logistica(modelo, cfg_log: dict, metricas: dict, seed: int, evidencia: dict) -> dict:
+def _semilla_logistica(modelo, cfg_log: dict, metricas: dict, seed: int, huellas: dict) -> dict:
     """Registro de la corrida de la logística (núcleo §5.4 + evidencia)."""
     fila = _fila_elegida(modelo.busqueda, modelo.C_elegido)  # ajuste del C elegido
     return {  # claves del núcleo §5.4
@@ -377,11 +378,11 @@ def _semilla_logistica(modelo, cfg_log: dict, metricas: dict, seed: int, evidenc
         "tiempo_s": fila["tiempo_s"],  # ajuste del C elegido
         "device": DEVICE_LOGISTICA,  # CPU
         "epocas": fila["n_iter"],  # iteraciones de lbfgs
-        "evidencia": evidencia,  # huellas
+        "evidencia": huellas,  # huellas de la partición y del preprocesador
     }
 
 
-def _busqueda_logistica(modelo, cfg_log: dict, evidencia: dict) -> dict:
+def _busqueda_logistica(modelo, cfg_log: dict, huellas: dict) -> dict:
     """Contenido de busqueda_logistica.json."""
     return {  # tabla de la búsqueda
         "criterio": CRITERIO_LOGISTICA,  # log-loss de val
@@ -389,18 +390,18 @@ def _busqueda_logistica(modelo, cfg_log: dict, evidencia: dict) -> dict:
         "C_elegido": modelo.C_elegido,  # C elegido
         "en_borde": esta_en_borde(cfg_log["rejilla_C"], modelo.C_elegido),  # ¿ampliar la rejilla?
         "tiempo_total_s": modelo.tiempo_total_s,  # todo el fit
-        "evidencia": evidencia,  # huellas
+        "evidencia": huellas,  # huellas de la partición y del preprocesador
     }
 
 
-def _summary_logistica(modelo, cfg_log: dict, metricas: dict, evidencia: dict) -> dict:
+def _summary_logistica(modelo, cfg_log: dict, metricas: dict, huellas: dict) -> dict:
     """Entrada "logistica" de summary.json."""
     return {  # presupuesto y métricas
         "n_parametros": modelo.n_parametros(),  # complejidad (núcleo §6)
         "n_configuraciones_busqueda": len(cfg_log["rejilla_C"]),  # presupuesto de búsqueda
         "tiempo_total_s": modelo.tiempo_total_s,  # presupuesto de tiempo
         "metricas": resumir([metricas]),  # una corrida
-        "evidencia": evidencia,  # huellas
+        "evidencia": huellas,  # huellas de la partición y del preprocesador
     }
 
 

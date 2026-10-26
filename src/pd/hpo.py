@@ -292,6 +292,9 @@ def sugerir(trial, espacio: dict) -> dict:
 # Minimiza la log-loss de validación con `TPESampler(seed=base_seed)` (valores por defecto) y `NopPruner` (sin
 # poda: cada ensayo entrena hasta su parada temprana), en memoria. La semilla se guarda como atributo del estudio
 # (`semilla_muestreador`): el `LazyRandomState` del muestreador de Optuna 5 no la conserva.
+#
+# `optuna_mod` es una inyección **solo para pruebas unitarias** de `crear_estudio` (un módulo falso que registra los
+# argumentos); no se propaga a `buscar`, que siempre usa Optuna.
 
 # %%
 def crear_estudio(base_seed: int, optuna_mod=optuna):
@@ -358,6 +361,9 @@ def medir_ensayo(modelo, X_val, y_val, criterio=logloss, auc_fn=auc) -> dict:
 # validación. Todo va a `trial.set_user_attr`. Si el entrenamiento diverge (`FloatingPointError`, B2) se registran
 # también el tiempo y el mensaje (Optuna 5 no guarda el mensaje de un ensayo FAIL) y se relanza: la búsqueda lo
 # marca FAIL y sigue. El objetivo solo recibe `(X_tr, y_tr)` y `(X_val, y_val)`: test nunca llega aquí.
+#
+# La medición queda **fuera** del `try`: `FloatingPointError` solo nace en `entrenar` (dentro de `fit`, al ver una
+# pérdida no finita); un error al medir en validación es un bug y sale de la búsqueda en lugar de quedar como FAIL.
 
 # %%
 def crear_objetivo(entreno, validacion, mlp_heredado, espacio, seed, modelo_cls=MLPPD, reloj=time.perf_counter):
@@ -493,14 +499,14 @@ def armar_resumen(estudio, ensayos: list[dict], mejor: dict, espacio: dict, mlp_
 # la evidencia y la fecha. B5 lo lee para reportar el presupuesto de la búsqueda.
 
 # %%
-def armar_busqueda(resumen: dict, evidencia: dict, fecha: str) -> dict:
+def armar_busqueda(resumen: dict, huellas: dict, fecha: str) -> dict:
     """Bloque ``busqueda`` de mlp_final.yaml {tipo: optuna, ensayo, n_ensayos, tiempo_s, evidencia, fecha}."""
     return {  # procedencia del ganador
         "tipo": TIPO_BUSQUEDA,  # "optuna"
         "ensayo": resumen["mejor"]["numero"],  # ensayo ganador
         "n_ensayos": resumen["n_ensayos"],  # configuraciones evaluadas
         "tiempo_s": resumen["tiempo_total_s"],  # presupuesto de tiempo
-        "evidencia": evidencia,  # huellas de los datos de la búsqueda
+        "evidencia": huellas,  # huellas de los datos de la búsqueda
         "fecha": fecha,  # ISO 8601
     }
 
@@ -526,6 +532,9 @@ def texto_mlp_final(mlp: dict, busqueda: dict) -> str:
 #
 # Crea las carpetas que falten, escribe en un temporal de la **misma** carpeta y lo mueve con `os.replace`
 # (atómico): si algo falla, se borra el temporal y el archivo anterior queda intacto. Permisos 0o644 como los JSON.
+#
+# TODO(refactor-post-B5): duplica `src/common/results.py::_escribir_atomico` (y sus constantes de codificación y
+# permisos, aquí `CODIFICACION` y `PERMISOS_ARCHIVO`); se unifica en el refactor posterior a B5 (decisión de Andrés).
 
 # %%
 def escribir_texto_atomico(ruta, texto: str) -> Path:
