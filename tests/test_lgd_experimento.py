@@ -510,11 +510,12 @@ def test_busqueda_optuna_sin_clave_requerida_es_error_guiado(raiz: Path, clave):
 
 
 def test_demo_yaml_sin_busqueda_corre(raiz: Path):
-    """La demo (``busqueda.tipo: sin_busqueda``, ``evidencia: null``) corre sin leer ``mlp_final.yaml`` y deja el
+    """La demo (``busqueda.tipo: sin_busqueda``, ``evidencia`` con huellas nulas) corre sin leer ``mlp_final.yaml`` y deja el
     presupuesto de la búsqueda en null."""
     cfg = _cfg("demo.yaml", ["semillas.n=1"])
     cfg["busqueda"] = load_config(RAIZ / "configs/lgd/demo.yaml")["busqueda"]  # el de demo.yaml, no el de _cfg
-    assert cfg["busqueda"]["tipo"] == "sin_busqueda" and cfg["busqueda"]["evidencia"] is None
+    assert cfg["busqueda"]["tipo"] == "sin_busqueda"
+    assert cfg["busqueda"]["evidencia"] == {"sha256_particion": None, "sha256_preprocesador": None}
     m = exp.entrenar_semillas(cfg, raiz)["mlp"]
     assert m["config_de_busqueda"] is False and m["busqueda"] is None
 
