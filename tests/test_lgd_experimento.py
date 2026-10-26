@@ -183,7 +183,7 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     for nombre in semillas:
         d = load_json(salida / "semillas" / nombre)
         for clave in ("modelo", "seed", "config", "metricas", "n_parametros", "tiempo_s", "device", "epocas",
-                      "hash_particion", "hash_preprocesador"):
+                      "evidencia"):
             assert clave in d, (nombre, clave)
         assert set(exp.METRICAS) <= set(d["metricas"])
 
@@ -199,7 +199,6 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
             assert r["metricas"][met]["mejor"] <= r["metricas"][met]["peor"]
     assert set(s["modelos"]["lineal"]["fuera_de_rango"]) == {"val", "test", "pd_test"}
     assert s["modelos"]["lineal"]["fuera_de_rango"]["pd_test"]["n"] == N_PD_TEST
-    assert s["hash_particion"] and s["hash_preprocesador"]
     assert resumen == s
 
     pt = pd.read_parquet(salida / "pred_test.parquet")
@@ -221,15 +220,16 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     np.testing.assert_allclose(mlp.predict(datos["X"]["test"]), pt["pred_mlp"].to_numpy(), rtol=0, atol=1e-7)
     assert (raiz / cfg["modelos"]["lineal"]).is_file()
 
-    # hashes recalculados aquí
+    # evidencia (núcleo §5.4, §6) recalculada aquí: líneas "{id},{split}\n" en orden y bytes del preprocesador
     df = pd.read_parquet(raiz / "data/processed/loans_lgd.parquet")
-    h_part = hashlib.sha256("\n".join(df["id"].astype(str) + "," + df["split"]).encode("utf-8")).hexdigest()
-    pre = load_json(raiz / "models/preprocesador_lgd.json")
-    h_pre = hashlib.sha256(json.dumps(pre, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-                           .encode("utf-8")).hexdigest()
-    assert s["hash_particion"] == h_part and s["hash_preprocesador"] == h_pre
+    texto = "".join(f"{i},{s_}\n" for i, s_ in zip(df["id"], df["split"]))
+    esperada = {"sha256_particion": hashlib.sha256(texto.encode("utf-8")).hexdigest(),
+                "sha256_preprocesador": _sha(raiz / "models/preprocesador_lgd.json")}
+    for m in ("lineal", "mlp"):
+        assert s["modelos"][m]["evidencia"] == esperada
     for p in (salida / "semillas").glob("*.json"):
-        assert load_json(p)["hash_particion"] == h_part and load_json(p)["hash_preprocesador"] == h_pre
+        assert load_json(p)["evidencia"] == esperada
+    assert not any(k.startswith("hash_") for k in s), "las huellas viejas no deben quedar en el summary"
 
 
 def test_misma_semilla_mismas_metricas(tmp_path: Path):
@@ -265,19 +265,39 @@ def test_muestra_estratificada_por_split(raiz: Path):
     assert exp.cargar_datos(cfg, raiz)["ids"]["test"].tolist() == datos["ids"]["test"].tolist()
 
 
-# ---------------------------------------------------------------------------------------------- hashes y semillas
-def test_hash_particion_cambia_con_el_split():
-    df = pd.DataFrame({"id": ["a", "b", "c"], "split": ["train", "val", "test"]})
-    esperado = hashlib.sha256("a,train\nb,val\nc,test".encode("utf-8")).hexdigest()
-    assert exp.hash_particion(df) == esperado
-    otro = df.assign(split=["train", "train", "test"])
-    assert exp.hash_particion(otro) != esperado
+# ---------------------------------------------------------------------------------------------- evidencia y semillas
+def _es_hex64(valor) -> bool:
+    return isinstance(valor, str) and len(valor) == 64 and all(c in "0123456789abcdef" for c in valor)
 
 
-def test_hash_preprocesador_es_el_json_canonico():
-    d = {"b": 1, "a": [1.5, "ñ"]}
-    esperado = hashlib.sha256('{"a":[1.5,"ñ"],"b":1}'.encode("utf-8")).hexdigest()
-    assert exp.hash_preprocesador(d) == esperado
+def test_evidencia_igual_en_semillas_summary_y_hpo(raiz: Path):
+    """D9: ``evidencia`` = {sha256_particion, sha256_preprocesador} (núcleo §5.4) en semillas/, en cada modelo del
+    summary y en hpo_ensayos.json; 64 dígitos hex y el mismo valor en las tres salidas."""
+    carpeta = _copiar_configs(raiz)
+    h = exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg(extra=["semillas.n=2"])
+    s = exp.entrenar_semillas(cfg, raiz)
+    salida = raiz / cfg["salida"]
+    evidencias = [h["evidencia"], load_json(salida / "hpo_ensayos.json")["evidencia"]]
+    evidencias += [s["modelos"][m]["evidencia"] for m in ("lineal", "mlp")]
+    evidencias += [load_json(p)["evidencia"] for p in (salida / "semillas").glob("*.json")]
+    assert len(evidencias) == 2 + 2 + 3
+    for ev in evidencias:
+        assert set(ev) == {"sha256_particion", "sha256_preprocesador"}
+        assert _es_hex64(ev["sha256_particion"]) and _es_hex64(ev["sha256_preprocesador"])
+        assert ev == evidencias[0]
+    assert evidencias[0]["sha256_preprocesador"] == _sha(raiz / "models/preprocesador_lgd.json")
+
+
+def test_evidencia_con_muestra_es_la_del_df_muestreado(raiz: Path):
+    """La huella de la partición describe el mismo DataFrame del que salen las matrices (tras ``datos.muestra``)."""
+    from src.pd.experimento import huella_particion
+    cfg = _cfg(extra=["datos.muestra=100"])
+    d = exp.cargar_datos(cfg, raiz)
+    df = exp._muestrear(pd.read_parquet(raiz / "data/processed/loans_lgd.parquet"), 100, cfg["base_seed"])
+    assert d["evidencia"]["sha256_particion"] == huella_particion(df["id"], df["split"])
+    completo = exp.cargar_datos(_cfg(), raiz)
+    assert completo["evidencia"]["sha256_particion"] != d["evidencia"]["sha256_particion"]
 
 
 def test_semilla_mediana_a_mano():
@@ -315,7 +335,8 @@ def test_buscar_reescribe_mlp_final_y_lgd_lo_hereda(raiz: Path):
     assert len(h["ensayos"]) == 3 and h["n_ensayos"] == 3
     for e in h["ensayos"]:
         assert {"numero", "parametros", "valor_val", "mae_val", "tiempo_s", "estado"} <= set(e)
-    assert h["hash_particion"] and h["hash_preprocesador"] and h["semilla_muestreador"] == cfg["base_seed"]
+    assert set(h["evidencia"]) == {"sha256_particion", "sha256_preprocesador"}
+    assert h["semilla_muestreador"] == cfg["base_seed"]
     assert h["tiempo_total_s"] == pytest.approx(sum(e["tiempo_s"] for e in h["ensayos"]))
 
     texto = (carpeta / "mlp_final.yaml").read_text(encoding="utf-8")
@@ -326,7 +347,8 @@ def test_buscar_reescribe_mlp_final_y_lgd_lo_hereda(raiz: Path):
     b = final["busqueda"]
     assert b["tipo"] == "optuna" and b["ensayo"] == mejor["numero"] and b["n_ensayos"] == 3
     assert b["tiempo_s"] == pytest.approx(h["tiempo_total_s"])
-    assert b["hash_particion"] == h["hash_particion"] and b["muestra"] is None
+    assert b["hash_particion"] == h["evidencia"]["sha256_particion"] and b["muestra"] is None
+    assert b["hash_preprocesador"] == h["evidencia"]["sha256_preprocesador"]
     for clave, valor in mejor["parametros"].items():
         assert final["mlp"][clave] == valor
 

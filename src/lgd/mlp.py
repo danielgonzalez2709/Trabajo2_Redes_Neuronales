@@ -8,9 +8,10 @@ Bucle de entrenamiento propio mínimo (mientras llega ``entrenar.py`` de la Part
 - Semillas: ``fijar_semillas(seed)`` antes de construir la red (pesos iniciales y dropout salen de esa semilla);
   el orden de los mini-lotes sale del ``np.random.Generator`` que devuelve. En CPU se activa
   ``torch.use_deterministic_algorithms(True)``.
-- L2: penalización L2 explícita en la pérdida, ``l2 · Σ‖W‖²`` sobre las matrices de pesos de las capas ``Linear``,
-  sin sesgos; equivale a ``weight_decay = 2·l2`` acoplado sobre los pesos. Con Adam, ni esto ni ``weight_decay``
-  son weight decay desacoplado (AdamW).
+- L2: penalización L2 explícita en la pérdida, ``(l2/2) · Σ‖W‖²`` sobre las matrices de pesos de las capas
+  ``Linear``, sin sesgos; su gradiente es ``l2 · W``, así que equivale a ``weight_decay = l2`` de Adam/SGD aplicado
+  solo a los pesos: la misma convención que B (Parte B §3.2, Spec v0.13; ``mlp.l2`` = λ). Con Adam, ni esto ni
+  ``weight_decay`` son weight decay desacoplado (AdamW).
 - Optimizador: ``adam`` (``lr``; ``momento`` no aplica) o ``sgd`` (``lr`` y ``momentum = momento``).
 - Parada temprana: tras cada época se calcula la pérdida de validación (modo evaluación, sin dropout y sin el término
   L2); si no mejora durante ``paciencia`` épocas seguidas se detiene y se restauran los pesos de la mejor época.
@@ -103,9 +104,9 @@ def _crear_optimizador(mlp: dict, parametros) -> torch.optim.Optimizer:
     return torch.optim.SGD(parametros, lr=float(mlp["lr"]), momentum=float(mlp["momento"]))
 
 
-def _penalizacion_l2(pesos: list[torch.Tensor]) -> torch.Tensor:
-    """Σ‖W‖² sobre las matrices de pesos (sin sesgos)."""
-    return sum((w ** 2).sum() for w in pesos)
+def _penalizacion_l2(pesos: list[torch.Tensor], l2: float) -> torch.Tensor:
+    """(l2/2)·Σ‖W‖² sobre las matrices de pesos (sin sesgos); gradiente l2·W (≡ ``weight_decay = l2``)."""
+    return 0.5 * l2 * sum((w ** 2).sum() for w in pesos)
 
 
 def _entrenar_una_epoca(red: nn.Sequential, opt: torch.optim.Optimizer, perdida: Perdida, Xt: torch.Tensor,
@@ -117,7 +118,7 @@ def _entrenar_una_epoca(red: nn.Sequential, opt: torch.optim.Optimizer, perdida:
     for i in range(0, orden.numel(), batch):
         idx = orden[i:i + batch]
         datos = perdida(red(Xt[idx]).squeeze(-1), yt[idx])
-        total = datos + l2 * _penalizacion_l2(pesos)
+        total = datos + _penalizacion_l2(pesos, l2)
         opt.zero_grad()
         total.backward()
         opt.step()

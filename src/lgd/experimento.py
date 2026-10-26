@@ -15,7 +15,8 @@ su procedencia (bloque ``busqueda``). ``run.py lgd-hpo`` **reescribe** ese archi
 otra ruta). ``run.py lgd`` entrena con la config tal como la resolvió el cargador (herencia y luego ``--set``): no
 fusiona nada después, así que ``--set mlp.*`` siempre gana y la config impresa es la que se entrena.
 De la procedencia salen ``n_configuraciones_busqueda`` y el tiempo de la búsqueda (1 y 0 si ``tipo: sin_busqueda``).
-Con ``tipo: optuna``, si el hash de partición, el del preprocesador o la ``muestra`` de la búsqueda no coinciden con la
+Con ``tipo: optuna``, si la huella de la partición, la del preprocesador (``busqueda.hash_particion`` y
+``busqueda.hash_preprocesador``, con los valores de ``evidencia``) o la ``muestra`` de la búsqueda no coinciden con la
 corrida actual → ``ValueError`` (p. ej. búsqueda con muestra y corrida final sin muestra).
 
 Búsqueda (``buscar``):
@@ -28,8 +29,8 @@ Búsqueda (``buscar``):
   propio MLP (la media de ``mlp.perdida`` en val en la mejor época, ``min(historial_["val"])``); el MAE de val va al
   lado en cada ensayo. Un ensayo que diverge (``RuntimeError`` del MLP) queda con estado ``FAIL``; si todos fallan,
   ``RuntimeError`` y no se reescribe nada.
-- Nota sobre ``l2``: en D es ``l2·Σ‖W‖²`` explícita sin sesgos (= ``weight_decay = 2·l2`` acoplado); mismo rango
-  numérico que B, significado distinto por un factor 2. Pendiente coordinar con B.
+- Nota sobre ``l2``: en D es ``(l2/2)·Σ‖W‖²`` explícita sin sesgos (gradiente ``l2·W`` ≡ ``weight_decay = l2``), la
+  misma convención que B (Parte B §3.2, Spec v0.13): mismo rango y mismo significado.
 
 Tiempo de cómputo (cifra de presupuesto del núcleo §6), **misma definición en búsqueda y semillas**: suma del tiempo de
 reloj de cada llamada a ``fit`` (una por ensayo o por semilla, incluidos los ensayos fallidos), sin la carga de datos ni la
@@ -50,9 +51,11 @@ Semillas (``entrenar_semillas``):
 - ``pred_test.parquet`` (test de la LGD: ``id, y, pred_lineal, pred_mlp``) y ``pred_pd_test.parquet`` (todo el test de
   ``loans_pd``: ``id, pred_lineal, pred_mlp``) con la semilla del MLP de **MAE de test mediano** (``_semilla_mediana``);
   esa semilla se guarda en ``modelos.mlp``.
-- Cada JSON lleva ``hash_particion`` (SHA-256 de las líneas ``id,split`` de ``loans_lgd`` completo, en su orden,
-  antes de la muestra) y ``hash_preprocesador`` (SHA-256 del JSON canónico del preprocesador); ambos se definen en
-  ``src/lgd/procedencia.py``.
+- ``evidencia`` = ``{sha256_particion, sha256_preprocesador}`` (núcleo §5.4 y §6) en cada ``semillas/*.json``, en cada
+  modelo de ``summary.json`` y en ``hpo_ensayos.json``: huella de las líneas ``"{id},{split}
+"`` del mismo DataFrame
+  de ``loans_lgd`` del que salen las matrices (tras ``datos.muestra``, en su orden) y de los bytes del archivo del
+  preprocesador; se definen en ``src/lgd/procedencia.py`` (igual que ``src/pd/experimento.py``).
 """
 
 from __future__ import annotations
@@ -73,7 +76,7 @@ from src.lgd.lineal import LinealLGD
 from src.lgd.metricas import mae, rmse
 from src.lgd.mlp import MLPLGD
 from src.lgd.preparar import rechazar_posteriores
-from src.lgd.procedencia import hash_particion, hash_preprocesador  # noqa: F401 (públicos también aquí)
+from src.lgd.procedencia import evidencia
 
 SPLITS = ("train", "val", "test")
 METRICAS = ("mae_val", "rmse_val", "mae_test", "rmse_test")
@@ -116,20 +119,21 @@ def _muestrear(df: pd.DataFrame, muestra, base_seed: int) -> pd.DataFrame:
 
 
 def cargar_datos(cfg: dict, raiz: Path = Path(".")) -> dict:
-    """``X``/``y``/``ids`` por split de la LGD, ``X`` e ``ids`` del test de ``loans_pd`` y los hashes.
+    """``X``/``y``/``ids`` por split de la LGD, ``X`` e ``ids`` del test de ``loans_pd`` y la ``evidencia``.
 
     Usa el preprocesador guardado (``Preprocesador.from_dict``): nunca lo reajusta.
     """
     raiz = Path(raiz)
     datos = cfg["datos"]
-    pre_dict = load_json(raiz / datos["salida"]["preprocesador"])
+    ruta_pre = raiz / datos["salida"]["preprocesador"]
+    pre_dict = load_json(ruta_pre)
     pre = Preprocesador.from_dict(pre_dict)
     nombres = [v["nombre"] for v in pre.variables]
     rechazar_posteriores(nombres)
 
     lgd = pd.read_parquet(raiz / datos["salida"]["loans_lgd"])
-    h_part = hash_particion(lgd)
     lgd = _muestrear(lgd, datos["muestra"], validar_entero(cfg["base_seed"], "base_seed"))
+    ev = evidencia(lgd, ruta_pre)  # el mismo df del que salen las matrices
     X, y, ids = {}, {}, {}
     for s in SPLITS:
         g = lgd[lgd["split"] == s]
@@ -143,12 +147,13 @@ def cargar_datos(cfg: dict, raiz: Path = Path(".")) -> dict:
     pd_test = pd_test[pd_test["split"] == "test"]
     return {"X": X, "y": y, "ids": ids, "X_pd_test": pre.transform(pd_test[nombres]),
             "ids_pd_test": pd_test["id"].astype(str).to_numpy(),
-            "hash_particion": h_part, "hash_preprocesador": hash_preprocesador(pre_dict),
-            "n": {s: int(len(y[s])) for s in SPLITS}, "muestra": datos["muestra"]}
+            "evidencia": ev, "n": {s: int(len(y[s])) for s in SPLITS}, "muestra": datos["muestra"]}
 
 
-def _hashes(d: dict) -> dict:
-    return {"hash_particion": d["hash_particion"], "hash_preprocesador": d["hash_preprocesador"]}
+def _hashes_busqueda(d: dict) -> dict:
+    """Huellas de ``evidencia`` con las claves del bloque ``busqueda`` de ``mlp_final.yaml``."""
+    return {"hash_particion": d["evidencia"]["sha256_particion"],
+            "hash_preprocesador": d["evidencia"]["sha256_preprocesador"]}
 
 
 def _metricas(modelo, d: dict) -> dict:
@@ -189,7 +194,7 @@ def _leer_procedencia(cfg: dict, d: dict) -> tuple[int, float]:
         raise ValueError(f"busqueda.tipo debe ser uno de {list(TIPOS_BUSQUEDA)}; se recibió {b['tipo']!r}")
     if b["tipo"] == "sin_busqueda":
         return 1, 0.0
-    actual = {**_hashes(d), "muestra": d["muestra"]}
+    actual = {**_hashes_busqueda(d), "muestra": d["muestra"]}
     for clave, valor in actual.items():
         if b[clave] != valor:
             raise ValueError(f"busqueda.{clave} = {b[clave]!r} no coincide con esta corrida ({valor!r}): la búsqueda "
@@ -217,7 +222,7 @@ def _resumen_hpo(cfg: dict, d: dict, registros: list[dict], mejor: dict) -> dict
     return {"n_ensayos": len(registros), "muestreador": "TPESampler", "semilla_muestreador": base_seed,
             "semilla_ensayos": base_seed, "criterio": CRITERIO_SELECCION, "espacio": cfg["hpo"]["espacio"],
             "mlp_base": cfg["mlp"], "tiempo_total_s": sum(r["tiempo_s"] for r in registros),
-            "n": d["n"], "muestra": d["muestra"], **_hashes(d),
+            "n": d["n"], "muestra": d["muestra"], "evidencia": d["evidencia"],
             "mejor": {"numero": mejor["numero"], "valor_val": mejor["valor_val"], "mae_val": mejor["mae_val"],
                       "parametros": mejor["parametros"]},
             "ensayos": registros}
@@ -261,7 +266,8 @@ def buscar(cfg: dict, raiz: Path = Path(".")) -> dict:
     save_json(raiz / cfg["salida"] / ARCHIVO_HPO, hpo)
     busqueda = {"tipo": "optuna", "origen": f"lgd-hpo: mejor de {len(registros)} ensayos ({CRITERIO_SELECCION})",
                 "ensayo": mejor["numero"], "n_ensayos": len(registros), "tiempo_s": hpo["tiempo_total_s"],
-                **_hashes(d), "muestra": d["muestra"], "fecha": dt.datetime.now().isoformat(timespec="seconds")}
+                **_hashes_busqueda(d), "muestra": d["muestra"],
+                "fecha": dt.datetime.now().isoformat(timespec="seconds")}
     escribir_mlp_final(raiz / cfg["hpo"]["destino"], {**cfg["mlp"], **mejor["parametros"]}, busqueda)
     return hpo
 
@@ -276,8 +282,8 @@ def _resumir(valores: list[float]) -> dict:
 def _registro(*, modelo: str, seed: int, config: dict, metricas: dict, n_parametros: int, tiempo_s: float,
               device: str, epocas: int | None, d: dict, **extra) -> dict:
     return {"modelo": modelo, "seed": seed, "config": config, "metricas": metricas, "n_parametros": n_parametros,
-            "tiempo_s": tiempo_s, "device": device, "epocas": epocas, "n": d["n"], "muestra": d["muestra"],
-            **_hashes(d), **extra}
+            "tiempo_s": tiempo_s, "device": device, "epocas": epocas, "evidencia": d["evidencia"], "n": d["n"],
+            "muestra": d["muestra"], **extra}
 
 
 def _entrenar_lineal(d: dict, seed: int, carpeta: Path) -> dict:
@@ -337,19 +343,18 @@ def _armar_resumen(cfg: dict, d: dict, lineal: dict, corridas: list[dict], seed_
             "lineal": {"n_parametros": reg_l["n_parametros"], "n_configuraciones_busqueda": 1,
                        "tiempo_total_s": reg_l["tiempo_s"],
                        "metricas": {k: _resumir([reg_l["metricas"][k]]) for k in METRICAS},
-                       "fuera_de_rango": reg_l["fuera_de_rango"]},
+                       "fuera_de_rango": reg_l["fuera_de_rango"], "evidencia": d["evidencia"]},
             "mlp": {"n_parametros": mediana["registro"]["n_parametros"], "n_configuraciones_busqueda": n_conf,
                     "tiempo_total_s": t_busqueda + sum(r["tiempo_s"] for r in regs),
                     "tiempo_busqueda_s": t_busqueda, "tiempo_semillas_s": sum(r["tiempo_s"] for r in regs),
                     "metricas": {k: _resumir([r["metricas"][k] for r in regs]) for k in METRICAS},
                     "semillas": [r["seed"] for r in regs], "semilla_mediana": seed_mediana,
-                    "config": mediana["registro"]["config"]},
+                    "config": mediana["registro"]["config"], "evidencia": d["evidencia"]},
         },
         "referencias": _referencias_constantes(d["y"]["train"], d["y"]["val"], d["y"]["test"]),
         "busqueda": cfg["busqueda"], "base_seed": cfg["base_seed"], "n": d["n"], "muestra": d["muestra"],
         "criterio_semilla_mediana": CRITERIO_MEDIANA,
         "nota_pred_lineal": "pred_lineal no se recorta: puede salir de [0, 1] (ver modelos.lineal.fuera_de_rango)",
-        **_hashes(d),
     }
 
 

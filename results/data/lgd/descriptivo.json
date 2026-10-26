@@ -2324,7 +2324,7 @@
           },
           "media": -4.232967310002778e-09,
           "desv": 0.9999999403953552,
-          "asimetria": -3.204901933670044,
+          "asimetria": -3.204901695251465,
           "histograma": {
             "bordes": [
               -5.535817623138428,
@@ -2954,7 +2954,7 @@
         "revol_bal": 0.09853934727963752,
         "revol_util": 0.06810367828409747,
         "total_acc": 0.05140269309104851,
-        "term": 0.0006499915034510195,
+        "term": 0.0006499914452433586,
         "emp_length": 0.03991619497537613,
         "home_ownership": 0.032773565500974655,
         "purpose": 0.2060782015323639
@@ -3336,11 +3336,13 @@
     }
   },
   "fuente": {
-    "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-    "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
     "loans_lgd": "data/processed/loans_lgd.parquet",
     "preprocesador": "models/preprocesador_lgd.json",
     "resumen_objetivo": "results/data/lgd/resumen_objetivo.json",
     "umbral_monotonia": 0.9
+  },
+  "evidencia": {
+    "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+    "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
   }
 }
