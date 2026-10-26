@@ -73,6 +73,11 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
   (cuasi-verosimilitud Bernoulli; Papke & Wooldridge, 1996 [VERIFICAR]), derivada por máxima verosimilitud en el blog.
   Contraste opcional: MSE (verosimilitud gaussiana).
 - Búsqueda Optuna TPE con **30 ensayos** (demo: 5), mismo espacio que B; **30 semillas** de la configuración final.
+- **Semilla representativa del MLP [DECIDIDO, José, 26-oct]:** la de MAE de **validación** mediano, posición (n − 1) // 2 al
+  ordenar por `(mae_val, seed)`, como B (B-pd §3.5: test nunca decide). De ella salen `lgd_mlp.pt`, `pred_test.parquet` y
+  `pred_pd_test.parquet`. Antes se elegía por MAE de test.
+- `summary.json` por modelo como B (núcleo §5.4): raíz `{lineal, mlp, referencias}`; la entrada `mlp` lleva los campos de
+  la de B (v0.16) y `evidencia`; L2 = (λ/2)‖W‖² ≡ `weight_decay = λ` (B-pd §3.2, v0.13) [DECIDIDO, José, 26-oct].
 - Variables: las de `features.yaml` (información de la originación).
 
 ### 3.4 Evaluación
