@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-26 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6), Parte D: D1–D8 (PR #7) y Parte C: C1 scorecard y C2 exportador con la logística real (PR #8, 26-oct 7:46 a. m.). Spec v0.14. En `dev/daniel` (sin PR): E5 E[L] por banda de puntaje, notebook 05 y blog 09. **B4 y B5 en `dev/andres`** (Spec v0.16, PR hacia `main`): `run.py pd-hpo`, `mlp_final.yaml` y `run.py pd` con 30 semillas, `summary.json`, `pred_mlp` y `models/pd_mlp.pt` |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): PR de B4+B5 (Spec v0.16); marcar ✅ B1 en `B-pd.md`; luego B6 (demo, puede usar `busqueda: {tipo: sin_busqueda}`) y B7. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de `dev/daniel` (E5, E11, blog 09); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6), Parte D: D1–D8 (PR #7) y Parte C: C1 scorecard y C2 exportador con la logística real (PR #8, 26-oct 7:46 a. m.). Spec v0.14. En `dev/daniel` (sin PR): E5 E[L] por banda de puntaje, notebook 05 y blog 09. **B4 y B5 en `dev/andres`** (Spec v0.16, PR hacia `main`): `run.py pd-hpo`, `mlp_final.yaml` y `run.py pd` con 30 semillas, `summary.json`, `pred_mlp` y `models/pd_mlp.pt`; **B6** (Spec v0.17): demo de PD `configs/pd/demo.yaml` + `datos.muestra` |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): PR de B4+B5 (Spec v0.16); marcar ✅ B1 en `B-pd.md`; B6 hecha (falta medirla en otra máquina: Daniel o Juan José, clon limpio); luego B7. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de `dev/daniel` (E5, E11, blog 09); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -78,7 +78,8 @@ mar 27 6 p. m. entrega.
 6. **PR de `dev/andres`** (B4+B5, v0.16): avisar a D (TPE multivariado, `FloatingPointError`), C y E (`pd_mlp.pt` = semilla
    20; PD media de test 0,204 vs tasa 0,262). Luego refactor `TODO(refactor-post-B5)`; blog 06: `mejor_epoca` = 1 en la
    mediana (val ruidosa) como limitación.
-7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
+7. B6: medir `python run.py pd --config configs/pd/demo.yaml` en otra máquina (núcleo §7.1) y marcar ✅; Daniel decide `demo: pd` en
+   `sustentacion.yaml`; README sin pasos de Linux (torch CPU: `--index-url https://download.pytorch.org/whl/cpu`) → PR dedicado.
 8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
 9. E5 → núcleo §5.4: `evidencia` de la E[L] = {sha256_particion, sha256_pred_pd, sha256_pred_lgd} (no usa preprocesador) y
    `perdida_observada` = pérdida realizada (NaN en mora); árbol §4 con `src/el/{experimento,tablas}.py` (PR de Spec, Daniel).
@@ -87,6 +88,8 @@ mar 27 6 p. m. entrega.
 Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código.
 
 ## 📓 Bitácora
+- **2026-10-26** — B6 (Andrés): demo de PD en 13,8–16,0 s (CPU, sin red, clon limpio; peor caso `lr=1e-4` 22,3 s); `datos.muestra`
+  (regla de D), errores con código 2; 1 276 pruebas. 4 revisores APROBADO (3 rondas). Falta otra máquina.
 - **2026-10-26** — Daniel confirma los 15 hallazgos de la cacería (meta cumplida: 4 categorías, las 5 partes).
 - **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la
   MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
