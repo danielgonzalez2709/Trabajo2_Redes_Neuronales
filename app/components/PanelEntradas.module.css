@@ -1,0 +1,42 @@
+.panel {
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.subtitulo {
+  margin: 0.3rem 0 1.25rem;
+  font-size: 0.9375rem;
+  color: var(--ds-texto-suave);
+}
+
+.bloque {
+  margin: 0 0 1rem;
+  padding: 1rem 1.25rem 0.5rem;
+  min-width: 0;
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  border-radius: var(--ds-radio);
+}
+
+.leyenda {
+  float: left; /* saca la leyenda del borde del fieldset y la deja como título de la tarjeta */
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-texto-suave);
+}
+
+.leyenda + * {
+  clear: both;
+}

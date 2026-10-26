@@ -1,52 +1,76 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import type { Entradas, ModeloPD, NombreModelo } from "../lib/contrato";
+// Único contenedor: conecta los adaptadores (modelos y entradas en la URL) con los componentes presentacionales.
+import { Suspense, useMemo } from "react";
+import { Aviso, Encabezado, Pie } from "../components/Marco";
+import { PanelEntradas } from "../components/PanelEntradas";
+import { TarjetaResultado } from "../components/TarjetaResultado";
+import { useEntradas } from "../hooks/useEntradas";
+import { useModelos } from "../hooks/useModelos";
+import type { ModeloPD, NombreModelo } from "../lib/contrato";
+import { densidadDesdePercentiles } from "../lib/densidad";
+import type { Valores } from "../lib/entradas";
 import { inferir, type Resultado } from "../lib/modelo";
+import estilos from "./page.module.css";
 
-const NOMBRES: NombreModelo[] = ["mlp", "logistica"];
-const TITULO: Record<NombreModelo, string> = { mlp: "Red neuronal (MLP)", logistica: "Regresión logística" };
-
-function valoresDefecto(m: ModeloPD): Entradas {
-  return Object.fromEntries(m.entradas.map((e) => [e.nombre, e.valor_defecto]));
+function calcular(modelos: Record<NombreModelo, ModeloPD>, valores: Valores) {
+  try {
+    const resultados: Record<NombreModelo, Resultado> = {
+      mlp: inferir(modelos.mlp, valores),
+      logistica: inferir(modelos.logistica, valores),
+    };
+    return { resultados, error: null };
+  } catch (e) {
+    return { resultados: null, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
-// Página mínima de E1: la UI completa es E2.
-export default function Pagina() {
-  const [resultados, setResultados] = useState<Partial<Record<NombreModelo, Resultado>>>({});
-  const [error, setError] = useState<string | null>(null);
+function Panel() {
+  const carga = useModelos();
+  const modelos = carga.estado === "listo" ? carga.modelos : null;
+  const { modelo, setModelo, valores, setValor } = useEntradas(modelos?.mlp.entradas ?? null);
 
-  useEffect(() => {
-    Promise.all(
-      NOMBRES.map(async (n) => {
-        const r = await fetch(`/model/pd_model_${n}.json`);
-        if (!r.ok) throw new Error(`No se pudo cargar el modelo ${n} (${r.status})`);
-        const m = (await r.json()) as ModeloPD;
-        return [n, inferir(m, valoresDefecto(m))] as const;
-      }),
-    )
-      .then((pares) => setResultados(Object.fromEntries(pares)))
-      .catch((e: Error) => setError(e.message));
-  }, []);
+  const calculo = useMemo(() => (modelos && valores ? calcular(modelos, valores) : null), [modelos, valores]);
+  const tramos = useMemo(
+    () => (modelos ? densidadDesdePercentiles(modelos[modelo].poblacion.percentiles_score) : []),
+    [modelos, modelo],
+  );
+
+  if (carga.estado === "error") {
+    return <Aviso tipo="error">No se pudieron cargar los modelos: {carga.mensaje}. Recarga la página.</Aviso>;
+  }
+  if (!modelos || !valores || !calculo) return <Aviso tipo="carga">Cargando los modelos…</Aviso>;
+  if (!calculo.resultados) return <Aviso tipo="error">No se pudo calcular el resultado: {calculo.error}.</Aviso>;
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: "2rem", maxWidth: 640, margin: "0 auto" }}>
-      <h1>¿Me prestas?</h1>
-      <p>Resultado con los valores por defecto del formulario.</p>
-      {error && <p role="alert">{error}</p>}
-      {NOMBRES.map((n) => (
-        <section key={n}>
-          <h2>{TITULO[n]}</h2>
-          {resultados[n] ? (
-            <p>
-              Puntaje {resultados[n].score.toFixed(1)} · PD {(resultados[n].pd * 100).toFixed(1)} % · percentil{" "}
-              {resultados[n].percentil.toFixed(0)}
-            </p>
-          ) : (
-            <p>Calculando…</p>
-          )}
-        </section>
-      ))}
-    </main>
+    <div className={estilos.rejilla}>
+      <div className={estilos.resultado}>
+        <TarjetaResultado
+          modelo={modelo}
+          onModelo={setModelo}
+          resultados={calculo.resultados}
+          poblacion={modelos[modelo].poblacion}
+          tramos={tramos}
+        />
+        {/* E3: aquí va el bloque "¿Y si…?" (R-APP-4), debajo de la tarjeta del resultado. */}
+      </div>
+      <div className={estilos.entradas}>
+        <PanelEntradas entradas={modelos.mlp.entradas} valores={valores} onCambio={setValor} />
+      </div>
+    </div>
+  );
+}
+
+export default function Pagina() {
+  return (
+    <div className={estilos.pagina}>
+      <Encabezado />
+      <main>
+        {/* useSearchParams exige un límite de Suspense en la exportación estática. */}
+        <Suspense fallback={<Aviso tipo="carga">Cargando…</Aviso>}>
+          <Panel />
+        </Suspense>
+      </main>
+      <Pie />
+    </div>
   );
 }
