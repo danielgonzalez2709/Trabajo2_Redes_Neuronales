@@ -8,9 +8,9 @@ import pandas as pd
 import pytest
 
 from src.common.results import save_json
-from src.lgd.tablas import (comparacion, redirigir_salidas, tabla_efecto_transformaciones, tabla_metricas,
-                            tabla_metricas_compacta, tabla_por_anio, tabla_por_plazo, tabla_por_split, tabla_poblacion,
-                            tabla_psi, tabla_referencias, tabla_relacion_objetivo)
+from src.lgd.tablas import (comparacion, describir_mlp, redirigir_salidas, tabla_efecto_transformaciones,
+                            tabla_metricas, tabla_metricas_compacta, tabla_por_anio, tabla_por_plazo, tabla_por_split,
+                            tabla_poblacion, tabla_psi, tabla_referencias, tabla_relacion_objetivo)
 from src.viz.figs_lgd import insumos_de_corrida
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -24,12 +24,12 @@ def _resumen() -> dict:
     lin = {k: _met(v) for k, v in {"mae_val": 0.10, "rmse_val": 0.20, "mae_test": 0.11, "rmse_test": 0.21}.items()}
     mlp = {k: _met(v, d, 3) for k, (v, d) in {"mae_val": (0.09, 0.002), "rmse_val": (0.19, 0.003),
                                                "mae_test": (0.10, 0.01), "rmse_test": (0.20, 0.004)}.items()}
-    return {
-        "modelos": {
-            "lineal": {"n_parametros": 49, "n_configuraciones_busqueda": 1, "tiempo_total_s": 0.5, "metricas": lin},
-            "mlp": {"n_parametros": 900, "n_configuraciones_busqueda": 30, "tiempo_total_s": 12.0, "metricas": mlp,
-                    "semillas": [0, 1, 2], "semilla_mediana": 1},
-        },
+    return {  # summary.json por modelo (núcleo §5.4, como B; D10) + referencias (D §3.4)
+        "lineal": {"n_parametros": 49, "n_configuraciones_busqueda": 1, "tiempo_total_s": 0.5, "metricas": lin},
+        "mlp": {"n_parametros": 900, "n_configuraciones_busqueda": 30, "tiempo_total_s": 12.0, "metricas": mlp,
+                "tiempo_busqueda_s": 9.0, "tiempo_semillas_s": 3.0, "semillas": [0, 1, 2], "semilla_mediana": 1,
+                "config": {"capas": [8, 4], "perdida": "bce_fraccional"}, "config_de_busqueda": True,
+                "busqueda": {"tipo": "optuna", "origen": "lgd-hpo: mejor de 30 ensayos"}},
         "referencias": {
             "constante_media": {"valor": 0.9, "n_parametros": 1, "n_configuraciones_busqueda": 1,
                                 "metricas": {"mae_val": 0.12, "rmse_val": 0.22, "mae_test": 0.13, "rmse_test": 0.23}},
@@ -76,6 +76,33 @@ def test_comparacion_con_otra_metrica():
 def test_comparacion_metrica_inexistente_es_error():
     with pytest.raises(ValueError):
         comparacion(_resumen(), metrica="r2_test")
+
+
+def test_tabla_metricas_mlp_fuera_de_la_busqueda_sin_configuraciones():
+    """Con ``config_de_busqueda`` false, ``n_configuraciones_busqueda`` es null (núcleo §5.4) y la tabla no lo
+    inventa."""
+    r = _resumen()
+    r["mlp"].update(n_configuraciones_busqueda=None, tiempo_busqueda_s=None, busqueda=None, config_de_busqueda=False)
+    t = tabla_metricas(r)
+    assert pd.isna(t.loc["mlp", "configuraciones"])
+    assert tabla_metricas_compacta(r).loc["mlp", "configuraciones"] == "—"
+
+
+def test_describir_mlp_con_y_sin_busqueda():
+    r = _resumen()
+    texto = describir_mlp(r["mlp"])
+    assert "lgd-hpo: mejor de 30 ensayos" in texto and "[8, 4]" in texto and "bce_fraccional" in texto
+    assert "búsqueda 9.0 s" in texto and "semillas 3.0 s" in texto
+    r["mlp"].update(tiempo_busqueda_s=None, busqueda=None, config_de_busqueda=False)
+    texto = describir_mlp(r["mlp"])
+    assert "configuración distinta de la de la búsqueda" in texto and "config_de_busqueda" not in texto
+    assert "lgd-hpo" not in texto and "búsqueda —" in texto and "semillas 3.0 s" in texto
+
+
+def test_describir_mlp_es_el_de_experimento():
+    """Una sola definición (la usan ``run.py lgd`` y el notebook); ``tablas`` la reexporta."""
+    from src.lgd import experimento
+    assert describir_mlp is experimento.describir_mlp
 
 
 def test_tabla_metricas_compacta():
@@ -217,7 +244,7 @@ def test_insumos_de_corrida_lee_la_carpeta_de_la_demo(tmp_path):
     save_json(tmp_path / "semillas" / "lineal_seed0.json", {"seed": 0})
     d = insumos_de_corrida(tmp_path, obs={"n": 1})
     assert d["obs"] == {"n": 1}
-    assert d["resumen"]["modelos"]["mlp"]["n_parametros"] == 900
+    assert d["resumen"]["mlp"]["n_parametros"] == 900
     assert list(d["pred"].columns) == ["id", "y", "pred_lineal", "pred_mlp"]
     assert [s["seed"] for s in d["semillas"]] == [0, 1]
 
@@ -227,7 +254,6 @@ def test_insumos_de_corrida_sin_summary_da_error(tmp_path):
         insumos_de_corrida(tmp_path, obs={})
 
 
-@pytest.mark.skipif(not (RAIZ / "results/data/lgd/summary.json").is_file(), reason="faltan los resultados de D4")
 def test_tablas_con_los_resultados_reales():
     from src.common.results import load_json
 

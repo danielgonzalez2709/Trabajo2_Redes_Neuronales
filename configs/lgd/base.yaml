@@ -29,14 +29,14 @@ hpo:
     neuronas: [16, 32, 64, 128, 256]        # categórico, por capa
     activacion: [relu, leaky_relu, tanh]
     dropout: [0.0, 0.5]                     # uniforme
-    l2: [1.0e-6, 1.0e-2]                    # log-uniforme (en D: l2·Σ‖W‖², ver mlp.l2)
+    l2: [1.0e-6, 1.0e-2]                    # log-uniforme ((l2/2)·Σ‖W‖², como B; ver mlp.l2)
     optimizador: [adam, sgd]
     lr: [1.0e-4, 1.0e-2]                    # log-uniforme
     batch: [256, 512, 1024, 2048]
 salida: results/data/lgd    # semillas/, summary.json, hpo_ensayos.json, pred_test.parquet, pred_pd_test.parquet
 modelos:
   lineal: models/lgd_lineal.joblib
-  mlp: models/lgd_mlp.pt    # semilla con el MAE de test mediano
+  mlp: models/lgd_mlp.pt    # semilla mediana por MAE de val: (mae_val, seed), posición (n-1)//2 (como B)
 # D1b — descriptivo de la LGD observada y después del preprocesamiento (python -m src.lgd.descriptivo; Parte D §3.2b).
 # Solo datos: las figuras (D6) se dibujan desde este JSON. El umbral de monotonía se lee de la config de A
 # (eda.umbral_monotonia de datos.config_datos), no se copia.

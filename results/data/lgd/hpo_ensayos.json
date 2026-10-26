@@ -46,45 +46,49 @@
   },
   "mlp_base": {
     "capas": [
-      64,
-      32
+      128,
+      64
     ],
-    "activacion": "relu",
-    "dropout": 0.1,
-    "l2": 0.0001,
+    "activacion": "tanh",
+    "dropout": 0.05426572640095942,
+    "l2": 0.003340334194956007,
     "optimizador": "adam",
-    "lr": 0.001,
+    "lr": 0.009801607304582592,
     "momento": 0.9,
-    "batch": 256,
+    "batch": 512,
     "max_epocas": 200,
     "paciencia": 10,
     "device": "auto",
     "perdida": "bce_fraccional"
   },
-  "tiempo_total_s": 32.5218260831316,
+  "tiempo_total_s": 126.09463870000764,
   "n": {
     "train": 14419,
     "val": 14836,
     "test": 13981
   },
   "muestra": null,
-  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
+  "evidencia": {
+    "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+    "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+  },
   "mejor": {
-    "numero": 27,
-    "valor_val": 0.2837579548358917,
-    "mae_val": 0.07613315967975787,
+    "numero": 29,
+    "valor_val": 0.28384727239608765,
+    "mae_val": 0.07598296439333821,
     "parametros": {
       "capas": [
-        128,
-        64
+        32,
+        64,
+        64,
+        32
       ],
-      "activacion": "tanh",
-      "dropout": 0.05426572640095942,
-      "l2": 0.003340334194956007,
+      "activacion": "leaky_relu",
+      "dropout": 0.3915788095788214,
+      "l2": 0.000886503551270592,
       "optimizador": "adam",
-      "lr": 0.009801607304582592,
-      "batch": 512
+      "lr": 0.009397991170979513,
+      "batch": 2048
     }
   },
   "ensayos": [
@@ -100,15 +104,15 @@
         "dropout": 0.4350060741234096,
         "l2": 0.008212461922256876,
         "optimizador": "adam",
-        "lr": 0.0036396393567863917,
+        "lr": 0.0036396393567863887,
         "batch": 2048
       },
-      "valor_val": 0.2839212715625763,
-      "mae_val": 0.07611352324552037,
-      "tiempo_s": 0.7797906249761581,
+      "valor_val": 0.2838473618030548,
+      "mae_val": 0.07612972480857864,
+      "tiempo_s": 2.358021199999712,
       "estado": "COMPLETE",
-      "epocas": 16,
-      "mejor_epoca": 6,
+      "epocas": 24,
+      "mejor_epoca": 14,
       "device": "cpu"
     },
     {
@@ -126,9 +130,9 @@
         "lr": 0.0007537078298264387,
         "batch": 256
       },
-      "valor_val": 0.2843833863735199,
-      "mae_val": 0.0761867267986785,
-      "tiempo_s": 8.295028291002382,
+      "valor_val": 0.28438466787338257,
+      "mae_val": 0.07618638381886422,
+      "tiempo_s": 31.148681399999987,
       "estado": "COMPLETE",
       "epocas": 200,
       "mejor_epoca": 199,
@@ -144,14 +148,14 @@
         ],
         "activacion": "relu",
         "dropout": 0.019593896127160337,
-        "l2": 1.3527821070347645e-05,
+        "l2": 1.3527821070347621e-05,
         "optimizador": "sgd",
         "lr": 0.00017276487008217891,
         "batch": 2048
       },
-      "valor_val": 0.30320897698402405,
-      "mae_val": 0.08623535572676255,
-      "tiempo_s": 4.432614416000433,
+      "valor_val": 0.3032054007053375,
+      "mae_val": 0.08623192871291453,
+      "tiempo_s": 19.445144100000107,
       "estado": "COMPLETE",
       "epocas": 200,
       "mejor_epoca": 200,
@@ -172,9 +176,9 @@
         "lr": 0.001394773898807281,
         "batch": 512
       },
-      "valor_val": 0.28408578038215637,
-      "mae_val": 0.07585504604453291,
-      "tiempo_s": 3.607629249978345,
+      "valor_val": 0.28408652544021606,
+      "mae_val": 0.07585515921541716,
+      "tiempo_s": 11.01303050000024,
       "estado": "COMPLETE",
       "epocas": 79,
       "mejor_epoca": 69,
@@ -195,9 +199,9 @@
         "lr": 0.0015196568166072376,
         "batch": 512
       },
-      "valor_val": 0.28418317437171936,
-      "mae_val": 0.07602936340661744,
-      "tiempo_s": 5.909006749978289,
+      "valor_val": 0.2841832935810089,
+      "mae_val": 0.07602924171045304,
+      "tiempo_s": 21.81997720000072,
       "estado": "COMPLETE",
       "epocas": 200,
       "mejor_epoca": 199,
@@ -219,9 +223,9 @@
         "lr": 0.002883906161101797,
         "batch": 512
       },
-      "valor_val": 0.28414177894592285,
-      "mae_val": 0.07626224175373253,
-      "tiempo_s": 1.5178670420427807,
+      "valor_val": 0.28407588601112366,
+      "mae_val": 0.0762926121763622,
+      "tiempo_s": 4.487072600000829,
       "estado": "COMPLETE",
       "epocas": 57,
       "mejor_epoca": 47,
@@ -240,9 +244,9 @@
         "lr": 0.0011783263946828998,
         "batch": 512
       },
-      "valor_val": 0.28413164615631104,
-      "mae_val": 0.07595710567011743,
-      "tiempo_s": 0.34402837499510497,
+      "valor_val": 0.2841336727142334,
+      "mae_val": 0.07595833723160489,
+      "tiempo_s": 0.722434000001158,
       "estado": "COMPLETE",
       "epocas": 15,
       "mejor_epoca": 5,
@@ -261,9 +265,9 @@
         "lr": 0.00011203596437082348,
         "batch": 512
       },
-      "valor_val": 0.2841491401195526,
-      "mae_val": 0.0757577719382049,
-      "tiempo_s": 0.9188459169818088,
+      "valor_val": 0.2841406464576721,
+      "mae_val": 0.07581954985555435,
+      "tiempo_s": 3.301975800000946,
       "estado": "COMPLETE",
       "epocas": 116,
       "mejor_epoca": 106,
@@ -285,9 +289,9 @@
         "lr": 0.0008455724970313275,
         "batch": 1024
       },
-      "valor_val": 0.283931702375412,
-      "mae_val": 0.07632104731760282,
-      "tiempo_s": 0.47372404200723395,
+      "valor_val": 0.2839316725730896,
+      "mae_val": 0.07632168399773737,
+      "tiempo_s": 1.4862563999995473,
       "estado": "COMPLETE",
       "epocas": 17,
       "mejor_epoca": 7,
@@ -305,12 +309,12 @@
         "dropout": 0.05014697113274891,
         "l2": 1.1633717625636615e-06,
         "optimizador": "adam",
-        "lr": 0.0037179695110280985,
+        "lr": 0.0037179695110280955,
         "batch": 512
       },
-      "valor_val": 0.28477513790130615,
-      "mae_val": 0.0754913956738962,
-      "tiempo_s": 0.43121287500252947,
+      "valor_val": 0.2847096025943756,
+      "mae_val": 0.07547729039993321,
+      "tiempo_s": 1.4358807999997225,
       "estado": "COMPLETE",
       "epocas": 20,
       "mejor_epoca": 10,
@@ -324,15 +328,15 @@
           64
         ],
         "activacion": "leaky_relu",
-        "dropout": 0.2418454888895233,
-        "l2": 0.001024441074442336,
+        "dropout": 0.24184548888952348,
+        "l2": 0.001024441074442337,
         "optimizador": "adam",
-        "lr": 0.0003188199864439434,
+        "lr": 0.00031881998644394397,
         "batch": 2048
       },
-      "valor_val": 0.2841399908065796,
-      "mae_val": 0.07572977595303743,
-      "tiempo_s": 0.6908231250126846,
+      "valor_val": 0.2842002511024475,
+      "mae_val": 0.07579626702396083,
+      "tiempo_s": 2.5850743999999395,
       "estado": "COMPLETE",
       "epocas": 118,
       "mejor_epoca": 108,
@@ -347,15 +351,15 @@
           64
         ],
         "activacion": "leaky_relu",
-        "dropout": 0.2326236659438197,
+        "dropout": 0.23262366594381986,
         "l2": 0.0006862885373206385,
         "optimizador": "adam",
-        "lr": 0.008999232017136814,
+        "lr": 0.008999232017136823,
         "batch": 512
       },
-      "valor_val": 0.2838841676712036,
-      "mae_val": 0.07618017487154109,
-      "tiempo_s": 0.36761791695607826,
+      "valor_val": 0.28397613763809204,
+      "mae_val": 0.07604094856796992,
+      "tiempo_s": 1.435569500001293,
       "estado": "COMPLETE",
       "epocas": 23,
       "mejor_epoca": 13,
@@ -366,42 +370,46 @@
       "parametros": {
         "capas": [
           16,
-          64
+          32,
+          256
         ],
         "activacion": "leaky_relu",
-        "dropout": 0.1261312736638854,
-        "l2": 0.003829380166095931,
+        "dropout": 0.06809170862855907,
+        "l2": 7.016564097873281e-05,
         "optimizador": "adam",
-        "lr": 0.004480894077069548,
-        "batch": 512
+        "lr": 0.0024845645648991985,
+        "batch": 2048
       },
-      "valor_val": 0.2838265299797058,
-      "mae_val": 0.07617615152879553,
-      "tiempo_s": 0.2119513340294361,
+      "valor_val": 0.28433477878570557,
+      "mae_val": 0.07582597746057615,
+      "tiempo_s": 2.868280599999707,
       "estado": "COMPLETE",
-      "epocas": 20,
-      "mejor_epoca": 10,
+      "epocas": 41,
+      "mejor_epoca": 31,
       "device": "cpu"
     },
     {
       "numero": 13,
       "parametros": {
         "capas": [
-          16
+          16,
+          16,
+          64,
+          256
         ],
-        "activacion": "tanh",
-        "dropout": 0.1034233234725924,
-        "l2": 0.0003236040677465922,
+        "activacion": "relu",
+        "dropout": 0.4775015946233687,
+        "l2": 0.0034286248125516674,
         "optimizador": "adam",
-        "lr": 0.001828067307868154,
-        "batch": 512
+        "lr": 0.008232784410561576,
+        "batch": 2048
       },
-      "valor_val": 0.2839893698692322,
-      "mae_val": 0.07560739758612021,
-      "tiempo_s": 0.18135637504747137,
+      "valor_val": 0.2839791476726532,
+      "mae_val": 0.0764082755988347,
+      "tiempo_s": 1.5084296999993967,
       "estado": "COMPLETE",
-      "epocas": 27,
-      "mejor_epoca": 17,
+      "epocas": 18,
+      "mejor_epoca": 8,
       "device": "cpu"
     },
     {
@@ -409,23 +417,23 @@
       "parametros": {
         "capas": [
           16,
+          64,
           32,
-          256,
-          32
+          16
         ],
-        "activacion": "leaky_relu",
-        "dropout": 0.2017255777888174,
-        "l2": 0.00017015234638622753,
+        "activacion": "tanh",
+        "dropout": 0.03440354865362473,
+        "l2": 1.2915662874499029e-05,
         "optimizador": "adam",
-        "lr": 0.009087070294663224,
-        "batch": 2048
+        "lr": 0.00045498209711875465,
+        "batch": 1024
       },
-      "valor_val": 0.28389137983322144,
-      "mae_val": 0.07571191181156635,
-      "tiempo_s": 0.45947704097488895,
+      "valor_val": 0.28389111161231995,
+      "mae_val": 0.07613949868340888,
+      "tiempo_s": 1.3772475000005215,
       "estado": "COMPLETE",
-      "epocas": 25,
-      "mejor_epoca": 15,
+      "epocas": 30,
+      "mejor_epoca": 20,
       "device": "cpu"
     },
     {
@@ -433,42 +441,46 @@
       "parametros": {
         "capas": [
           16,
+          64,
+          64,
           64
         ],
-        "activacion": "leaky_relu",
-        "dropout": 0.24753893987340436,
-        "l2": 2.305126757471255e-05,
+        "activacion": "tanh",
+        "dropout": 0.16272595172336024,
+        "l2": 5.761365942105821e-06,
         "optimizador": "adam",
-        "lr": 0.008013003276767757,
-        "batch": 512
+        "lr": 0.008100056575553514,
+        "batch": 1024
       },
-      "valor_val": 0.2842619717121124,
-      "mae_val": 0.07594969388859195,
-      "tiempo_s": 0.17105783300939947,
+      "valor_val": 0.28387337923049927,
+      "mae_val": 0.07612664718062218,
+      "tiempo_s": 0.7672563000014634,
       "estado": "COMPLETE",
-      "epocas": 16,
-      "mejor_epoca": 6,
+      "epocas": 13,
+      "mejor_epoca": 3,
       "device": "cpu"
     },
     {
       "numero": 16,
       "parametros": {
         "capas": [
-          32
+          16,
+          64,
+          64
         ],
-        "activacion": "leaky_relu",
-        "dropout": 0.15029463864763842,
-        "l2": 0.007208967782853636,
+        "activacion": "tanh",
+        "dropout": 0.11253354172653077,
+        "l2": 1.4125398359232238e-05,
         "optimizador": "adam",
-        "lr": 0.0009017840371340839,
-        "batch": 512
+        "lr": 0.0039400592407556724,
+        "batch": 1024
       },
-      "valor_val": 0.2839404046535492,
-      "mae_val": 0.07583610871030201,
-      "tiempo_s": 0.45644412498222664,
+      "valor_val": 0.2842170000076294,
+      "mae_val": 0.07593284269835404,
+      "tiempo_s": 0.6568277000005764,
       "estado": "COMPLETE",
-      "epocas": 67,
-      "mejor_epoca": 57,
+      "epocas": 14,
+      "mejor_epoca": 4,
       "device": "cpu"
     },
     {
@@ -476,21 +488,22 @@
       "parametros": {
         "capas": [
           16,
-          16
+          64,
+          64
         ],
-        "activacion": "relu",
-        "dropout": 0.10775117133513287,
-        "l2": 0.002942208213210397,
+        "activacion": "tanh",
+        "dropout": 0.11332518511998471,
+        "l2": 1.2774295315862047e-06,
         "optimizador": "adam",
-        "lr": 0.0025296021015071514,
-        "batch": 512
+        "lr": 0.008159688039097834,
+        "batch": 1024
       },
-      "valor_val": 0.2839200496673584,
-      "mae_val": 0.07569918214892433,
-      "tiempo_s": 0.16975812503369525,
+      "valor_val": 0.2842271029949188,
+      "mae_val": 0.07616423170151228,
+      "tiempo_s": 0.5818985000005341,
       "estado": "COMPLETE",
-      "epocas": 20,
-      "mejor_epoca": 10,
+      "epocas": 13,
+      "mejor_epoca": 3,
       "device": "cpu"
     },
     {
@@ -498,44 +511,47 @@
       "parametros": {
         "capas": [
           16,
+          32,
+          64,
           64
         ],
-        "activacion": "tanh",
-        "dropout": 0.17403174001904081,
-        "l2": 0.002278750333095742,
+        "activacion": "leaky_relu",
+        "dropout": 0.30385912546880556,
+        "l2": 1.4194131124231902e-05,
         "optimizador": "adam",
-        "lr": 0.00974199058045894,
-        "batch": 1024
+        "lr": 0.0015953505018235488,
+        "batch": 2048
       },
-      "valor_val": 0.28380343317985535,
-      "mae_val": 0.07607210010983124,
-      "tiempo_s": 0.18539083295036107,
+      "valor_val": 0.28408083319664,
+      "mae_val": 0.07604384335914302,
+      "tiempo_s": 1.8750972999987425,
       "estado": "COMPLETE",
-      "epocas": 19,
-      "mejor_epoca": 9,
+      "epocas": 42,
+      "mejor_epoca": 32,
       "device": "cpu"
     },
     {
       "numero": 19,
       "parametros": {
         "capas": [
-          128,
-          64,
-          256
+          16,
+          16,
+          256,
+          64
         ],
-        "activacion": "tanh",
-        "dropout": 0.19376796788255146,
-        "l2": 0.0040100446612530835,
+        "activacion": "leaky_relu",
+        "dropout": 0.42658099409597455,
+        "l2": 0.00275940212724935,
         "optimizador": "adam",
-        "lr": 0.006231670637759168,
-        "batch": 1024
+        "lr": 0.0010065195754028079,
+        "batch": 2048
       },
-      "valor_val": 0.2838938534259796,
-      "mae_val": 0.0761968770160526,
-      "tiempo_s": 0.4913370840367861,
+      "valor_val": 0.2839243710041046,
+      "mae_val": 0.07629331893515615,
+      "tiempo_s": 2.647730800001227,
       "estado": "COMPLETE",
-      "epocas": 14,
-      "mejor_epoca": 4,
+      "epocas": 33,
+      "mejor_epoca": 23,
       "device": "cpu"
     },
     {
@@ -543,21 +559,22 @@
       "parametros": {
         "capas": [
           16,
-          16
+          64,
+          64
         ],
-        "activacion": "tanh",
-        "dropout": 0.29247555157288224,
-        "l2": 0.006388631266010507,
+        "activacion": "leaky_relu",
+        "dropout": 0.4384744713065318,
+        "l2": 0.00011824285304525734,
         "optimizador": "adam",
-        "lr": 0.00878026133347563,
-        "batch": 256
+        "lr": 0.009095543210543157,
+        "batch": 2048
       },
-      "valor_val": 0.2838444411754608,
-      "mae_val": 0.07622524602982961,
-      "tiempo_s": 0.23415895801736042,
+      "valor_val": 0.2838563323020935,
+      "mae_val": 0.07584666682896345,
+      "tiempo_s": 1.0828693000003113,
       "estado": "COMPLETE",
-      "epocas": 13,
-      "mejor_epoca": 3,
+      "epocas": 30,
+      "mejor_epoca": 20,
       "device": "cpu"
     },
     {
@@ -565,43 +582,46 @@
       "parametros": {
         "capas": [
           16,
-          16
+          64,
+          64
         ],
-        "activacion": "tanh",
-        "dropout": 0.25264024148541336,
-        "l2": 0.0006403838218346132,
+        "activacion": "leaky_relu",
+        "dropout": 0.4220706329574229,
+        "l2": 0.00014193207804514096,
         "optimizador": "adam",
-        "lr": 0.0031862556934883694,
-        "batch": 256
+        "lr": 0.008138788506226803,
+        "batch": 2048
       },
-      "valor_val": 0.28395745158195496,
-      "mae_val": 0.07603808788779516,
-      "tiempo_s": 0.5302715409779921,
+      "valor_val": 0.28396549820899963,
+      "mae_val": 0.07595991479908615,
+      "tiempo_s": 0.9008487999999488,
       "estado": "COMPLETE",
-      "epocas": 32,
-      "mejor_epoca": 22,
+      "epocas": 24,
+      "mejor_epoca": 14,
       "device": "cpu"
     },
     {
       "numero": 22,
       "parametros": {
         "capas": [
-          16,
-          16
+          32,
+          64,
+          64,
+          128
         ],
         "activacion": "tanh",
-        "dropout": 0.38405584549785166,
-        "l2": 0.00484431195424817,
+        "dropout": 0.2672069254674079,
+        "l2": 6.1105005998764245e-06,
         "optimizador": "adam",
-        "lr": 0.004804173782544042,
-        "batch": 256
+        "lr": 0.006779404690548879,
+        "batch": 1024
       },
-      "valor_val": 0.2838667929172516,
-      "mae_val": 0.07593100100576466,
-      "tiempo_s": 0.2130152500467375,
+      "valor_val": 0.2840926945209503,
+      "mae_val": 0.07590114570051586,
+      "tiempo_s": 1.6166852999995172,
       "estado": "COMPLETE",
-      "epocas": 13,
-      "mejor_epoca": 3,
+      "epocas": 20,
+      "mejor_epoca": 10,
       "device": "cpu"
     },
     {
@@ -609,152 +629,162 @@
       "parametros": {
         "capas": [
           16,
-          32
+          64,
+          64
         ],
         "activacion": "leaky_relu",
-        "dropout": 0.09238954016986094,
-        "l2": 0.0005721891902678914,
+        "dropout": 0.3189695085226332,
+        "l2": 0.0012243077445322193,
         "optimizador": "adam",
-        "lr": 0.0038194928660678124,
-        "batch": 512
+        "lr": 0.003050564952848564,
+        "batch": 2048
       },
-      "valor_val": 0.2842046916484833,
-      "mae_val": 0.07578991856401511,
-      "tiempo_s": 0.13660916703520343,
+      "valor_val": 0.2838762104511261,
+      "mae_val": 0.07600943287895809,
+      "tiempo_s": 1.6279953000012028,
       "estado": "COMPLETE",
-      "epocas": 15,
-      "mejor_epoca": 5,
+      "epocas": 43,
+      "mejor_epoca": 33,
       "device": "cpu"
     },
     {
       "numero": 24,
       "parametros": {
         "capas": [
+          16,
           64
         ],
-        "activacion": "tanh",
-        "dropout": 0.23872422560703824,
-        "l2": 0.0044316960568415885,
+        "activacion": "leaky_relu",
+        "dropout": 0.47052372586973895,
+        "l2": 4.9495726543719035e-06,
         "optimizador": "adam",
-        "lr": 0.0022066795809679136,
-        "batch": 256
+        "lr": 0.0016185878125240644,
+        "batch": 2048
       },
-      "valor_val": 0.2839052081108093,
-      "mae_val": 0.07573776772516355,
-      "tiempo_s": 0.28277970902854577,
+      "valor_val": 0.2841174304485321,
+      "mae_val": 0.07570413085171467,
+      "tiempo_s": 1.0496175999996922,
       "estado": "COMPLETE",
-      "epocas": 18,
-      "mejor_epoca": 8,
+      "epocas": 44,
+      "mejor_epoca": 34,
       "device": "cpu"
     },
     {
       "numero": 25,
       "parametros": {
         "capas": [
-          32,
-          16
+          16,
+          64,
+          64,
+          32
         ],
-        "activacion": "tanh",
-        "dropout": 0.15906061611921501,
-        "l2": 0.0008624478764202996,
+        "activacion": "leaky_relu",
+        "dropout": 0.4215493658651796,
+        "l2": 0.00017777442952549697,
         "optimizador": "adam",
-        "lr": 0.009527732770516722,
-        "batch": 1024
+        "lr": 0.005313930331493727,
+        "batch": 2048
       },
-      "valor_val": 0.2837693691253662,
-      "mae_val": 0.07605268702111465,
-      "tiempo_s": 0.10526279103942215,
+      "valor_val": 0.28385910391807556,
+      "mae_val": 0.07611955490145844,
+      "tiempo_s": 0.7248904000007315,
       "estado": "COMPLETE",
-      "epocas": 14,
-      "mejor_epoca": 4,
+      "epocas": 17,
+      "mejor_epoca": 7,
       "device": "cpu"
     },
     {
       "numero": 26,
       "parametros": {
         "capas": [
-          32,
-          64
+          64,
+          64,
+          64,
+          32
         ],
-        "activacion": "tanh",
-        "dropout": 0.19302175316430475,
-        "l2": 0.00017615629111605976,
+        "activacion": "leaky_relu",
+        "dropout": 0.32837004768067324,
+        "l2": 2.0013500706873224e-05,
         "optimizador": "adam",
-        "lr": 0.006727682972109497,
-        "batch": 1024
+        "lr": 0.005195469355842282,
+        "batch": 2048
       },
-      "valor_val": 0.2841466963291168,
-      "mae_val": 0.07589188017372299,
-      "tiempo_s": 0.17324979096883908,
+      "valor_val": 0.284280925989151,
+      "mae_val": 0.07567202198938562,
+      "tiempo_s": 1.5279656000002433,
       "estado": "COMPLETE",
-      "epocas": 16,
-      "mejor_epoca": 6,
+      "epocas": 30,
+      "mejor_epoca": 20,
       "device": "cpu"
     },
     {
       "numero": 27,
       "parametros": {
         "capas": [
-          128,
-          64
+          16,
+          16,
+          16,
+          32
         ],
-        "activacion": "tanh",
-        "dropout": 0.05426572640095942,
-        "l2": 0.003340334194956007,
+        "activacion": "leaky_relu",
+        "dropout": 0.44044496568152236,
+        "l2": 0.00023989317188543032,
         "optimizador": "adam",
-        "lr": 0.009801607304582592,
-        "batch": 512
+        "lr": 0.0018248636199156276,
+        "batch": 2048
       },
-      "valor_val": 0.2837579548358917,
-      "mae_val": 0.07613315967975787,
-      "tiempo_s": 0.4076372080016881,
+      "valor_val": 0.2838761806488037,
+      "mae_val": 0.07598157589995648,
+      "tiempo_s": 1.378766199999518,
       "estado": "COMPLETE",
-      "epocas": 18,
-      "mejor_epoca": 8,
+      "epocas": 52,
+      "mejor_epoca": 42,
       "device": "cpu"
     },
     {
       "numero": 28,
       "parametros": {
         "capas": [
-          32,
           16,
           32
         ],
-        "activacion": "tanh",
-        "dropout": 0.1143871305971903,
-        "l2": 0.004146887277529992,
+        "activacion": "leaky_relu",
+        "dropout": 0.3835272048207253,
+        "l2": 0.0005058693365718022,
         "optimizador": "adam",
-        "lr": 0.009313255867417011,
-        "batch": 1024
+        "lr": 0.0028853428134316263,
+        "batch": 256
       },
-      "valor_val": 0.28383979201316833,
-      "mae_val": 0.0761481421737395,
-      "tiempo_s": 0.1489183340454474,
+      "valor_val": 0.2839403450489044,
+      "mae_val": 0.07578799469556542,
+      "tiempo_s": 1.2684477000002516,
       "estado": "COMPLETE",
-      "epocas": 14,
-      "mejor_epoca": 4,
+      "epocas": 20,
+      "mejor_epoca": 10,
       "device": "cpu"
     },
     {
       "numero": 29,
       "parametros": {
         "capas": [
+          32,
+          64,
+          64,
           32
         ],
-        "activacion": "tanh",
-        "dropout": 0.1473992429480974,
-        "l2": 0.001571294687723826,
+        "activacion": "leaky_relu",
+        "dropout": 0.3915788095788214,
+        "l2": 0.000886503551270592,
         "optimizador": "adam",
-        "lr": 0.004506153127120552,
-        "batch": 1024
+        "lr": 0.009397991170979513,
+        "batch": 2048
       },
-      "valor_val": 0.2839299440383911,
-      "mae_val": 0.07585125175898046,
-      "tiempo_s": 0.19496195897227153,
+      "valor_val": 0.28384727239608765,
+      "mae_val": 0.07598296439333821,
+      "tiempo_s": 1.3946661999998469,
       "estado": "COMPLETE",
-      "epocas": 36,
-      "mejor_epoca": 26,
+      "epocas": 30,
+      "mejor_epoca": 20,
       "device": "cpu"
     }
   ]
