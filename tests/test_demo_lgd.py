@@ -1,10 +1,12 @@
 """D5 (Parte D §5): la demo de la LGD corre por CLI en < 2 min en CPU y deja sus artefactos.
 
-Lenta (usa los datos reales): ``pytest tests/test_demo_lgd.py -m lento``. Corre en ``tmp_path`` con enlaces a los
-datos procesados y al preprocesador, así que no escribe nada en el repo.
+Lenta (usa los datos reales): ``pytest tests/test_demo_lgd.py -m lento``. Corre en ``tmp_path`` con copias de los
+datos procesados y del preprocesador (no enlaces simbólicos: en Windows exigen permisos de administrador o el
+modo de desarrollador), así que no escribe nada en el repo.
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import time
@@ -29,7 +31,7 @@ def test_demo_lgd_menos_de_2_minutos(tmp_path: Path):
         pytest.skip("faltan los datos procesados reales (D2 / Parte A)")
     for e in entradas:
         (tmp_path / e).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / e).symlink_to(RAIZ / e)
+        shutil.copy2(RAIZ / e, tmp_path / e)
 
     inicio = time.perf_counter()
     res = subprocess.run([sys.executable, str(RAIZ / "run.py"), "lgd", "--config", str(RAIZ / "configs/lgd/demo.yaml"),
