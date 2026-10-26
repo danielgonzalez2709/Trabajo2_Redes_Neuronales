@@ -61,7 +61,7 @@ copiado de `categorias_es` (núcleo §5.5, v0.12).
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
-| C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
+| ✅ C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
 | C2 | Exportador + `pd_model.json` de juguete | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | Juan José |
 | C3 | Scorecard de la logística | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
 | C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |

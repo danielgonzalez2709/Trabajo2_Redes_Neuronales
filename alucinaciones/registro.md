@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 7 (H-01, H-03, H-04, H-05, H-06, H-07, H-09) | 2 (H-03, H-04) |
+| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -264,3 +264,49 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** un resultado asintótico tiene hipótesis (modelo paramétrico, media bien especificada); citarlo para
    un modelo que no las cumple es una exageración. Pedir al verificador que contraste cada "es consistente / es insesgado"
    con las hipótesis del teorema citado.
+
+### H-11 — "Las funciones usan factor y offset tal como vienen", probado solo en dos de las cuatro funciones
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico`, con mutantes sobre las pruebas de la fase roja de C1; Juan José había
+  pedido revisar el caso del bool en `params` antes de la verificación
+1. **Prompt (literal):** `prompts/C1.md`, sección "1. implementador — fase roja" (interfaz: "params debe tener EXACTAMENTE
+   las claves de CLAVES_PARAMETROS …, factor real finito > 0 y offset real finito. No se comprueba que factor y offset
+   coincidan con base/odds_base/pdo").
+2. **Respuesta relevante de la IA:** `tests/test_scorecard.py` (fase roja, sin commit),
+   `test_03e_usa_factor_y_offset_recibidos`, con el docstring "Las funciones usan factor y offset tal como vienen (no los
+   recalculan desde base/odds_base/pdo)", pero solo llama a `score_desde_logit` y `logit_desde_score`. Además, la lista de
+   `params` inválidos no incluye ningún bool, aunque `validar_cfg_scorecard` sí los rechaza.
+3. **Cómo sospechamos:** el docstring afirma algo de "las funciones" (las cuatro) y la prueba cubre dos; el verificador
+   escribió mutantes a propósito para esa afirmación.
+4. **Evidencia:** `evidencias/H-11_mutantes_sobreviven.txt` (con `H-11_referencia_con_mutantes.py` y
+   `H-11_pruebas_propuestas.py`): el mutante `recalcula_solo_pd` (recalcula factor y offset dentro de `score_desde_pd` y
+   `pd_desde_score`) y el mutante `bool_params` (`float(True) = 1.0` aceptado como factor) pasan las 199 pruebas; con las
+   pruebas propuestas mueren (1 y 24 fallos).
+5. **Corrección:** antes de la fase verde de C1 se añaden `test_03f` (las funciones de PD usan el factor y el offset
+   recibidos: σ(2) → 80 con factor 10 y offset 100) y `test_09o` (bool en factor u offset → ValueError en las 4 funciones).
+6. **Lección aprendida:** cuando un docstring de prueba dice "las funciones…", la prueba debe recorrer todas (parametrizar
+   por función); y una regla de validación (rechazar bool) se prueba en cada lugar donde se aplica, no solo en el primero.
+
+### H-12 — "Texto u objetos no numéricos fallan aquí", dicho de `np.asarray(x, dtype=np.float64)`
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad` (bloqueante B1 de la revisión de C1); el orquestador lo reprodujo
+1. **Prompt (literal):** `prompts/C1.md`, sección "3. implementador — fase verde" ("entrada convertida con
+   np.asarray(..., dtype=np.float64)"; estilo de validación como `_es_real`, que rechaza bool y texto).
+2. **Respuesta relevante de la IA:** `src/scorecard/scorecard.py` (fase verde, sin commit), `_a_float64`:
+   `try:  # texto u objetos no numéricos fallan aquí` / `return np.asarray(x, dtype=np.float64)`, presentado como el
+   filtro que rechaza entradas no numéricas en las cuatro transformaciones.
+3. **Cómo sospechamos:** el mismo módulo rechaza bool y texto en la config y en `params` porque `float(True) = 1.0` "se
+   colaría"; el revisor probó esas mismas entradas en las transformaciones.
+4. **Evidencia:** `evidencias/H-12_entrada_texto_bool.txt`: `score_desde_logit("1.5")` = 443.84, `score_desde_pd("0.3")` =
+   511.57 y `score_desde_logit(True)` = 458.27 sin error; solo falla el texto que no parece número (`"abc"`). NumPy convierte
+   con `float()` los textos numéricos y los bool al pedir `dtype=float64`.
+5. **Corrección:** ronda 2 de C1: `_a_float64` rechaza todo dtype que no sea entero o real (`dtype.kind not in "iuf"`: bool,
+   texto, objeto, complejo) antes de convertir, con pruebas parametrizadas sobre las cuatro funciones.
+6. **Lección aprendida:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X; una regla de
+   validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
