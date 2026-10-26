@@ -626,8 +626,8 @@ def procedencia(mlp: dict, busqueda: dict, ruta_mlp_final) -> tuple[bool, list[s
 # ## Presupuesto de la búsqueda
 #
 # Con `config_de_busqueda` true (solo posible con `tipo: optuna`, ver `procedencia`), la búsqueda debe ser con los
-# **mismos datos** (`busqueda.evidencia` = huellas de esta corrida); si no → `ValueError`. Entonces el presupuesto del MLP es
-# `n_configuraciones_busqueda = busqueda.n_ensayos` y `tiempo_busqueda_s = busqueda.tiempo_s`. Con false, los tres
+# **mismos datos** (`busqueda.evidencia` = huellas de esta corrida); si no → `ValueError`. Entonces el presupuesto del
+# MLP es `n_configuraciones_busqueda = busqueda.n_ensayos` y `tiempo_busqueda_s = busqueda.tiempo_s`. Con false, los tres
 # campos quedan en `None` (el presupuesto de la búsqueda no corresponde a esta config).
 
 # %%

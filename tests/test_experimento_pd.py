@@ -29,8 +29,8 @@
 """Pruebas de las celdas de B5 en src/pd/experimento.py y del subcomando run.py pd (Parte B §3.5)."""
 
 import copy  # copias profundas de configs y bloques
-import re  # formato de la línea del MLP en la consola
 import itertools  # reloj falso que avanza a paso fijo
+import re  # formato de la línea del MLP en la consola
 from pathlib import Path  # rutas de los archivos de prueba
 
 import numpy as np  # datos sintéticos y comparaciones
