@@ -29,12 +29,14 @@
 """Pruebas de las celdas de B5 en src/pd/experimento.py y del subcomando run.py pd (Parte B §3.5)."""
 
 import copy  # copias profundas de configs y bloques
+import re  # formato de la línea del MLP en la consola
 import itertools  # reloj falso que avanza a paso fijo
 from pathlib import Path  # rutas de los archivos de prueba
 
 import numpy as np  # datos sintéticos y comparaciones
 import pandas as pd  # parquet sintético y pred_test
 import pytest  # fixtures, parametrización y pytest.raises
+import torch  # hilos y versión registrados en los JSON
 import yaml  # base.yaml temporal
 from scipy.special import expit  # σ de la logística generadora y del modelo falso
 
@@ -76,7 +78,8 @@ REJILLA_CORTA = [1.0e-2, 1.0]  # rejilla de C del escenario (rápido)
 CAPAS_OTRAS = [8]  # capas del --set de la prueba 20
 PASO_RELOJ = 1.0  # avance del reloj falso por llamada (exacto en binario)
 PENDIENTE_FALSA = 0.5  # pendiente de la PD del modelo falso sobre la columna 0
-DESPLAZAMIENTO_FALSO = 0.01  # cambio del logit del modelo falso por unidad de semilla
+DESPLAZAMIENTO_FALSO = 0.01  # cambio del logit (o de la PD constante) del modelo falso por unidad de semilla
+PD_BASE_FALSA = 0.6  # PD constante del modelo falso monótono: 0.67…0.69 > ȳ de val → log-loss creciente en la semilla
 N_PARAM_FALSO = 11  # parámetros que declara el modelo falso
 MENSAJE_DIVERGE = "Pérdida de train no finita (nan) en la época 1"  # FloatingPointError simulado
 AVISO = ("summary.json conserva la entrada mlp anterior, que ya no corresponde a semillas/; "
@@ -190,19 +193,25 @@ class _CargarContador:
     """Doble de ``cargar``: delega en ``cargar_datos`` y cuenta sus llamadas."""
 
     def __init__(self):
+        """Sin llamadas al inicio."""
         self.llamadas = 0  # llamadas recibidas
 
     def __call__(self, rutas):
+        """Cuenta la llamada y devuelve (df, matrices) del escenario."""
         self.llamadas += 1  # registra la llamada
         return ex.cargar_datos(rutas)  # datos reales del escenario
 
 
-def _fabrica_falsa(falla_en=None):
-    """(clase de modelo falso, contador): fit cuenta llamadas y lanza FloatingPointError en la llamada ``falla_en``."""
+def _fabrica_falsa(falla_en=None, constante=False):
+    """(clase de modelo falso, contador): fit cuenta llamadas y lanza FloatingPointError en la llamada ``falla_en``;
+    con ``constante`` la PD es PD_BASE_FALSA + DESPLAZAMIENTO_FALSO·semilla en todas las filas."""
     contador = {"fit": 0, "predict": 0}  # llamadas a fit y a predict_proba (compartidas por todas las instancias)
 
     class _ModeloFalso:
+        """Modelo con la interfaz que usa correr_mlp (fit, predict_proba, n_parametros, resultado, guardar)."""
+
         def fit(self, X_tr, y_tr, X_val, y_val, cfg, seed):
+            """Cuenta la llamada, diverge si toca y guarda la semilla."""
             k = contador["fit"]  # número de esta llamada (desde 0)
             contador["fit"] += 1  # cuenta la llamada
             if k == falla_en:  # llamada que debe diverger
@@ -211,20 +220,26 @@ def _fabrica_falsa(falla_en=None):
             return self  # como MLPPD
 
         def predict_proba(self, X):
+            """PD que depende de la semilla: constante (monótona en la semilla) o logística de la columna 0."""
             contador["predict"] += 1  # cuenta la predicción
+            if constante:  # log-loss de val monótona en la semilla
+                return np.full(np.shape(X)[0], PD_BASE_FALSA + DESPLAZAMIENTO_FALSO * self._seed)  # una PD por fila
             return expit(PENDIENTE_FALSA * np.asarray(X, dtype=np.float64)[:, 0]
                          + DESPLAZAMIENTO_FALSO * self._seed)  # PD en (0, 1)
 
         def n_parametros(self):
+            """Parámetros declarados (fijo)."""
             return N_PARAM_FALSO  # fijo
 
         @property
         def resultado(self):
+            """ResultadoEntrenamiento de una época."""
             historial = [{"epoca": 1, "perdida_train": 0.6, "perdida_val": 0.6}]  # una época
             return ResultadoEntrenamiento(historial, 1, 1, 0.6)  # mismo tipo que MLPPD
 
         def guardar(self, ruta):
-            Path(ruta).write_bytes(b"falso")  # archivo no vacío
+            """Escribe la semilla del modelo como texto (identifica qué red se guardó)."""
+            Path(ruta).write_text(str(self._seed), encoding="utf-8")  # archivo no vacío con la semilla
 
     return _ModeloFalso, contador  # modelo_cls inyectable y su contador
 
@@ -292,15 +307,14 @@ def test_04_constantes_coinciden_con_hpo():
 
 
 def test_05_presupuesto_busqueda(escenario):
-    """True coherente → n_ensayos y tiempo_s; evidencia distinta o tipo ≠ optuna → ValueError; False → None."""
+    """True coherente → n_ensayos y tiempo_s; evidencia distinta → ValueError; False → None (el tipo lo decide
+    procedencia: con sin_busqueda nunca llega true, prueba 30)."""
     busqueda, huellas = escenario["busqueda"], escenario["huellas"]  # coherentes
     p = ex.presupuesto_busqueda(busqueda, True, huellas)  # config de la búsqueda
     assert p == {"n_configuraciones_busqueda": 5, "tiempo_busqueda_s": 12.5, "busqueda": busqueda}  # presupuesto
     otras = {**huellas, "sha256_particion": "0" * 64}  # otra partición
     with pytest.raises(ValueError, match="repite pd-hpo"):  # otros datos
         ex.presupuesto_busqueda(busqueda, True, otras)  # evidencia distinta
-    with pytest.raises(ValueError):  # procedencia desconocida
-        ex.presupuesto_busqueda({**busqueda, "tipo": "sin_busqueda"}, True, huellas)  # tipo ≠ optuna
     assert ex.presupuesto_busqueda(busqueda, False, otras) == {  # no es la config de la búsqueda
         "n_configuraciones_busqueda": None, "tiempo_busqueda_s": None, "busqueda": None}  # tres None
 
@@ -342,6 +356,7 @@ def test_07_semillas_n_invalido(escenario, tmp_path, n):
 def _mutar(cambio):
     """Mutación de la config: ("quitar", ruta) o ("poner", ruta, valor) con ruta = tupla de claves."""
     def mutar(cfg):
+        """Aplica la mutación a ``cfg`` en el sitio."""
         nodo = cfg  # baja hasta el padre
         for clave in cambio[1][:-1]:  # tramos intermedios
             nodo = nodo[clave]  # siguiente nivel
@@ -418,7 +433,7 @@ def test_10_evidencia_distinta_antes_de_borrar(escenario, tmp_path):
 
 def test_10b_dos_lecturas_una_huella(escenario):
     """La huella de comprobar_antes (solo id, split) es idéntica a la de evidencia(df completo)."""
-    rapida = ex.huella_particion_rapida(escenario["parquet"], escenario["pre"])  # lee solo id, split
+    rapida = ex.evidencia_rapida(escenario["parquet"], escenario["pre"])  # lee solo id, split
     df, _ = ex.cargar_datos(_rutas(escenario, escenario["base"]))  # lectura completa de correr_mlp
     assert rapida == ex.evidencia(df, escenario["pre"]) == escenario["huellas"]  # misma huella
     ex.comprobar_antes(_cfg(escenario), _rutas(escenario, escenario["base"]),
@@ -432,6 +447,7 @@ def test_10c_comprobar_antes_usa_el_lector_inyectado(escenario, tmp_path):
     llamadas = []  # argumentos recibidos
 
     def leer(parquet, pre):
+        """Lector espía de la partición: registra la llamada."""
         llamadas.append((parquet, pre))  # registra
         return {**escenario["huellas"], "sha256_particion": "0" * 64}  # otra partición
 
@@ -487,6 +503,7 @@ def test_12b_reloj_rodea_solo_el_fit(escenario, tmp_path):
     tics = []  # (fits, predicciones) en cada llamada al reloj
 
     def reloj():
+        """Reloj espía: registra (fits, predicciones) y avanza."""
         tics.append((contador["fit"], contador["predict"]))  # estado al leer el reloj
         return float(len(tics))  # avanza
 
@@ -646,13 +663,16 @@ def test_22_correr_pd_orden(escenario, tmp_path):
     orden = []  # llamadas en orden
 
     def comprobar(c, rutas):
+        """Pre-chequeo espía: registra la llamada."""
         orden.append(("comprobar", rutas))  # primero
 
     def log(c, rutas, seed):
+        """Logística espía: registra la llamada."""
         orden.append(("logistica", rutas, seed))  # segundo
         return {"n": "log"}  # entrada falsa
 
     def red(c, rutas):
+        """MLP espía: registra la llamada."""
         orden.append(("mlp", rutas))  # tercero
         return {"n": "mlp"}  # entrada falsa
 
@@ -663,6 +683,7 @@ def test_22_correr_pd_orden(escenario, tmp_path):
     orden.clear()  # de nuevo, con un pre-chequeo que falla
 
     def falla(c, rutas):
+        """Pre-chequeo que falla como con otros datos."""
         raise ValueError("la búsqueda se hizo con otros datos; repite pd-hpo")  # pre-chequeo
 
     with pytest.raises(ValueError):  # se propaga
@@ -726,6 +747,8 @@ def test_25_cli_pd(escenario, tmp_path, monkeypatch, capsys):
     mlp = load_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY)["mlp"]  # entrada escrita
     assert mlp["metricas"]["auc_test"]["n"] == 2 and mlp["config_de_busqueda"] is True  # 2 semillas, de la búsqueda
     assert "Config de la búsqueda: sí" in salida  # procedencia en consola
+    linea_mlp = next(linea for linea in salida.splitlines() if linea.startswith("mlp: "))  # línea del MLP (no el YAML)
+    assert re.search(r"AUC test \d\.\d{4} ± \d\.\d{4}", linea_mlp)  # media ± desv con 2 semillas
     assert f"{BUSQUEDA_SIN_EVIDENCIA['n_ensayos']} configuraciones" in salida  # presupuesto de la búsqueda
 
 
@@ -789,6 +812,7 @@ def test_30_sin_busqueda_flujo(escenario, tmp_path, capsys):
     assert "sin_busqueda" in capsys.readouterr().out  # aviso
 
     def otra_particion(parquet, pre):
+        """Lector que devuelve otra partición."""
         return {**escenario["huellas"], "sha256_particion": "0" * 64}  # huella distinta
 
     ex.comprobar_antes(cfg, _rutas(escenario, tmp_path), ruta_mlp_final=ruta,
@@ -802,6 +826,7 @@ def test_31_comprobar_antes_valida_la_logistica(escenario, tmp_path):
     llamadas = []  # lecturas de la partición
 
     def leer(parquet, pre):
+        """Lector espía de la partición: registra la llamada."""
         llamadas.append(parquet)  # registra
         return escenario["huellas"]  # coherente
 
@@ -827,9 +852,11 @@ def test_32_correr_pd_salidas_previas_antes_de_la_logistica(escenario, tmp_path,
     llamadas = []  # dobles llamados
 
     def log(c, rutas, seed):
+        """Logística espía: registra la llamada."""
         llamadas.append("logistica")  # no debe ocurrir
 
     def red(c, rutas):
+        """MLP espía: registra la llamada."""
         llamadas.append("mlp")  # no debe ocurrir
 
     with pytest.raises(ValueError):  # pre-chequeo
@@ -847,11 +874,80 @@ def test_33_leer_test_inyectable(escenario, tmp_path):
     llamadas = []  # lecturas
 
     def leer_test(parquet):
+        """Lector espía de ids e y de test."""
         llamadas.append(parquet)  # registra
         return ids, y  # los del parquet
 
     ex.comprobar_antes(_cfg(escenario), rutas, ruta_mlp_final=escenario["ruta_final"], leer_test=leer_test)  # ok
     assert llamadas == [rutas.parquet]  # una lectura
+
+
+# %% [markdown]
+# ## 34–38. Ronda 3 (revisor-calidad)
+#
+# Borrado dentro del flujo y su orden respecto de `_verificar_salidas`, red guardada = la de la semilla mediana cuando
+# no es ni la primera ni la última, config que no es un mapeo, e hilos y versión de torch registrados.
+
+# %%
+def test_34_correr_mlp_borra_las_semillas_viejas(escenario, tmp_path, capsys):
+    """Corrida correcta: mlp_seed42.json desaparece, logistica_seed0.json queda y la consola informa 1 borrado."""
+    rutas = _rutas(escenario, tmp_path)  # salidas temporales
+    vieja = rutas.resultados / ex.CARPETA_SEMILLAS / "mlp_seed42.json"  # semilla de una corrida anterior
+    ajena = rutas.resultados / ex.CARPETA_SEMILLAS / "logistica_seed0.json"  # semilla de la logística
+    save_json(vieja, {"viejo": True})  # existe antes
+    save_json(ajena, {"ajena": True})  # existe antes
+    modelo_cls, _ = _fabrica_falsa()  # modelo falso
+    ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                  ruta_mlp_final=escenario["ruta_final"])  # corrida correcta
+    assert not vieja.exists() and ajena.exists()  # solo se borra la del MLP
+    assert "Semillas anteriores del MLP borradas: 1" in capsys.readouterr().out  # informa cuántas
+
+
+def test_35_verificar_salidas_antes_de_borrar(escenario, tmp_path):
+    """Si _verificar_salidas falla (summary con raíz lista), mlp_seed42.json sigue existiendo."""
+    rutas = _rutas(escenario, tmp_path)  # salidas temporales
+    vieja = rutas.resultados / ex.CARPETA_SEMILLAS / "mlp_seed42.json"  # semilla de una corrida anterior
+    save_json(vieja, {"viejo": True})  # existe antes
+    save_json(rutas.resultados / ex.ARCHIVO_SUMMARY, [1, 2])  # raíz no dict
+    modelo_cls, _ = _fabrica_falsa()  # modelo falso
+    with pytest.raises(ValueError):  # falla rápido
+        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida
+    assert vieja.exists()  # la verificación va antes del borrado
+
+
+def test_36_red_guardada_es_la_mediana_del_medio(escenario, tmp_path):
+    """Log-loss de val creciente en la semilla: con {7, 8, 9} la mediana es 8 (ni la primera ni la última) y
+    pd_mlp.pt y pred_mlp son los de la 8."""
+    rutas = _rutas(escenario, tmp_path)  # salidas temporales
+    modelo_cls, _ = _fabrica_falsa(constante=True)  # PD constante creciente en la semilla
+    entrada = ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                            ruta_mlp_final=escenario["ruta_final"])  # corrida
+    perdidas = [load_json(rutas.resultados / ex.CARPETA_SEMILLAS / f"mlp_seed{s}.json")["metricas"]["logloss_val"]
+                for s in (BASE_SEED, BASE_SEED + 1, BASE_SEED + 2)]  # log-loss de val de 7, 8 y 9
+    assert perdidas == sorted(perdidas) and len(set(perdidas)) == 3  # estrictamente creciente
+    medio = BASE_SEED + 1  # semilla 8
+    assert entrada["semilla_mediana"] == medio  # la del medio
+    assert (rutas.modelos / ex.ARCHIVO_MODELO_MLP).read_text(encoding="utf-8") == str(medio)  # red de la 8
+    pred = pd.read_parquet(rutas.resultados / ex.ARCHIVO_PRED_TEST)["pred_mlp"]  # PD de test escrita
+    assert np.allclose(pred, PD_BASE_FALSA + DESPLAZAMIENTO_FALSO * medio, rtol=0, atol=1e-12)  # PD de la 8
+
+
+@pytest.mark.parametrize("cfg", [None, [1, 2], "base.yaml"], ids=["none", "lista", "texto"])
+def test_37_config_que_no_es_mapeo(cfg):
+    """correr_pd y manejador con una config que no es mapeo → ValueError antes de rutas_de."""
+    with pytest.raises(ValueError, match="la config de pd debe ser un mapeo"):  # mensaje claro
+        ex.correr_pd(cfg)  # orquestación
+    with pytest.raises(ValueError, match="la config de pd debe ser un mapeo"):  # también desde el CLI
+        ex.manejador(cfg)  # run.py pd
+
+
+def test_38_hilos_y_version_de_torch(corrida):
+    """hilos_torch y version_torch de cada semilla y del summary son los del proceso."""
+    esperado = (torch.get_num_threads(), str(torch.__version__))  # proceso actual
+    for r in corrida["semillas"].values():  # cada semilla
+        assert (r["hilos_torch"], r["version_torch"]) == esperado  # registrados
+    assert (corrida["entrada"]["hilos_torch"], corrida["entrada"]["version_torch"]) == esperado  # summary
 
 
 # %% [markdown]
@@ -867,7 +963,7 @@ def test_26_configs_versionadas():
     assert ex.procedencia(mlp, busqueda, ROOT / "configs" / "pd" / "mlp_final.yaml") == (True, [])  # de la búsqueda
     hpo.validar_cfg(load_config(ROOT / "configs" / "pd" / "hpo.yaml"))  # pd-hpo sigue válido
     parquet, pre = ROOT / "data" / "processed" / "loans_pd.parquet", ROOT / "models" / "preprocesador_pd.json"  # A
-    assert ex.huella_particion_rapida(parquet, pre) == ex.evidencia(pd.read_parquet(parquet), pre)  # misma huella
+    assert ex.evidencia_rapida(parquet, pre) == ex.evidencia(pd.read_parquet(parquet), pre)  # misma huella
 
 
 # %% [markdown]

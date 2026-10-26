@@ -54,7 +54,7 @@ __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "MODELO_MLP", "ARCHIVO_MODELO_MLP", "RUTA_MLP_FINAL", "TIPO_OPTUNA", "CLAVES_BUSQUEDA",  # B5: nombres
     "CRITERIO_SEMILLA_MEDIANA", "AVISO_SUMMARY_VIEJO",  # B5: textos de las reglas
     "validar_cfg_mlp_final", "claves_distintas", "leer_mlp_final", "procedencia", "presupuesto_busqueda",  # B5
-    "borrar_semillas_mlp", "entrenar_semilla", "huella_particion_rapida", "calibracion_global",  # B5: piezas
+    "borrar_semillas_mlp", "entrenar_semilla", "evidencia_rapida", "calibracion_global",  # B5: piezas
     "registro_semilla_mlp", "semilla_mediana", "entrada_summary_mlp", "correr_mlp",  # B5: MLP
     "rutas_de", "leer_test_rapido", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
     "TIPO_SIN_BUSQUEDA",  # B5 ronda 2: config fijada a mano
@@ -499,7 +499,7 @@ CLAVES_CFG_MLP_FINAL = ("semillas", "base_seed", "mlp", "busqueda")  # bloques q
 # ## Validación: enteros de la config
 #
 # `seeds.validar_entero` (int de Python o de numpy, nunca bool) con su `TypeError` convertido en `ValueError`: toda
-# falla de la config es `ValueError`. `semillas` es un mapeo con **exactamente** la clave `n`, entero $\ge 1$.
+# falla de la config es `ValueError`.
 #
 # TODO(refactor-post-B5): es otra copia del envoltorio TypeError → ValueError (`_semilla_valida` arriba, `_entero` de
 # `hpo.py` y `_entero_config` de `mlp.py` y `logistica.py`); se unifica en el refactor posterior a B5.
@@ -513,6 +513,12 @@ def _entero_cfg(valor, nombre: str, minimo: int) -> int:
         raise ValueError(str(exc)) from exc  # mismo mensaje, ValueError
 
 
+# %% [markdown]
+# ## Validación: bloque `semillas`
+#
+# `semillas` es un mapeo con **exactamente** la clave `n`, entero $\ge 1$ (B-pd §3.5).
+
+# %%
 def _n_semillas(cfg: dict) -> int:
     """``semillas.n`` como entero ≥ 1 (``semillas`` debe ser un mapeo con exactamente la clave ``n``)."""
     semillas = cfg["semillas"]  # bloque semillas
@@ -619,8 +625,8 @@ def procedencia(mlp: dict, busqueda: dict, ruta_mlp_final) -> tuple[bool, list[s
 # %% [markdown]
 # ## Presupuesto de la búsqueda
 #
-# Con `config_de_busqueda` true, la búsqueda debe ser de Optuna y con los **mismos datos** (`busqueda.evidencia` =
-# huellas de esta corrida); si no → `ValueError`. Entonces el presupuesto del MLP es
+# Con `config_de_busqueda` true (solo posible con `tipo: optuna`, ver `procedencia`), la búsqueda debe ser con los
+# **mismos datos** (`busqueda.evidencia` = huellas de esta corrida); si no → `ValueError`. Entonces el presupuesto del MLP es
 # `n_configuraciones_busqueda = busqueda.n_ensayos` y `tiempo_busqueda_s = busqueda.tiempo_s`. Con false, los tres
 # campos quedan en `None` (el presupuesto de la búsqueda no corresponde a esta config).
 
@@ -629,9 +635,6 @@ def presupuesto_busqueda(busqueda: dict, de_busqueda: bool, huellas: dict) -> di
     """{n_configuraciones_busqueda, tiempo_busqueda_s, busqueda}; ValueError si la búsqueda no es coherente."""
     if not de_busqueda:  # otra config: sin presupuesto de búsqueda
         return {"n_configuraciones_busqueda": None, "tiempo_busqueda_s": None, "busqueda": None}  # null
-    if busqueda["tipo"] != TIPO_OPTUNA:  # procedencia desconocida
-        raise ValueError(f"busqueda.tipo debe ser {TIPO_OPTUNA!r}; se recibió {busqueda['tipo']!r}; "
-                         "repite pd-hpo")  # procedencia desconocida (no ocurre tras validar: defensa)
     if busqueda["evidencia"] != huellas:  # otra partición u otro preprocesador
         raise ValueError("busqueda.evidencia no coincide con la de esta corrida: la búsqueda se hizo con otros "
                          "datos; repite pd-hpo")  # texto de B-pd §3.5
@@ -715,13 +718,13 @@ def entrenar_semilla(modelo_cls, datos: dict, cfg_mlp: dict, seed: int, reloj) -
 
 
 # %% [markdown]
-# ## Huella rápida de la partición
+# ## Evidencia rápida
 #
 # Para el pre-chequeo de `correr_pd`, antes de la logística: la misma `evidencia` leyendo del parquet **solo** las
 # columnas `id` y `split` (mismo orden de filas). Una prueba exige que coincida con la del DataFrame completo.
 
 # %%
-def huella_particion_rapida(ruta_parquet, ruta_preprocesador) -> dict:
+def evidencia_rapida(ruta_parquet, ruta_preprocesador) -> dict:
     """``evidencia`` del parquet leyendo solo id y split."""
     df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # dos columnas
     return evidencia(df, ruta_preprocesador)  # misma función que correr_mlp
@@ -942,7 +945,7 @@ def leer_test_rapido(ruta_parquet) -> tuple[np.ndarray, np.ndarray]:
 # Antes de la logística, sin preprocesar ni entrenar: las mismas validaciones de `correr_mlp`, el bloque `logistica`
 # (`bloque_logistica`), la existencia de `mlp_final.yaml`, las salidas previas (`_verificar_salidas` con los ids e $y$
 # de test de `leer_test`, por defecto `leer_test_rapido`) y, si la config es la de la búsqueda, la evidencia de la
-# búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto `huella_particion_rapida`).
+# búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto `evidencia_rapida`).
 # Así una búsqueda hecha con otros datos o una salida ajena no cuestan la corrida de la logística.
 
 # %%
@@ -951,23 +954,26 @@ def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=None, leer_partici
     _, _, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # mismas reglas que correr_mlp
     bloque_logistica(cfg)  # bloque logistica validado (E4)
     ruta_mlp_final = RUTA_MLP_FINAL if ruta_mlp_final is None else ruta_mlp_final  # al llamar
-    leer = huella_particion_rapida if leer_particion is None else leer_particion  # al llamar
+    leer_particion = evidencia_rapida if leer_particion is None else leer_particion  # al llamar
     leer_test = leer_test_rapido if leer_test is None else leer_test  # al llamar
     de_busqueda, _ = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda? (E1 si falta)
     ids_test, y_test = leer_test(rutas.parquet)  # solo id, split y target
     _verificar_salidas(rutas, ids_test, y_test)  # summary y pred_test previos (E4)
-    huellas = leer(rutas.parquet, rutas.preprocesador)  # solo id y split
+    huellas = leer_particion(rutas.parquet, rutas.preprocesador)  # solo id y split
     presupuesto_busqueda(busqueda, de_busqueda, huellas)  # ValueError si los datos no son los de la búsqueda
 
 
 # %% [markdown]
 # ## `run.py pd`: composición
 #
-# Rutas de la config → pre-chequeo → logística (semilla `base_seed`) → MLP. Las tres piezas se inyectan.
+# Config que no es un mapeo → `ValueError` (antes de `rutas_de`); luego rutas de la config → pre-chequeo →
+# logística (semilla `base_seed`) → MLP. Las tres piezas se inyectan.
 
 # %%
 def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, comprobar=comprobar_antes) -> dict:
     """{"logistica", "mlp", "rutas"}: pre-chequeo, logística y MLP con las mismas rutas."""
+    if not isinstance(cfg, dict):  # p. ej. None si el subcomando no recibió config
+        raise ValueError(f"la config de pd debe ser un mapeo; se recibió {type(cfg).__name__}")  # tipo
     rutas = rutas_de(cfg)  # salidas de la config
     comprobar(cfg, rutas)  # antes de la logística
     entrada_log = correr_log(cfg, rutas, seed=cfg["base_seed"])  # logística (B3)
