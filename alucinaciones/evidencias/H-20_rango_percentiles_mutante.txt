@@ -1,0 +1,11 @@
+Nota: registrado primero como H-13 en dev/juanjose; renumerado a H-20 (en main ya existen H-13…H-19).
+H-20 — evidencia (26-oct-2026). Copia del repositorio fuera del repo; src/scorecard/puntos.py y tests/test_puntos.py de la ronda 2 de C3 (sin commit).
+
+== Original:
+74 passed in 13.37s
+
+== Mutante M16 (rango de las numéricas con los extremos de percentiles_tabla en vez de percentiles_rango):
+387:    extremos = puntos_valor_crudo(np.percentile(crudos, [pct[0], pct[-1]]), v_pre, unidad)  # p_a y p_b
+74 passed in 11.62s
+
+Efecto con datos reales (verificador-matematico): rango_puntos de pub_rec pasa de 0 (p5-p95) a 9.889 (p1-p99).
