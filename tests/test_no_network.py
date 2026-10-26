@@ -20,6 +20,7 @@ from src.common import cli
 RAIZ = Path(__file__).resolve().parents[1]
 FIGURAS_VERSIONADAS = RAIZ / "blog" / "docs" / "figures"
 MODELO_APP_VERSIONADO = RAIZ / "app" / "public" / "model"
+RESULTADOS_SCORECARD = RAIZ / "results" / "data" / "scorecard"
 MODULOS_DE_RED = {"socket", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib"}
 
 
@@ -49,8 +50,9 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 @pytest.mark.parametrize(
     "argv",
     [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"],
-     ["pd-hpo", "--config", "configs/pd/hpo.yaml"], ["pd", "--config", "configs/pd/base.yaml"]],
-    ids=["eda", "figures", "export", "pd-hpo", "pd"],
+     ["pd-hpo", "--config", "configs/pd/hpo.yaml"], ["pd", "--config", "configs/pd/base.yaml"],
+     ["scorecard", "--config", "configs/scorecard/base.yaml"]],
+    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -63,7 +65,11 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
 
     `export` (Parte C, C2) no recibe `--config`: lee `src.export.exportar_app.RUTA_CONFIG`, que se apunta a un YAML
     temporal que hereda `configs/scorecard/export.yaml` y solo cambia `export.destino` a `tmp_path/app`. Se comprueba
-    que escribió los dos JSON allí y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
+    que escribió allí EXACTAMENTE los archivos de `archivos_modelo(m)` para cada `m` de `MODELOS` (C5: pd_model y casos
+    de paridad de los dos modelos) y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
+
+    `scorecard` (Parte C, C3) recibe `--set salida=tmp_path` (como `eda`): se comprueba que escribió
+    `tmp_path/scorecard.json` y que `results/data/scorecard/` quedó idéntico (si no existe, huellas vacías).
     """
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
@@ -76,18 +82,28 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
         argv = [*argv, "--set", f"salida={(tmp_path / 'res').as_posix()}",
                 "--set", f"modelos={(tmp_path / 'models').as_posix()}",
                 "--set", "semillas.n=1", "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
+    if argv[0] == "scorecard":  # scorecard.json: a un directorio temporal, nunca a results/data/scorecard/
+        argv = [*argv, "--set", f"salida={tmp_path.as_posix()}"]
     destinos = _redirigir_figuras(monkeypatch, tmp_path) if argv[0] == "figures" else {}
     destino_app = _redirigir_export(monkeypatch, tmp_path) if argv[0] == "export" else None
     antes = _huellas(FIGURAS_VERSIONADAS)
     antes_app = _huellas(MODELO_APP_VERSIONADO)
+    antes_scorecard = _huellas(RESULTADOS_SCORECARD)
     assert cli.main(argv) == 0
+    alterados_scorecard = _diferencias(antes_scorecard, _huellas(RESULTADOS_SCORECARD))
+    assert not alterados_scorecard, f"`run.py {argv[0]}` alteró results/data/scorecard/: {alterados_scorecard}"
+    if argv[0] == "scorecard":
+        from src.scorecard.puntos import ARCHIVO_SCORECARD
+
+        assert (tmp_path / ARCHIVO_SCORECARD).is_file(), "`run.py scorecard` no escribió scorecard.json en tmp_path"
     alterados_app = _diferencias(antes_app, _huellas(MODELO_APP_VERSIONADO))
     assert not alterados_app, f"`run.py {argv[0]}` alteró app/public/model/: {alterados_app}"
     if destino_app is not None:
-        from src.export.exportar_app import ARCHIVO_MODELO, ARCHIVO_PARIDAD
+        from src.export.exportar_app import MODELOS, archivos_modelo
 
-        escritos = sorted(r.name for r in destino_app.glob("*.json"))
-        assert escritos == sorted([ARCHIVO_MODELO, ARCHIVO_PARIDAD]), escritos
+        escritos = sorted(r.name for r in destino_app.rglob("*") if r.is_file())
+        esperados = sorted(nombre for modelo in MODELOS for nombre in archivos_modelo(modelo))
+        assert escritos == esperados, escritos
     alterados = _diferencias(antes, _huellas(FIGURAS_VERSIONADAS))
     assert not alterados, (f"`run.py {argv[0]}` alteró figuras versionadas de blog/docs/figures/: {alterados}; "
                            "restaurar con `git checkout -- blog/docs/figures/`")

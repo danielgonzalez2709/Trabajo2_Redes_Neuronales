@@ -269,10 +269,17 @@ def test_06c_pd_desde_score_satura_sin_error():
 
 
 def test_07_config_base():
-    """configs/scorecard/base.yaml tiene solo el bloque scorecard con 600/50/20."""
+    """configs/scorecard/base.yaml: el bloque scorecard es EXACTAMENTE {base: 600, odds_base: 50, pdo: 20} y
+    bloque_scorecard lo valida.
+
+    No se exige que ``scorecard`` sea la única clave de raíz: la tarea C3 añade a la misma config los bloques
+    ``modelo``, ``rutas``, ``distribucion`` y ``salida`` (los comprueba ``tests/test_puntos.py``). Lo que C1 fija es
+    el bloque ``scorecard``, y ese sigue siendo exacto.
+    """
     cfg = load_config(RUTA_CONFIG)
-    assert set(cfg) == {"scorecard"}
+    assert "scorecard" in cfg
     assert cfg["scorecard"] == {"base": 600, "odds_base": 50, "pdo": 20}
+    assert set(cfg["scorecard"]) == {"base", "odds_base", "pdo"}
     assert bloque_scorecard(cfg) == {"base": 600.0, "odds_base": 50.0, "pdo": 20.0}
 
 

@@ -9,19 +9,23 @@
 # ---
 
 # %% [markdown]
-# # Exportador de la app: `pd_model.json` y `casos_paridad.json` (Parte C §3.5, tarea C2; núcleo §5.5)
+# # Exportador de la app: `pd_model_{modelo}.json` y `casos_paridad_{modelo}.json` (Parte C §3.5, tareas C2 y C5)
 #
-# Produce los **dos JSON** que la app web (Parte E) lee de `app/public/model/` para calcular en el navegador la PD, el
-# puntaje y el percentil de una persona (enunciado, Entregable 4; R-APP-1 a R-APP-4):
+# **Los dos modelos de PD van a la app** (núcleo §5.5, Spec v0.17). Una sola corrida de `python run.py export` escribe
+# en `app/public/model/` **dos JSON por modelo**, con `{modelo}` ∈ `export.modelos` (`logistica` y `mlp`). La app web
+# (Parte E) los lee para calcular en el navegador la PD, el puntaje y el percentil de una persona con cualquiera de los
+# dos modelos (enunciado, Entregable 4; R-APP-1 a R-APP-4):
 #
-# - `pd_model.json`: formulario (`entradas`), preprocesamiento (`Preprocesador.to_dict()`), pesos de la red, parámetros
-#   de la scorecard, percentiles del puntaje en test y métricas de test;
-# - `casos_paridad.json`: 1 000 filas de test con sus entradas **crudas** y la PD y el puntaje calculados en Python;
-#   la prueba de paridad de la app exige $|PD_{TS} - PD_{Py}| < 10^{-6}$ y $|score_{TS} - score_{Py}| < 10^{-3}$.
+# - `pd_model_{modelo}.json`: formulario (`entradas`), preprocesamiento (`Preprocesador.to_dict()`), pesos de la red,
+#   parámetros de la scorecard, percentiles del puntaje en test y métricas de test. `entradas`, `preprocesamiento` y
+#   `scorecard` son iguales en los dos modelos; `red`, `poblacion` y `metricas` son de cada uno;
+# - `casos_paridad_{modelo}.json`: 1 000 filas de test con sus entradas **crudas** y la PD y el puntaje calculados en
+#   Python; la prueba de paridad de la app exige, para **cada** modelo, $|PD_{TS} - PD_{Py}| < 10^{-6}$ y
+#   $|score_{TS} - score_{Py}| < 10^{-3}$.
 #
-# **De dónde sale cada cosa:** el modelo de PD de la Parte B (`models/pd_logistica.joblib`, B3; `models/pd_mlp.pt`
-# cuando exista, B5), el preprocesador común de la Parte A (`models/preprocesador_pd.json`), la scorecard de C1
-# (`src/scorecard/scorecard.py`) y la config `configs/scorecard/export.yaml` (comando `python run.py export`).
+# **De dónde sale cada cosa:** los modelos de PD de la Parte B (`models/pd_logistica.joblib`, B3; `models/pd_mlp.pt`,
+# el MLP de la semilla mediana, B5), el preprocesador común de la Parte A (`models/preprocesador_pd.json`), la scorecard
+# de C1 (`src/scorecard/scorecard.py`) y la config `configs/scorecard/export.yaml` (comando `python run.py export`).
 #
 # **Fuga de información (núcleo §5.7):** los estadísticos del formulario (recorte, mediana, moda) salen **solo de
 # train** (el preprocesador ya se ajustó solo con train); de test solo salen los percentiles del puntaje (población de
@@ -31,7 +35,8 @@
 # efectos al importar.
 
 # %%
-"""Exportador de la app: pd_model.json y casos_paridad.json según el contrato del núcleo §5.5 (Parte C, tarea C2)."""
+"""Exportador de la app: pd_model_{modelo}.json y casos_paridad_{modelo}.json de los dos modelos de PD según el
+contrato del núcleo §5.5 (Parte C, tareas C2 y C5)."""
 
 import copy  # copias de la config para no mutar la recibida
 import math  # floor, ceil, isfinite
@@ -58,14 +63,16 @@ from src.pd.mlp import MLPPD, construir_red, validar_cfg_mlp  # MLP de PD (B2/B5
 from src.scorecard.scorecard import bloque_scorecard, parametros_scorecard, score_desde_logit  # scorecard de C1
 
 __all__ = [  # interfaz pública acordada (tarea C2); lo demás es interno
-    "VERSION_CONTRATO", "MODELOS", "RUTA_CONFIG", "TOLERANCIA_PARIDAD", "ARCHIVO_MODELO", "ARCHIVO_PARIDAD",  # constantes
+    "VERSION_CONTRATO", "MODELOS", "RUTA_CONFIG", "TOLERANCIA_PARIDAD",  # constantes del contrato
+    "PLANTILLA_MODELO", "PLANTILLA_PARIDAD",  # nombres de archivo por modelo
+    "archivos_modelo",  # nombres de los dos archivos de un modelo
     "validar_cfg_export", "entradas_app",  # config y formulario
     "capas_logistica", "capas_mlp",  # pesos de la red
     "percentiles_score", "metricas_test", "commit_actual",  # población, métricas y procedencia
-    "construir_pd_model",  # pd_model.json en memoria
+    "construir_pd_model",  # pd_model_{modelo}.json en memoria
     "preprocesar_desde_json", "forward_desde_json", "inferir_desde_json",  # receta de la app
     "elegir_casos", "construir_casos_paridad",  # casos de paridad
-    "exportar",  # escribe los dos archivos
+    "exportar",  # escribe los dos archivos de cada modelo
 ]
 
 
@@ -75,12 +82,12 @@ __all__ = [  # interfaz pública acordada (tarea C2); lo demás es interno
 # Todas salen del núcleo §5.5 (o de la tarea C2); lo demás (rutas, pasos, número de casos, semilla) sale de la config.
 
 # %%
-VERSION_CONTRATO = 1  # "version_contrato" de pd_model.json y casos_paridad.json (núcleo §5.5)
+VERSION_CONTRATO = 1  # "version_contrato" de pd_model_{modelo}.json y casos_paridad_{modelo}.json (núcleo §5.5)
 MODELOS = ("logistica", "mlp")  # "modelo": "mlp | logistica" (núcleo §5.5)
 RUTA_CONFIG = Path("configs/scorecard/export.yaml")  # config de `python run.py export` (relativa a la raíz)
 TOLERANCIA_PARIDAD = {"pd": 1e-6, "score": 1e-3}  # prueba de paridad en CI (núcleo §5.5)
-ARCHIVO_MODELO = "pd_model.json"  # nombre del archivo del modelo (núcleo §5.5)
-ARCHIVO_PARIDAD = "casos_paridad.json"  # nombre del archivo de casos (núcleo §5.5)
+PLANTILLA_MODELO = "pd_model_{modelo}.json"  # archivo del modelo, uno por modelo (núcleo §5.5, v0.17)
+PLANTILLA_PARIDAD = "casos_paridad_{modelo}.json"  # archivo de casos, uno por modelo (núcleo §5.5, v0.17)
 
 PERCENTILES = np.arange(101)  # p0 … p100: 101 valores (núcleo §5.5)
 REFERENCIA_POBLACION = "test"  # "referencia" de la población (núcleo §5.5)
@@ -89,13 +96,45 @@ ACTIVACION_LINEAL = "identidad"  # activación de la última capa y de la logís
 PENDIENTE_LEAKY = 0.01  # negative_slope por defecto de torch.nn.LeakyReLU, la que usa construir_red de src/pd/mlp.py
 SPLIT_TRAIN, SPLIT_TEST = "train", "test"  # valores de la columna split (núcleo §5.1)
 
-CLAVES_EXPORT = ("modelo", "rutas", "destino", "n_casos_paridad", "n_forzados_por_grupo", "base_seed", "pasos")  # bloque
+CLAVES_EXPORT = ("modelos", "rutas", "destino", "n_casos_paridad", "n_forzados_por_grupo", "base_seed",
+                 "pasos")  # bloque export
 CLAVES_RUTAS = ("logistica", "mlp", "preprocesador", "datos", "features")  # sub-bloque export.rutas
 
 TOL_ENTERO = 1e-9  # tolerancia relativa para tratar un cociente x/paso como entero (0.1 no es exacto en binario)
 COMANDO_COMMIT = ("git", "rev-parse", "HEAD")  # procedencia del export (proceso local, sin red)
 COMMIT_DESCONOCIDO = "desconocido"  # si git no está o no es un repositorio
 RAIZ_REPO = Path(__file__).resolve().parents[2]  # carpeta donde se pregunta a git
+
+
+# %% [markdown]
+# ## Nombres de los archivos de cada modelo
+#
+# Cada modelo $m \in$ `MODELOS` tiene sus dos archivos: `pd_model_{m}.json` y `casos_paridad_{m}.json` (núcleo §5.5,
+# v0.17). Un modelo fuera de `MODELOS` no tiene nombre: `ValueError`.
+
+# %%
+def _validar_modelo(modelo, nombre: str = "modelo") -> None:
+    """ValueError si ``modelo`` no es uno de ``MODELOS``.
+
+    Parámetros:
+        modelo: valor a revisar.
+        nombre: cómo se llama el valor en el mensaje (p. ej. "export.modelos[1]").
+    """
+    if not isinstance(modelo, str) or modelo not in MODELOS:  # p. ej. "svm", None o True
+        raise ValueError(f"{nombre} debe ser uno de {MODELOS}; se recibió {modelo!r}")  # opción
+
+
+def archivos_modelo(modelo: str) -> tuple[str, str]:
+    """Nombres de los dos archivos de ``modelo``.
+
+    Parámetros:
+        modelo: "logistica" o "mlp".
+
+    Retorna:
+        tuple[str, str]: (nombre de pd_model, nombre de casos_paridad).
+    """
+    _validar_modelo(modelo)  # solo los modelos del contrato
+    return PLANTILLA_MODELO.format(modelo=modelo), PLANTILLA_PARIDAD.format(modelo=modelo)  # pd_model y casos
 
 
 # %% [markdown]
@@ -160,8 +199,8 @@ def _claves_exactas(bloque, claves, nombre: str) -> None:
 #
 # | Clave | Regla |
 # |---|---|
-# | (todas) | exactamente `modelo`, `rutas`, `destino`, `n_casos_paridad`, `n_forzados_por_grupo`, `base_seed`, `pasos` |
-# | `modelo` | `logistica` o `mlp` |
+# | (bloque) | `modelos`, `rutas`, `destino`, `n_casos_paridad`, `n_forzados_por_grupo`, `base_seed`, `pasos` |
+# | `modelos` | lista no vacía, sin repetidos, cada valor `logistica` o `mlp` (orden de escritura) |
 # | `rutas` | exactamente `logistica`, `mlp`, `preprocesador`, `datos`, `features`; cada una texto no vacío |
 # | `destino` | texto no vacío (carpeta de salida) |
 # | `n_casos_paridad`, `n_forzados_por_grupo` | enteros $\ge 1$ |
@@ -189,8 +228,13 @@ def validar_cfg_export(cfg_export, features) -> dict:
         dict: copia profunda del bloque validado.
     """
     _claves_exactas(cfg_export, CLAVES_EXPORT, "El bloque export")  # primero las claves
-    if cfg_export["modelo"] not in MODELOS:  # p. ej. "lightgbm"
-        raise ValueError(f"export.modelo debe ser uno de {MODELOS}; se recibió {cfg_export['modelo']!r}")  # opción
+    modelos = cfg_export["modelos"]  # modelos que se exportan, en orden
+    if not isinstance(modelos, list) or not modelos:  # texto, None o lista vacía
+        raise ValueError(f"export.modelos debe ser una lista no vacía; se recibió {modelos!r}")  # tipo
+    for i, modelo in enumerate(modelos):  # cada valor por separado
+        _validar_modelo(modelo, f"export.modelos[{i}]")  # "svm", True…; el mensaje nombra la posición
+    if len(set(modelos)) != len(modelos):  # el mismo archivo se escribiría dos veces
+        raise ValueError(f"export.modelos tiene repetidos: {modelos!r}")  # config
     _claves_exactas(cfg_export["rutas"], CLAVES_RUTAS, "El bloque export.rutas")  # cinco rutas exactas
     for clave, ruta in cfg_export["rutas"].items():  # cada ruta es un texto
         _texto_no_vacio(ruta, f"export.rutas.{clave}")  # ruta vacía o no textual
@@ -723,7 +767,7 @@ def inferir_desde_json(modelo_json: dict, entradas) -> tuple[np.ndarray, np.ndar
     """PD y puntaje desde entradas crudas leyendo solo ``modelo_json`` (la receta de la app).
 
     Parámetros:
-        modelo_json: pd_model.json (dict).
+        modelo_json: pd_model_{modelo}.json (dict).
         entradas: DataFrame o list[dict] de entradas crudas.
 
     Retorna:
@@ -818,10 +862,10 @@ def _crudo(x):
 
 
 def construir_casos_paridad(modelo_json: dict, df_casos: pd.DataFrame) -> dict:
-    """Contenido de casos_paridad.json.
+    """Contenido de casos_paridad_{modelo}.json (el modelo es el de ``modelo_json``).
 
     Parámetros:
-        modelo_json: pd_model.json (dict).
+        modelo_json: pd_model_{modelo}.json (dict) del mismo modelo.
         df_casos: filas elegidas (elegir_casos).
 
     Retorna:
@@ -838,24 +882,34 @@ def construir_casos_paridad(modelo_json: dict, df_casos: pd.DataFrame) -> dict:
 
 
 # %% [markdown]
-# ## `pd_model.json` completo
+# ## `pd_model_{modelo}.json` completo
 #
-# 1. Valida la config (`export` y `scorecard`) y carga `features.yaml`, el preprocesador, los datos y el modelo de
-#    `export.modelo`.
-# 2. Formulario con train; red con los pesos del modelo; scorecard de C1.
-# 3. **Población y métricas** por el camino de Python, el mismo de la Parte B: $X$ = `pre.transform(test)` (float32),
-#    logit = `predict_logit`, PD = `predict_proba`, puntaje = `score_desde_logit`. Así `metricas` coincide con
-#    `results/data/pd/summary.json`.
+# La carga se parte en dos para no repetir trabajo al exportar los dos modelos:
+#
+# 1. **Lo común** (`_cargar`), una sola vez: valida la config (`export` y `scorecard`) y carga `features.yaml`, el
+#    preprocesador, los datos, el formulario (`entradas`, con train), los parámetros de la scorecard de C1 y
+#    $X_{test}$ = `pre.transform(test)` (float32, el camino de Python de la Parte B). Es lo que el núcleo §5.5 pide
+#    **igual** en los dos archivos (`entradas`, `preprocesamiento`, `scorecard`).
+# 2. **Lo de cada modelo** (`_cargar_modelo` y `_pd_model`): el modelo de `export.rutas.{modelo}`, sus capas y, sobre
+#    el mismo $X_{test}$, **una sola pasada** de la red: logit $z$ = `predict_logit`, PD $= \sigma(z)$ = `expit(z)` y
+#    puntaje = `score_desde_logit(z)` → sus percentiles y sus métricas. $\sigma(z)$ es lo mismo que calculan los dos
+#    `predict_proba`: el MLP aplica `expit` al logit, y en la logística `LogisticRegression.predict_proba` de
+#    scikit-learn (1.9.1, el fijado), con dos clases, es `expit(decision_function(X))` (`_predict_proba_lr`,
+#    comprobado en el código fuente instalado). Así `metricas` coincide con la Parte B: la logística con
+#    `results/data/pd/summary.json` y el MLP (semilla mediana, `models/pd_mlp.pt`) con su
+#    `results/data/pd/semillas/mlp_seed{s}.json`. En el MLP la AUC puede diferir en unos pocos pares (malo, bueno) cuyo
+#    orden cambia por el redondeo de float32 (medido el 26-oct: $3{,}8 \times 10^{-9}$, cuando un par vale
+#    $1/(n_{malos}\, n_{buenos}) \approx 9{,}4 \times 10^{-10}$); por eso la prueba admite $10^{-8}$ en esa métrica.
 
 # %%
 def _cargar(cfg: dict) -> dict:
-    """Config validada, features, preprocesador, datos y modelo.
+    """Config validada y todo lo común a los dos modelos.
 
     Parámetros:
         cfg: config completa (bloques scorecard y export).
 
     Retorna:
-        dict: contexto con todo lo que necesitan construir_pd_model y exportar.
+        dict: contexto {exp, features, params, pre, pre_json, entradas, train, test, X_te}.
     """
     if not isinstance(cfg, dict) or "export" not in cfg:  # sin bloque export
         raise ValueError("La config debe ser un diccionario con el bloque 'export'")  # config
@@ -866,73 +920,116 @@ def _cargar(cfg: dict) -> dict:
     exp = validar_cfg_export(cfg["export"], features)  # bloque validado
     params = parametros_scorecard(bloque_scorecard(cfg))  # base, odds_base, pdo, factor, offset
     pre = Preprocesador.from_dict(load_json(exp["rutas"]["preprocesador"]))  # ajustado solo con train (A)
+    pre_json = pre.to_dict()  # tal cual lo usará la app
     datos = pd.read_parquet(exp["rutas"]["datos"])  # loans_pd.parquet
-    if exp["modelo"] == "logistica":  # modelo de referencia
-        modelo = LogisticaPD.cargar(exp["rutas"]["logistica"])  # B3
-        capas = capas_logistica(modelo)  # una capa identidad
-    else:  # MLP
-        capas, modelo = capas_mlp(exp["rutas"]["mlp"])  # B5
-    return {"exp": exp, "features": features, "params": params, "pre": pre, "modelo": modelo, "capas": capas,
-            "train": datos[datos["split"] == SPLIT_TRAIN], "test": datos[datos["split"] == SPLIT_TEST]}  # contexto
+    train, test = datos[datos["split"] == SPLIT_TRAIN], datos[datos["split"] == SPLIT_TEST]  # particiones
+    return {"exp": exp, "features": features, "params": params, "pre": pre, "pre_json": pre_json,  # config y receta
+            "entradas": entradas_app(features, pre_json, train, exp["pasos"]),  # formulario: solo train
+            "train": train, "test": test, "X_te": pre.transform(test)}  # X de test (float32), una sola vez
 
 
-def _pd_model(ctx: dict) -> dict:
-    """pd_model.json a partir del contexto de _cargar."""
-    pre_json = ctx["pre"].to_dict()  # tal cual lo usará la app
-    if len(ctx["capas"][0]["W"][0]) != len(pre_json["columnas_salida"]):  # modelo y preprocesador incoherentes
+def _cargar_modelo(ctx: dict, modelo: str) -> tuple:
+    """(modelo de Python, capas del JSON) de ``modelo`` desde ``export.rutas``.
+
+    Parámetros:
+        ctx: contexto de _cargar.
+        modelo: "logistica" o "mlp".
+
+    Retorna:
+        tuple: (LogisticaPD o MLPPD, list[dict] de capas).
+    """
+    _validar_modelo(modelo)  # protege a exportar, cuyos modelos vienen de la config (construir_pd_model ya validó)
+    if modelo == "logistica":  # modelo de referencia
+        modelo_py = LogisticaPD.cargar(ctx["exp"]["rutas"]["logistica"])  # B3
+        return modelo_py, capas_logistica(modelo_py)  # una capa identidad
+    capas, modelo_py = capas_mlp(ctx["exp"]["rutas"]["mlp"])  # B5 (semilla mediana)
+    return modelo_py, capas  # una capa por nn.Linear
+
+
+def _pd_model(ctx: dict, modelo: str) -> dict:
+    """pd_model_{modelo}.json a partir del contexto de _cargar.
+
+    Parámetros:
+        ctx: contexto de _cargar.
+        modelo: "logistica" o "mlp".
+
+    Retorna:
+        dict: el contenido de pd_model_{modelo}.json.
+    """
+    modelo_py, capas = _cargar_modelo(ctx, modelo)  # solo el modelo cambia
+    if len(capas[0]["W"][0]) != len(ctx["pre_json"]["columnas_salida"]):  # modelo y preprocesador incoherentes
         raise ValueError("La primera capa no recibe las columnas del preprocesador")  # dato
-    X_te = ctx["pre"].transform(ctx["test"])  # camino de Python (float32), como la Parte B
-    score = score_desde_logit(ctx["modelo"].predict_logit(X_te), ctx["params"])  # puntaje de cada crédito de test
-    p = ctx["modelo"].predict_proba(X_te)  # PD de test
+    logit = modelo_py.predict_logit(ctx["X_te"])  # una sola pasada sobre X de test
+    score = score_desde_logit(logit, ctx["params"])  # puntaje de cada crédito de test
+    p = expit(logit)  # PD de test = σ(logit), igual que predict_proba
     return {
         "version_contrato": VERSION_CONTRATO,  # núcleo §5.5
         "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),  # ISO 8601, cambia en cada export
         "commit": commit_actual(),  # HEAD al exportar
-        "modelo": ctx["exp"]["modelo"],  # logistica | mlp
-        "entradas": entradas_app(ctx["features"], pre_json, ctx["train"], ctx["exp"]["pasos"]),  # solo train
-        "preprocesamiento": pre_json,  # Preprocesador.to_dict()
-        "red": {"capas": ctx["capas"], "salida": SALIDA_RED},  # pesos y sigmoide
-        "scorecard": ctx["params"],  # C1
+        "modelo": modelo,  # logistica | mlp
+        "entradas": copy.deepcopy(ctx["entradas"]),  # común: formulario con train
+        "preprocesamiento": copy.deepcopy(ctx["pre_json"]),  # común: Preprocesador.to_dict()
+        "red": {"capas": capas, "salida": SALIDA_RED},  # pesos de este modelo y sigmoide
+        "scorecard": dict(ctx["params"]),  # común: C1
         "poblacion": {"percentiles_score": percentiles_score(score), "referencia": REFERENCIA_POBLACION},  # test
-        "metricas": metricas_test(ctx["test"]["target"].to_numpy(), p),  # test
+        "metricas": metricas_test(ctx["test"]["target"].to_numpy(), p),  # test, de este modelo
     }
 
 
-def construir_pd_model(cfg: dict) -> dict:
-    """pd_model.json en memoria (núcleo §5.5).
+def construir_pd_model(cfg: dict, modelo: str) -> dict:
+    """pd_model_{modelo}.json en memoria (núcleo §5.5).
+
+    No exige que ``modelo`` esté en ``export.modelos``; solo usa ``export.rutas.{modelo}``.
 
     Parámetros:
         cfg: config completa (bloques scorecard y export).
+        modelo: "logistica" o "mlp" (ValueError si no).
 
     Retorna:
-        dict: el contenido de pd_model.json.
+        dict: el contenido de pd_model_{modelo}.json.
     """
-    return _pd_model(_cargar(cfg))  # carga y construye
+    _validar_modelo(modelo)  # protege al llamador directo: falla antes de cargar datos y modelos
+    return _pd_model(_cargar(cfg), modelo)  # carga y construye
 
 
 # %% [markdown]
-# ## Escritura de los dos archivos
+# ## Escritura de los cuatro archivos
 #
-# `save_json` (UTF-8, sangría 2, sin NaN/inf, escritura atómica; núcleo §5.4) en `export.destino`. Los casos se eligen
-# del mismo test con `export.n_casos_paridad`, `export.n_forzados_por_grupo` y `export.base_seed`.
+# **Se valida y construye todo antes de escribir:** primero se arman EN MEMORIA los pares (pd_model, casos) de todos
+# los modelos de `export.modelos`; solo si todos se construyeron se escriben. Así, si falla un modelo (p. ej.
+# `export.rutas.mlp` apunta a un `.pt` que no existe), el destino no queda con los archivos nuevos de un modelo
+# mezclados con los viejos del otro. Después, para cada modelo, en ese orden, `save_json` (UTF-8, sangría 2, sin
+# NaN/inf, escritura atómica de cada archivo; núcleo §5.4) escribe en `export.destino` primero `pd_model_{modelo}.json`
+# y luego `casos_paridad_{modelo}.json`.
+#
+# **La muestra de casos es la misma para los dos modelos:** `elegir_casos` (con `export.n_casos_paridad`,
+# `export.n_forzados_por_grupo` y `export.base_seed`) se llama **una sola vez** y el mismo `df_casos` alimenta los dos
+# `construir_casos_paridad`. La app compara los dos modelos con las mismas entradas (R-APP-2): con la misma muestra, la
+# prueba de paridad de cada modelo recorre exactamente las mismas personas y los mismos caminos difíciles de la receta
+# (vacíos, recortes, categorías no vistas), y un caso se puede mirar con los dos modelos a la vez.
 
 # %%
-def exportar(cfg: dict) -> tuple[Path, Path]:
-    """Escribe pd_model.json y casos_paridad.json en ``cfg["export"]["destino"]``.
+def exportar(cfg: dict) -> list[Path]:
+    """Escribe pd_model_{modelo}.json y casos_paridad_{modelo}.json de cada modelo en ``cfg["export"]["destino"]``.
 
     Parámetros:
         cfg: config completa (bloques scorecard y export).
 
     Retorna:
-        tuple[Path, Path]: rutas de pd_model.json y de casos_paridad.json.
+        list[Path]: rutas escritas, en el orden de export.modelos y, por modelo, pd_model y luego casos.
     """
-    ctx = _cargar(cfg)  # una sola carga de datos y modelo
-    modelo_json = _pd_model(ctx)  # pd_model.json
+    ctx = _cargar(cfg)  # una sola carga de lo común
     exp = ctx["exp"]  # bloque validado
-    df_casos = elegir_casos(ctx["test"], modelo_json["preprocesamiento"], exp["n_casos_paridad"],
-                            exp["n_forzados_por_grupo"], exp["base_seed"])  # filas de test
-    casos = construir_casos_paridad(modelo_json, df_casos)  # entradas crudas, PD y puntaje
+    df_casos = elegir_casos(ctx["test"], ctx["pre_json"], exp["n_casos_paridad"], exp["n_forzados_por_grupo"],
+                            exp["base_seed"])  # una sola muestra de test para los dos modelos
+    pares = {}  # {modelo: (pd_model, casos)}, en el orden de export.modelos
+    for modelo in exp["modelos"]:  # primero se construye todo en memoria
+        modelo_json = _pd_model(ctx, modelo)  # pd_model de este modelo (falla aquí si su archivo no existe)
+        pares[modelo] = (modelo_json, construir_casos_paridad(modelo_json, df_casos))  # misma muestra para todos
     destino = Path(exp["destino"])  # carpeta de la app
-    ruta_modelo = save_json(destino / ARCHIVO_MODELO, modelo_json)  # escritura atómica
-    ruta_casos = save_json(destino / ARCHIVO_PARIDAD, casos)  # escritura atómica
-    return ruta_modelo, ruta_casos  # rutas escritas
+    rutas = []  # en el orden de export.modelos
+    for modelo, (modelo_json, casos) in pares.items():  # solo se escribe si todos se construyeron
+        nombre_modelo, nombre_casos = archivos_modelo(modelo)  # pd_model_{modelo}.json, casos_paridad_{modelo}.json
+        rutas.append(Path(save_json(destino / nombre_modelo, modelo_json)))  # escritura atómica
+        rutas.append(Path(save_json(destino / nombre_casos, casos)))  # escritura atómica
+    return rutas  # dos rutas por modelo
