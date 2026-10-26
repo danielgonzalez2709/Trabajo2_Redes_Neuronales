@@ -18,7 +18,7 @@ Fuente: Elaboración propia a partir de results/data/pd/busqueda_logistica.json.
 
 La búsqueda TPE del MLP probó 40 configuraciones; los 10 primeros ensayos son aleatorios y los demás los propone el TPE
 ([[fig:pd-busqueda-mlp]]). La mejor fue el ensayo 11, con una log-loss de validación de 0,5075, frente a 0,5178 de la logística.
-Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001 de ese valor.
+Tres ensayos posteriores (el 19, el 23 y el 27) quedaron a menos de 0,001 de ese valor.
 
 ::: figura pd-busqueda-mlp
 Título: Log-loss de validación de los 40 ensayos de la búsqueda TPE del MLP

@@ -8,7 +8,7 @@
 |---|---|---|
 | Matemáticas | 3 (H-08, H-10, H-14) | 3 (H-08, H-10, H-14) |
 | Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
-| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
+| Datos del mundo real | 3 (H-02, H-13, H-22) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
 | Conceptos | 3 (H-15, H-16, H-21) | 1 (H-15) |
 
@@ -497,3 +497,19 @@ falsas se registran como candidatos.
    pedía no disimularlo y lo dice bien ("los puntos quedan POR ENCIMA").
 6. **Lección aprendida:** una frase sobre una figura se verifica contra la figura y sus ejes, no contra la conclusión
    (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
+
+### H-22 — "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" (faltaba el 23, descartado por redondeo)
+- **Estado:** candidato
+- **Categoría:** Datos del mundo real
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-spec` de B7, recalculando cada cifra del blog 06
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" y respuesta "Bloques + una frase por figura".
+2. **Respuesta relevante de la IA:** primer borrador del blog 06 (commit 27ca6a7, línea 21): "Dos ensayos posteriores, el 19 y
+   el 27, quedaron a menos de 0,001 de ese valor." El orquestador decidió la frase mirando valores redondeados a 4 decimales.
+3. **Cómo sospechamos:** el `revisor-spec` recalculó las diferencias sin redondear desde `hpo_ensayos.json`.
+4. **Evidencia:** `evidencias/H-22_ensayos_cercanos.txt`: el ensayo 23 tiene Δ = 0,000987 < 0,001 (redondeado se ve 0,5085,
+   igual que el 39, que sí queda fuera con Δ = 0,001013).
+5. **Corrección:** "Tres ensayos posteriores (el 19, el 23 y el 27) quedaron a menos de 0,001 de ese valor."
+6. **Lección aprendida:** una comparación con un umbral se hace con los valores sin redondear; redondear antes de comparar
+   cambia el conteo justo en el borde.
