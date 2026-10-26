@@ -112,7 +112,8 @@ def _figures(cfg: dict | None) -> int:
 
 
 def _export(cfg: dict | None) -> int:
-    """Parte C (C2): pd_model.json y casos_paridad.json para la app. Lee `exportar_app.RUTA_CONFIG` al llamarse."""
+    """Parte C (C2, C5): pd_model_{modelo}.json y casos_paridad_{modelo}.json de los dos modelos de PD para la app.
+    Lee `exportar_app.RUTA_CONFIG` al llamarse."""
     import time
 
     from src.export import exportar_app

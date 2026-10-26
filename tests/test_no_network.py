@@ -65,7 +65,8 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
 
     `export` (Parte C, C2) no recibe `--config`: lee `src.export.exportar_app.RUTA_CONFIG`, que se apunta a un YAML
     temporal que hereda `configs/scorecard/export.yaml` y solo cambia `export.destino` a `tmp_path/app`. Se comprueba
-    que escribió los dos JSON allí y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
+    que escribió allí EXACTAMENTE los archivos de `archivos_modelo(m)` para cada `m` de `MODELOS` (C5: pd_model y casos
+    de paridad de los dos modelos) y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
 
     `scorecard` (Parte C, C3) recibe `--set salida=tmp_path` (como `eda`): se comprueba que escribió
     `tmp_path/scorecard.json` y que `results/data/scorecard/` quedó idéntico (si no existe, huellas vacías).
@@ -98,10 +99,11 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     alterados_app = _diferencias(antes_app, _huellas(MODELO_APP_VERSIONADO))
     assert not alterados_app, f"`run.py {argv[0]}` alteró app/public/model/: {alterados_app}"
     if destino_app is not None:
-        from src.export.exportar_app import ARCHIVO_MODELO, ARCHIVO_PARIDAD
+        from src.export.exportar_app import MODELOS, archivos_modelo
 
-        escritos = sorted(r.name for r in destino_app.glob("*.json"))
-        assert escritos == sorted([ARCHIVO_MODELO, ARCHIVO_PARIDAD]), escritos
+        escritos = sorted(r.name for r in destino_app.rglob("*") if r.is_file())
+        esperados = sorted(nombre for modelo in MODELOS for nombre in archivos_modelo(modelo))
+        assert escritos == esperados, escritos
     alterados = _diferencias(antes, _huellas(FIGURAS_VERSIONADAS))
     assert not alterados, (f"`run.py {argv[0]}` alteró figuras versionadas de blog/docs/figures/: {alterados}; "
                            "restaurar con `git checkout -- blog/docs/figures/`")
