@@ -1217,8 +1217,9 @@ def _una_linea(exc: BaseException) -> str:
 #
 # Llama a `_correr_e_informar`. Los errores **esperados** (config inválida, salidas previas incompatibles, búsqueda con
 # otros datos: `ValueError`; fallas del fit: `RuntimeError` y `FloatingPointError`; un archivo de entrada que no
-# existe: `FileNotFoundError`) salen como una línea `run.py pd: error: <Tipo>: <mensaje>` en stderr y código 2, como los errores de argumentos del CLI (argparse), sin traza
-# (B6: en la demo en vivo se lee el mensaje). Cualquier otra excepción (p. ej. `TypeError`, un error de programación)
+# existe: `FileNotFoundError`) salen como una línea `run.py pd: error: <Tipo>: <mensaje>` en stderr y código 2,
+# como los errores de argumentos del CLI (argparse), sin traza (B6: en la demo en vivo se lee el mensaje). Cualquier
+# otra excepción (p. ej. `TypeError`, un error de programación)
 # se propaga con su traza; también las demás `OSError` (p. ej. `PermissionError`).
 #
 # `NotImplementedError` y `RecursionError` son subclases de `RuntimeError` pero indican un bug, no una falla esperada:
@@ -1226,7 +1227,7 @@ def _una_linea(exc: BaseException) -> str:
 
 # %%
 def manejador(cfg: dict | None) -> int:
-    """`run.py pd`: _correr_e_informar; ValueError/RuntimeError/FloatingPointError → mensaje en stderr y código 2."""
+    """`run.py pd`: _correr_e_informar; ERRORES_ESPERADOS → "run.py pd: error: <Tipo>: <mensaje>" y código 2."""
     try:  # solo los errores esperados se informan sin traza
         return _correr_e_informar(cfg)  # corrida completa (0 si termina)
     except ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
