@@ -51,6 +51,13 @@ Fuente: Elaboración propia a partir de data/processed/resumen_datos.json.
 | `eda-tasa-variables` | `eda-tasa-variables.png` | Tasa de malos por decil o categoría de cada variable (train) | A |
 | `post-psi` | `post-psi.png` | PSI de cada variable frente a train | A |
 | `post-correlacion` | `post-correlacion.png` | Correlaciones entre variables numéricas transformadas | A |
+| `pd-busqueda-logistica` | `pd-busqueda-logistica.png` | Log-loss y AUC de validación de la logística según C (13 valores) | B |
+| `pd-busqueda-mlp` | `pd-busqueda-mlp.png` | Log-loss de validación de los 40 ensayos TPE del MLP y el mejor acumulado | B |
+| `pd-aprendizaje` | `pd-aprendizaje.png` | BCE de train y val por época del MLP (semilla mediana) y parada temprana | B |
+| `pd-roc` | `pd-roc.png` | Curvas ROC de la logística y el MLP en test | B |
+| `pd-ks` | `pd-ks.png` | Acumuladas de la PD en malos y buenos y KS en test | B |
+| `pd-calibracion` | `pd-calibracion.png` | Curva de calibración en test (10 bins por cuantiles); puntos en `pd-calibracion.json` (video, escena 7) | B |
+| `pd-semillas` | `pd-semillas.png` | AUC, KS y Brier de test de las 30 semillas del MLP frente a la logística | B |
 | `lgd-histograma` | `lgd-histograma.png` | Histograma de la LGD observada por conjunto y masa exacta en 0 y en 1 | D |
 | `lgd-por-anio` | `lgd-por-anio.png` | % con LGD = 1 y LGD media por año de originación | D |
 | `lgd-ead-plazo` | `lgd-ead-plazo.png` | EAD por plazo y por año, y LGD media por plazo | D |
