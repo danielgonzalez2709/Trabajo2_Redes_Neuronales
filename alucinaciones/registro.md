@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 3 (H-08, H-10, H-14) | 1 (H-08) |
-| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
-| Datos del mundo real | 2 (H-02, H-13) | 0 |
+| Matemáticas | 3 (H-08, H-10, H-14) | 3 (H-08, H-10, H-14) |
+| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
+| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 1 (H-15) | 0 |
+| Conceptos | 1 (H-15) | 1 (H-15) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -52,7 +52,7 @@ falsas se registran como candidatos.
 ## Candidatos
 
 ### H-01 — PSI que da 0 en silencio para variables discretas
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** la misma sesión de
@@ -74,7 +74,7 @@ falsas se registran como candidatos.
    resultados exactamente 0 o 1 en datos reales. Una prueba con solo datos continuos no habría fallado.
 
 ### H-02 — "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora"
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Datos del mundo real (significado de una variable)
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** el subagente
@@ -138,7 +138,7 @@ falsas se registran como candidatos.
    umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.
 
 ### H-05 — Prueba de L2 "con lr y gradiente de la pérdida en 0", que no verifica nada
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) en modo plan · **Fecha:**
@@ -160,7 +160,7 @@ falsas se registran como candidatos.
    haría fallar; si ninguna, la prueba no verifica nada.
 
 ### H-06 — "La prueba de determinismo y la de dropout al predecir ya cubren los minilotes y `evaluar_perdida`"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 24/25-oct-2026 ·
@@ -182,7 +182,7 @@ falsas se registran como candidatos.
    Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
 
 ### H-07 — "`@dataclass(frozen=True)` hace inmutable el historial de entrenamiento"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -221,7 +221,7 @@ falsas se registran como candidatos.
    gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
 
 ### H-09 — "La prueba compara `warnings.filters` antes y después de `fit`, así que detecta un filtro global"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -239,7 +239,7 @@ falsas se registran como candidatos.
    produciría; verificarla con un mutante, no por lectura.
 
 ### H-10 — "El estimador es consistente para la media condicional", dicho del MLP de LGD
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** D
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
@@ -267,7 +267,7 @@ falsas se registran como candidatos.
    con las hipótesis del teorema citado.
 
 ### H-11 — "Las funciones usan factor y offset tal como vienen", probado solo en dos de las cuatro funciones
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -292,7 +292,7 @@ falsas se registran como candidatos.
    por función); y una regla de validación (rechazar bool) se prueba en cada lugar donde se aplica, no solo en el primero.
 
 ### H-12 — "Texto u objetos no numéricos fallan aquí", dicho de `np.asarray(x, dtype=np.float64)`
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -313,7 +313,7 @@ falsas se registran como candidatos.
    validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
 
 ### H-13 — "La pérdida observada es la misma construcción de la LGD de D" y "en mora es parcial"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Datos del mundo real
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, la sesión orquestadora de Daniel, que escribió
@@ -338,7 +338,7 @@ falsas se registran como candidatos.
    de llamar "parcial" a una cifra, se mira si de verdad es una cota (aquí las recuperaciones en mora eran 0).
 
 ### H-14 — "Montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia la produce la PD"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién
@@ -359,7 +359,7 @@ falsas se registran como candidatos.
    mismas; una descomposición multiplicativa dice cuánto aporta cada factor.
 
 ### H-15 — "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Conceptos
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code, subagente `cazador-alucinaciones` (Claude Opus 5.5), en su propia ronda 1 de

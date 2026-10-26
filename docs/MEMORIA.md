@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-26 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6), Parte D: D1–D8 (PR #7) y Parte C: C1 scorecard y C2 exportador con la logística real (PR #8, 26-oct 7:46 a. m.). Spec v0.14. En `dev/daniel` (sin PR): E5 E[L] por banda de puntaje, notebook 05 y blog 09 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5; marcar ✅ B1 en `B-pd.md`. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de `dev/daniel` (E5, E11, blog 09); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; confirmar H-01, H-02, H-13 y H-14 |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5; marcar ✅ B1 en `B-pd.md`. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de `dev/daniel` (E5, E11, blog 09); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -81,9 +81,10 @@ mar 27 6 p. m. entrega.
    `perdida_observada` = pérdida realizada (NaN en mora); árbol §4 con `src/el/{experimento,tablas}.py` (PR de Spec, Daniel).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 3 (H-03 y H-04 Código, Parte B; H-08 Matemáticas, Parte B) · Candidatos: 12 (H-01, H-05, H-06, H-07, H-09 Código; H-11 y H-12 Código, Parte C; H-02 y H-13 Datos; H-10 Matemáticas, Parte D; H-14 Matemáticas y H-15 Conceptos, Parte E) · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**.
 
 ## 📓 Bitácora
+- **2026-10-26** — Daniel confirma los 15 hallazgos de la cacería (meta cumplida: 4 categorías, las 5 partes).
 - **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la
   MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
   en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179.
@@ -94,7 +95,6 @@ Confirmados: 3 (H-03 y H-04 Código, Parte B; H-08 Matemáticas, Parte B) · Can
   MLP de D) en todo el test: 196,7 M USD. Detalles para Camila en el PR; figuras de A y notebooks 00/01 restaurados.
 - **2026-10-25** — PR #6 fusionado (12:12 p. m.; revisado por Daniel): Parte B B1–B3 en `main`, cifras reproducidas aparte. Daniel
   confirma H-08 (λ‖W‖² lo escribió Claude en el Spec). La PD media de test (0,187) < tasa observada (0,262): la tasa sube por año.
-- **2026-10-25** — PR #5 fusionado (8:27 a. m., CI en verde): Spec v0.12 y Siddiqi 2.ª ed. en `main`.
 - **2026-10-25** — C2 (Juan José): `src/export/exportar_app.py` + `run.py export` → `pd_model.json` y 1 000 casos de paridad
   (logística real); receta del JSON vs modelo |ΔPD| 1,5e-8; 88 pruebas. revisor-spec APROBADO; revisor-calidad APROBADO (2 rondas).
 - **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige
@@ -108,7 +108,7 @@ Confirmados: 3 (H-03 y H-04 Código, Parte B; H-08 Matemáticas, Parte B) · Can
 - **2026-10-25** — D4 (Camila): TPE 30/30 + 30 semillas. Test: MLP MAE 0,07708 ± 0,00059 (14 593 parám.), lineal 0,07712 (49);
   la mediana constante gana (0,06986). Rechazado 1.ª ronda (`mejor_config.json` pisaba `--set`); arreglado con `mlp_final.yaml`.
 - **2026-10-25** — Revisión de lo que B, C, D y E consumen de A desde un `main` limpio: todo funciona. Spec v0.12: `categorias_es`
-  y `etiquetas_categorias` en el JSON de la app (las categorías salían en inglés). Siddiqi: 2.ª ed., 2017.
+  y `etiquetas_categorias` en el JSON de la app. Siddiqi: 2.ª ed. (PR #5, fusionado 8:27 a. m.).
 - **2026-10-25** — Spec v0.11: `data/processed/diccionario_loanstats.csv` (copia literal del diccionario, hoja LoanStats) para
   que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
 - **2026-10-25** — B3 (Andrés): `src/pd/logistica.py` (`LogisticaPD` según `ModeloPD`, búsqueda de C con la log-loss de
