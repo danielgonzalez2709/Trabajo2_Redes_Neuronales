@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **D en `dev/camila`:** D1–D8 ✅. **C en `dev/juanjose`:** C1 y C2 ✅ (en dev/juanjose, pendiente de PR). D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5. C (Juan José): PR de C1 + C2 y C3 (scorecard de la logística). Camila: E2 ya puede leer `app/public/model/*.json` reales. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **D en `dev/camila`:** D1–D8 ✅. **C en `dev/juanjose`:** C1 y C2 ✅ (PR abierto); C3 ✅ (en dev/juanjose). D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5. C (Juan José): C4 (SHAP, espera B5) y C6 (hipótesis). Camila: E2 ya puede leer `app/public/model/*.json` reales. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -32,13 +32,13 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
-- Scorecard (Juan José, 25-oct; C1, C §3.1): base 600 en odds 50:1 bueno:malo, PDO 20 (`configs/scorecard/base.yaml`);
-  bloque `{base, odds_base, pdo, factor, offset}` en float; el puntaje sale del logit y no se redondea. C §3.1 sigue
-  [PROPUESTO] en el Spec: pasarlo a [DECIDIDO] en el próximo PR de Spec.
-- Export a la app (Juan José, 25-oct; C2): `python run.py export` (lee `configs/scorecard/export.yaml`, sin `--set`) con la
-  logística REAL (C5 regenera con el modelo final). Formulario: min/max = recorte [p1, p99] redondeado HACIA AFUERA a la
-  rejilla del paso (anclada en 0), valor_defecto = mediana al paso más cercano; categóricas sin OTRA en el orden de
-  `categorias_es`, defecto = moda de train; `ayuda_es` también en cat. Casos: {…, tolerancia, casos [{id, entradas crudas, pd, score}]}.
+- Scorecard (Juan José, C1): base 600 en odds 50:1 bueno:malo, PDO 20; `{base, odds_base, pdo, factor, offset}` en float;
+  puntaje desde el logit, sin redondear. C §3.1 sigue [PROPUESTO] en el Spec: pasarlo a [DECIDIDO] en un PR de Spec.
+- Puntos (Juan José, C3): `scorecard.json` = §5.4 + modelo, puntos_base, aditividad, evidencia; tabla por valor crudo en p1…p99
+  de train; rango p1–p99 (num, = recorte del preprocesador) o cat con ≥ 1 %; bandas = deciles del puntaje de TRAIN (`cortes_bandas`, fijos en val/test).
+- Export (Juan José, C2): `run.py export` (lee `configs/scorecard/export.yaml`, sin `--set`) con la logística REAL. min/max =
+  recorte redondeado HACIA AFUERA al paso; defecto = mediana al paso / moda de train; cat sin OTRA en orden de `categorias_es`,
+  con `ayuda_es`. Casos de paridad: {…, tolerancia, casos [{id, entradas crudas, pd, score}]}.
 - LGD (Camila, 24-oct): población = Charged Off (2 estados); EAD ≤ 0 o NA → excluir y contar; diferencia entre particiones
   (LGD = 1: train 26 %, test 63 %) se acepta y documenta ("consistente con censura"); `preprocesador_lgd.json` = el de A
   ajustado solo con el train de la población LGD (D §3.2).
@@ -81,18 +81,18 @@ mar 27 6 p. m. entrega.
 7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
 8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
    PR de `dev/camila`: declarar `src/common/cli.py` (`lgd`, `lgd-hpo`, `figures`) y `configs/sustentacion.yaml` (demo `lgd`).
-9. PR de C2: declarar `cli.py` (`export`) y `configs/scorecard/export.yaml` (no está en núcleo §4); avisar a Camila (formato, leaky 0,01, trampas TS).
-
+9. PR de C: declarar `cli.py`, `export.yaml`, `puntos.py` (no están en §4) y `sustentacion.yaml`; avisar a Camila (formato, leaky 0,01, trampas TS).
+ 
 ## 🎯 Cacería (resumen)
-Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 10 (H-01, H-05, H-06, H-07, H-09 Código; H-11 y H-12 Código, Parte C; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 11 (H-01, H-05, H-06, H-07, H-09 Código; H-11, H-12 y H-20 Código, Parte C; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
-- **2026-10-25** — C2 (Juan José): `src/export/exportar_app.py` + `run.py export` → `pd_model.json` y 1 000 casos de paridad
-  (logística real); receta del JSON vs modelo |ΔPD| 1,5e-8; 88 pruebas. revisor-spec APROBADO; revisor-calidad APROBADO (2 rondas).
+- **2026-10-26** — C3 (Juan José): `src/scorecard/puntos.py` + `run.py scorecard` (2 s) → `scorecard.json`; aditividad 1,1e-13 en
+  los 3 splits; 79 pruebas. Spec, calidad (2 rondas) y verificador APROBADO; candidato H-20. Rango de numéricas p1–p99 (= recorte).
+- **2026-10-25** — C2 (Juan José): `run.py export` → `pd_model.json` + 1 000 casos (logística real); |ΔPD| 1,5e-8. Aprobado.
 - **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige
   `SALIDA` de todo `src/viz/figs_*.py` y compara SHA-256. Un `figs_*.py` nuevo necesita `SALIDA` y conectarse en `cli._figures`.
-- **2026-10-25** — C1 (Juan José): `src/scorecard/scorecard.py` (p/logit ↔ puntaje) + `configs/scorecard/base.yaml` (600/50/20) + 289 pruebas.
-  Verificador: pruebas RECHAZADAS (H-11), código APROBADO; revisor-spec APROBADO; revisor-calidad APROBADO en la 2.ª (H-12).
+- **2026-10-25** — C1 (Juan José): `scorecard.py` (p/logit ↔ puntaje) + 289 pruebas; candidatos H-11 y H-12. Aprobado.
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
 - **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
 - **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos

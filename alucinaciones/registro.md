@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
+| Código | 10 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-20) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 0 | 0 |
@@ -310,3 +310,26 @@ falsas se registran como candidatos.
    texto, objeto, complejo) antes de convertir, con pruebas parametrizadas sobre las cuatro funciones.
 6. **Lección aprendida:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X; una regla de
    validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
+
+### H-20 — Prueba del rango de puntos que no distingue `percentiles_rango` de los extremos de `percentiles_tabla`
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico`, con mutantes sobre C3; el orquestador lo reprodujo
+- **Nota de numeración:** registrado primero como H-13 en `dev/juanjose`; renumerado a H-20 porque en `main` ya existen
+  H-13…H-19 (Partes B y E).
+1. **Prompt (literal):** `prompts/C3.md`, sección "1. implementador — fase roja" (entrada_numerica: "rango_puntos =
+   |puntos(p_b) − puntos(p_a)| con percentiles_rango"; prueba 1: "entrada_numerica (tabla y rango)").
+2. **Respuesta relevante de la IA:** `tests/test_puntos.py` (sin commit): el modelo de juguete usa `percentiles_tabla =
+   [25, 50, 75]` y `percentiles_rango = [25, 75]`, justo los extremos de la tabla, y ninguna prueba con el modelo real fija
+   `rango_puntos`; la prueba se presentaba como la que comprueba el rango.
+3. **Cómo sospechamos:** el verificador aplicó el mutante "el rango usa los extremos de la tabla en vez de
+   `percentiles_rango`".
+4. **Evidencia:** `evidencias/H-20_rango_percentiles_mutante.txt`: con el mutante pasan las 74 pruebas (igual que el
+   original). Con datos reales el mutante cambiaría el rango de `pub_rec` de 0 (p5–p95) a 9,889 (p1–p99), y el top 5 de
+   variables que se imprime en la sustentación.
+5. **Corrección:** ronda 3 de C3: el juguete usa un `percentiles_rango` distinto de los extremos de la tabla y se añaden
+   pruebas para el umbral exacto de `fraccion_min_categoria` y para el error de aditividad rota.
+6. **Lección aprendida:** en un caso de prueba, los parámetros que deben distinguirse no pueden coincidir por casualidad
+   (aquí, rango = extremos de la tabla); verificar cada prueba con el mutante que debería matar.

@@ -112,6 +112,18 @@ def _export(cfg: dict | None) -> int:
     return 0
 
 
+def _scorecard(cfg: dict | None) -> int:
+    """Parte C (C3): scorecard de la logística → <salida>/scorecard.json."""
+    import time
+
+    from src.scorecard.puntos import manejador
+
+    inicio = time.perf_counter()
+    codigo = manejador(cfg)
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return codigo
+
+
 def _notebooks(cfg: dict | None) -> int:
     """E10: notebooks/NN_*.py → .ipynb ejecutado (núcleo §5.8)."""
     from src.common.notebooks import manejador
@@ -126,7 +138,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pendiente("pd-hpo", "B4")),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
-    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
+    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _scorecard),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
     "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _export),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),

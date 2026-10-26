@@ -63,7 +63,7 @@ copiado de `categorias_es` (núcleo §5.5, v0.12).
 |---|---|---|---|---|---|---|
 | ✅ C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
 | ✅ C2 | Exportador + `pd_model.json` (25-oct: con la logística REAL de B3 en vez del de juguete, y con los casos de paridad adelantados de C5; decisión de Juan José) | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | Juan José |
-| C3 | Scorecard de la logística | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
+| ✅ C3 | Scorecard de la logística (26-oct: `src/scorecard/puntos.py`, `run.py scorecard`, `results/data/scorecard/scorecard.json`) | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
 | C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
 | C5 | Export real + casos de paridad (desde C2 ya existen con la logística: C5 los regenera con el modelo final cuando exista B5 y se decida qué modelo va a la app, núcleo §13 pendiente 5; volver a medir la diferencia receta vs modelo con el MLP final) | B5, C2 | Contrato §5.5 | revisor-spec | **sáb 24, noche** | Juan José |
 | C6 | Cierre de hipótesis | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |

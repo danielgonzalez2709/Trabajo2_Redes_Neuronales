@@ -20,6 +20,7 @@ from src.common import cli
 RAIZ = Path(__file__).resolve().parents[1]
 FIGURAS_VERSIONADAS = RAIZ / "blog" / "docs" / "figures"
 MODELO_APP_VERSIONADO = RAIZ / "app" / "public" / "model"
+RESULTADOS_SCORECARD = RAIZ / "results" / "data" / "scorecard"
 MODULOS_DE_RED = {"socket", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib"}
 
 
@@ -48,8 +49,9 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 
 @pytest.mark.parametrize(
     "argv",
-    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"]],
-    ids=["eda", "figures", "export"],
+    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"],
+     ["scorecard", "--config", "configs/scorecard/base.yaml"]],
+    ids=["eda", "figures", "export", "scorecard"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -63,15 +65,27 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     `export` (Parte C, C2) no recibe `--config`: lee `src.export.exportar_app.RUTA_CONFIG`, que se apunta a un YAML
     temporal que hereda `configs/scorecard/export.yaml` y solo cambia `export.destino` a `tmp_path/app`. Se comprueba
     que escribió los dos JSON allí y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
+
+    `scorecard` (Parte C, C3) recibe `--set salida=tmp_path` (como `eda`): se comprueba que escribió
+    `tmp_path/scorecard.json` y que `results/data/scorecard/` quedó idéntico (si no existe, huellas vacías).
     """
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
         argv = [*argv, "--set", f"eda.salida={tmp_path.as_posix()}"]
+    if argv[0] == "scorecard":  # scorecard.json: a un directorio temporal, nunca a results/data/scorecard/
+        argv = [*argv, "--set", f"salida={tmp_path.as_posix()}"]
     destinos = _redirigir_figuras(monkeypatch, tmp_path) if argv[0] == "figures" else {}
     destino_app = _redirigir_export(monkeypatch, tmp_path) if argv[0] == "export" else None
     antes = _huellas(FIGURAS_VERSIONADAS)
     antes_app = _huellas(MODELO_APP_VERSIONADO)
+    antes_scorecard = _huellas(RESULTADOS_SCORECARD)
     assert cli.main(argv) == 0
+    alterados_scorecard = _diferencias(antes_scorecard, _huellas(RESULTADOS_SCORECARD))
+    assert not alterados_scorecard, f"`run.py {argv[0]}` alteró results/data/scorecard/: {alterados_scorecard}"
+    if argv[0] == "scorecard":
+        from src.scorecard.puntos import ARCHIVO_SCORECARD
+
+        assert (tmp_path / ARCHIVO_SCORECARD).is_file(), "`run.py scorecard` no escribió scorecard.json en tmp_path"
     alterados_app = _diferencias(antes_app, _huellas(MODELO_APP_VERSIONADO))
     assert not alterados_app, f"`run.py {argv[0]}` alteró app/public/model/: {alterados_app}"
     if destino_app is not None:
