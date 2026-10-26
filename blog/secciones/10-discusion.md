@@ -255,7 +255,7 @@ si se prefiere, quitarla) -->
 4. **La LGD de estos datos está casi toda cerca de 1, y en prueba más.** El 43,6 % de los castigados tiene LGD = 1 (25,9 %
    en entrenamiento y 62,7 % en prueba), un patrón consistente con cobranzas que todavía no habían terminado (sección 8.2).
    Con esa forma, el conjunto de evaluación decide el ganador: la mediana constante de entrenamiento gana a los dos modelos
-   en prueba, en MAE y en RMSE (0,0699 frente a 0,0771 en MAE), y es la peor opción en validación en las dos métricas.
+   en prueba, en MAE y en RMSE (0,0699 frente a 0,0769 y 0,0771 en MAE), y es la peor opción en validación en las dos métricas.
 5. **La EAD es una decisión con un sesgo de signo conocido.** Al castigo seguía pendiente, en promedio, el 83,9 % del monto
    desembolsado (Fuente: `results/data/el/summary.json`); usar el monto completo agrega un 17,9 % a la razón entre la
    pérdida esperada y la realizada de los resueltos (factor EAD 1,179), con cualquiera de los dos modelos de PD.
