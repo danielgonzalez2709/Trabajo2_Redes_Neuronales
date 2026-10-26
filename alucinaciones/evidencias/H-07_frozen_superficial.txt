@@ -1,0 +1,2 @@
+después de append: [0.7, 0.6, 0.5]
+reasignar el campo: FrozenInstanceError

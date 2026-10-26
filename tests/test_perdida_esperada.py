@@ -314,12 +314,14 @@ def _escribir_entradas(tmp_path):
     return rutas, loans
 
 
-def test_config_el_hereda_la_scorecard_y_usa_la_logistica():
-    """configs/el/base.yaml hereda el bloque scorecard de la Parte C (así `--set scorecard.pdo=40` funciona), usa la
-    PD de la logística (la única entregada por B hasta B5) y la LGD del MLP, con deciles del puntaje."""
+def test_config_el_usa_la_scorecard_de_C_y_la_logistica():
+    """configs/el/base.yaml trae el mismo bloque scorecard que la Parte C (así `--set scorecard.pdo=40` funciona), solo
+    con las claves de la E[L] (no hereda las rutas ni la salida de C3), usa la PD de la logística y la LGD del MLP, con
+    deciles del puntaje."""
     from src.common.config import apply_overrides, load_config
 
     cfg = load_config(RAIZ / "configs" / "el" / "base.yaml")
+    assert set(cfg) == {"base_seed", "datos", "pd", "lgd", "bandas", "salida", "scorecard"}
     assert cfg["scorecard"] == load_config(RAIZ / "configs" / "scorecard" / "base.yaml")["scorecard"]
     assert cfg["pd"]["modelo"] == "logistica" and cfg["lgd"]["modelo"] == "mlp"
     assert cfg["bandas"]["n"] == 10

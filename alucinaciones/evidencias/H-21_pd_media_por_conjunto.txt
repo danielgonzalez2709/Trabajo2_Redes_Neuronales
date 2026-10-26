@@ -1,0 +1,6 @@
+train 90347 tasa 0.1630 log 0.1630 mlp 0.1884
+val 73194 tasa 0.2295 log 0.1775 mlp 0.1978
+test 74154 tasa 0.2622 log 0.1868 mlp 0.2041
+ max diff vs pred_test 1.1102230246251565e-16 4.583005495939485e-08
+  pred_logistica top10% mean pd 0.416 tasa 0.476
+  pred_mlp top10% mean pd 0.382 tasa 0.478
