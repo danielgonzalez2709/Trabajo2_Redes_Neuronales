@@ -20,7 +20,12 @@ CODIFICACION = "utf-8"  # texto de la huella de la partición (núcleo §6)
 
 
 def huella_particion(df: pd.DataFrame) -> str:
-    """SHA-256 (hex) del texto UTF-8 de las líneas ``f"{id},{split}\\n"`` en el orden de ``df``."""
+    """SHA-256 (hex) del texto UTF-8 de las líneas ``f"{id},{split}\\n"`` en el orden de ``df``.
+
+    Recibe el DataFrame (columnas ``id`` y ``split``); la de B, ``src.pd.experimento.huella_particion(ids, splits)``,
+    recibe las dos columnas por separado. Con los mismos ids y splits en el mismo orden las dos deben dar la misma
+    huella: lo fija ``tests/test_lgd_procedencia.py``.
+    """
     texto = "".join(f"{i},{s}\n" for i, s in zip(df["id"], df["split"], strict=True))
     return hashlib.sha256(texto.encode(CODIFICACION)).hexdigest()
 

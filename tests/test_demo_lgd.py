@@ -44,7 +44,9 @@ def test_demo_lgd_menos_de_2_minutos(tmp_path: Path):
 
     salida = tmp_path / demo["salida"]
     s = load_json(salida / "summary.json")
-    assert s["modelos"]["mlp"]["metricas"]["mae_test"]["n"] == demo["semillas"]["n"]
+    assert set(s) == {"lineal", "mlp", "referencias"}  # por modelo, como B (núcleo §5.4; D10)
+    assert s["mlp"]["metricas"]["mae_test"]["n"] == demo["semillas"]["n"]
+    assert s["mlp"]["config_de_busqueda"] is False and s["mlp"]["busqueda"] is None  # demo: sin_busqueda
     assert len(list((salida / "semillas").glob("mlp_seed*.json"))) == demo["semillas"]["n"]
     assert list(pd.read_parquet(salida / "pred_test.parquet").columns) == ["id", "y", "pred_lineal", "pred_mlp"]
     assert list(pd.read_parquet(salida / "pred_pd_test.parquet").columns) == ["id", "pred_lineal", "pred_mlp"]

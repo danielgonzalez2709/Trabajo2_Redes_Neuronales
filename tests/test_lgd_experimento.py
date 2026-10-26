@@ -9,12 +9,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import shutil
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from src.common import cli
@@ -33,6 +35,15 @@ FEATURES = [
 ]
 N_POR_SPLIT = {"train": 120, "val": 80, "test": 70}
 N_PD_TEST = 150
+# Formato de summary.json (núcleo §5.4, como results/data/pd/summary.json de B; tarea D10).
+CLAVES_RAIZ = {"lineal", "mlp", "referencias"}
+CLAVES_LINEAL = {"n_parametros", "n_configuraciones_busqueda", "tiempo_total_s", "metricas", "evidencia",
+                 "fuera_de_rango", "nota_pred"}
+CLAVES_MLP = {"n_parametros", "n_configuraciones_busqueda", "tiempo_total_s", "metricas", "evidencia",
+              "tiempo_busqueda_s", "tiempo_semillas_s", "semillas", "semilla_mediana", "criterio_semilla_mediana",
+              "config", "config_de_busqueda", "busqueda", "hilos_torch", "version_torch", "base_seed", "n", "muestra"}
+CLAVES_SEMILLA = {"modelo", "seed", "config", "metricas", "n_parametros", "tiempo_s", "device", "epocas", "evidencia"}
+CLAVES_SEMILLA_MLP = {"mejor_epoca", "mejor_perdida_val", "historial", "hilos_torch", "version_torch"}
 # Overrides para que el MLP entrene en décimas de segundo (no son valores del proyecto).
 RAPIDO = ["mlp.capas=[8]", "mlp.max_epocas=4", "mlp.paciencia=2", "mlp.batch=64", "mlp.device=cpu",
           "datos.muestra=null"]
@@ -182,23 +193,24 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     assert semillas == sorted([f"lineal_seed{b}.json"] + [f"mlp_seed{b + k}.json" for k in range(3)])
     for nombre in semillas:
         d = load_json(salida / "semillas" / nombre)
-        for clave in ("modelo", "seed", "config", "metricas", "n_parametros", "tiempo_s", "device", "epocas",
-                      "evidencia"):
-            assert clave in d, (nombre, clave)
+        assert CLAVES_SEMILLA <= set(d), nombre
         assert set(exp.METRICAS) <= set(d["metricas"])
+        assert not any(k.startswith("hash_") for k in d), nombre
 
     s = load_json(salida / "summary.json")
-    assert s["modelos"].keys() == {"lineal", "mlp"}
+    assert set(s) == CLAVES_RAIZ  # por modelo, como B (núcleo §5.4); referencias en la raíz (D §3.4)
+    assert set(s["lineal"]) == CLAVES_LINEAL and set(s["mlp"]) == CLAVES_MLP
     for m, n in (("lineal", 1), ("mlp", 3)):
-        r = s["modelos"][m]
+        r = s[m]
         assert r["n_parametros"] > 0 and r["tiempo_total_s"] > 0
-        assert r["n_configuraciones_busqueda"] == 1  # sin búsqueda previa
         for met in exp.METRICAS:
             assert set(r["metricas"][met]) == {"media", "desv", "mejor", "peor", "n"}
             assert r["metricas"][met]["n"] == n
             assert r["metricas"][met]["mejor"] <= r["metricas"][met]["peor"]
-    assert set(s["modelos"]["lineal"]["fuera_de_rango"]) == {"val", "test", "pd_test"}
-    assert s["modelos"]["lineal"]["fuera_de_rango"]["pd_test"]["n"] == N_PD_TEST
+    assert s["lineal"]["n_configuraciones_busqueda"] == 1  # MCO: una sola configuración
+    assert "[0, 1]" in s["lineal"]["nota_pred"]
+    assert set(s["lineal"]["fuera_de_rango"]) == {"val", "test", "pd_test"}
+    assert s["lineal"]["fuera_de_rango"]["pd_test"]["n"] == N_PD_TEST
     assert resumen == s
 
     pt = pd.read_parquet(salida / "pred_test.parquet")
@@ -213,7 +225,7 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     corridas = sorted((load_json(p)["metricas"]["mae_test"], load_json(p)["seed"])
                       for p in (salida / "semillas").glob("mlp_seed*.json"))
     esperada = corridas[(len(corridas) - 1) // 2][1]
-    assert s["modelos"]["mlp"]["semilla_mediana"] == esperada
+    assert s["mlp"]["semilla_mediana"] == esperada
     mlp = MLPLGD.cargar(raiz / cfg["modelos"]["mlp"])
     assert mlp.seed_ == esperada
     datos = exp.cargar_datos(cfg, raiz)
@@ -226,10 +238,49 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     esperada = {"sha256_particion": hashlib.sha256(texto.encode("utf-8")).hexdigest(),
                 "sha256_preprocesador": _sha(raiz / "models/preprocesador_lgd.json")}
     for m in ("lineal", "mlp"):
-        assert s["modelos"][m]["evidencia"] == esperada
+        assert s[m]["evidencia"] == esperada
+        assert not any(k.startswith("hash_") for k in s[m]), "las huellas viejas no deben quedar en el summary"
     for p in (salida / "semillas").glob("*.json"):
         assert load_json(p)["evidencia"] == esperada
-    assert not any(k.startswith("hash_") for k in s), "las huellas viejas no deben quedar en el summary"
+
+
+def test_summary_mlp_campos_de_b_sin_busqueda(raiz: Path):
+    """Entrada ``mlp`` con los campos de B (núcleo §5.4, v0.16) y las reglas de null: con ``sin_busqueda``,
+    ``config_de_busqueda`` es false, ``n_configuraciones_busqueda``, ``tiempo_busqueda_s`` y ``busqueda`` son null y
+    ``tiempo_total_s`` = ``tiempo_semillas_s``."""
+    cfg = _cfg(extra=["semillas.n=2"])
+    s = exp.entrenar_semillas(cfg, raiz)
+    m = s["mlp"]
+    assert m["config_de_busqueda"] is False
+    assert m["n_configuraciones_busqueda"] is None and m["tiempo_busqueda_s"] is None and m["busqueda"] is None
+    salida = raiz / cfg["salida"]
+    regs = [load_json(salida / "semillas" / f"mlp_seed{k}.json") for k in m["semillas"]]
+    assert m["semillas"] == [cfg["base_seed"], cfg["base_seed"] + 1]
+    assert m["tiempo_semillas_s"] == pytest.approx(sum(r["tiempo_s"] for r in regs))
+    assert m["tiempo_total_s"] == m["tiempo_semillas_s"]
+    assert m["criterio_semilla_mediana"] == exp.CRITERIO_MEDIANA
+    assert m["config"] == regs[0]["config"]["mlp"]  # bloque mlp (como B), el que se entrenó
+    assert m["hilos_torch"] == torch.get_num_threads() and m["version_torch"] == str(torch.__version__)
+    assert m["base_seed"] == cfg["base_seed"] and m["muestra"] is None
+    assert m["n"] == N_POR_SPLIT
+
+
+def test_semilla_mlp_trae_historial_y_versiones(raiz: Path):
+    """``mlp_seed{k}.json``: como B, ``historial [{epoca, perdida_train, perdida_val}]`` (épocas desde 1),
+    ``mejor_perdida_val`` (la de ``mejor_epoca``), ``hilos_torch`` y ``version_torch``; la lineal no los trae."""
+    cfg = _cfg(extra=["semillas.n=1"])
+    exp.entrenar_semillas(cfg, raiz)
+    carpeta = raiz / cfg["salida"] / "semillas"
+    d = load_json(carpeta / f"mlp_seed{cfg['base_seed']}.json")
+    assert CLAVES_SEMILLA_MLP <= set(d)
+    h = d["historial"]
+    assert [e["epoca"] for e in h] == list(range(1, d["epocas"] + 1))
+    assert all(set(e) == {"epoca", "perdida_train", "perdida_val"} for e in h)
+    assert d["mejor_perdida_val"] == h[d["mejor_epoca"] - 1]["perdida_val"] == min(e["perdida_val"] for e in h)
+    assert d["hilos_torch"] == torch.get_num_threads() and d["version_torch"] == str(torch.__version__)
+    lineal = load_json(carpeta / f"lineal_seed{cfg['base_seed']}.json")
+    assert set(lineal["evidencia"]) == {"sha256_particion", "sha256_preprocesador"}
+    assert not (CLAVES_SEMILLA_MLP & set(lineal))
 
 
 def test_misma_semilla_mismas_metricas(tmp_path: Path):
@@ -239,8 +290,8 @@ def test_misma_semilla_mismas_metricas(tmp_path: Path):
         r.mkdir()
         _escribir_datos(r)
         resultados.append(exp.entrenar_semillas(_cfg(extra=["semillas.n=2"]), r))
-    assert resultados[0]["modelos"]["mlp"]["metricas"] == resultados[1]["modelos"]["mlp"]["metricas"]
-    assert resultados[0]["modelos"]["lineal"]["metricas"] == resultados[1]["modelos"]["lineal"]["metricas"]
+    assert resultados[0]["mlp"]["metricas"] == resultados[1]["mlp"]["metricas"]
+    assert resultados[0]["lineal"]["metricas"] == resultados[1]["lineal"]["metricas"]
 
 
 def test_no_reajusta_el_preprocesador(raiz: Path, monkeypatch):
@@ -279,9 +330,12 @@ def test_evidencia_igual_en_semillas_summary_y_hpo(raiz: Path):
     s = exp.entrenar_semillas(cfg, raiz)
     salida = raiz / cfg["salida"]
     evidencias = [h["evidencia"], load_json(salida / "hpo_ensayos.json")["evidencia"]]
-    evidencias += [s["modelos"][m]["evidencia"] for m in ("lineal", "mlp")]
+    evidencias += [s[m]["evidencia"] for m in ("lineal", "mlp")]
     evidencias += [load_json(p)["evidencia"] for p in (salida / "semillas").glob("*.json")]
-    assert len(evidencias) == 2 + 2 + 3
+    n_hpo = 2  # retorno de buscar y hpo_ensayos.json
+    n_modelos = 2  # lineal y mlp del summary
+    n_semillas = 1 + cfg["semillas"]["n"]  # lineal_seed + mlp_seed{k}
+    assert len(evidencias) == n_hpo + n_modelos + n_semillas
     for ev in evidencias:
         assert set(ev) == {"sha256_particion", "sha256_preprocesador"}
         assert _es_hex64(ev["sha256_particion"]) and _es_hex64(ev["sha256_preprocesador"])
@@ -357,10 +411,11 @@ def test_buscar_reescribe_mlp_final_y_lgd_lo_hereda(raiz: Path):
     cfg_lgd = _cfg("base.yaml", ["semillas.n=1"], carpeta, rapido=["datos.muestra=null"])
     assert cfg_lgd["mlp"] == final["mlp"]
     s = exp.entrenar_semillas(cfg_lgd, raiz)
-    assert s["modelos"]["mlp"]["n_configuraciones_busqueda"] == 3
-    assert s["modelos"]["mlp"]["tiempo_busqueda_s"] == pytest.approx(h["tiempo_total_s"])
+    mlp = s["mlp"]
+    assert mlp["config_de_busqueda"] is True and mlp["busqueda"] == final["busqueda"]
+    assert mlp["n_configuraciones_busqueda"] == 3
+    assert mlp["tiempo_busqueda_s"] == pytest.approx(h["tiempo_total_s"])
     # Presupuesto de cómputo total (núcleo §6): búsqueda + semillas.
-    mlp = s["modelos"]["mlp"]
     assert mlp["tiempo_busqueda_s"] > 0
     assert mlp["tiempo_total_s"] == pytest.approx(mlp["tiempo_busqueda_s"] + mlp["tiempo_semillas_s"])
     semilla = load_json(salida / "semillas" / f"mlp_seed{cfg['base_seed']}.json")
@@ -379,7 +434,30 @@ def test_set_mlp_gana_sobre_la_busqueda(raiz: Path):
     assert semilla["config"]["mlp"]["capas"] == [64, 32] and semilla["config"]["mlp"]["dropout"] == 0.3
     n_entradas = MLPLGD.cargar(raiz / cfg["modelos"]["mlp"]).arquitectura_["n_entradas"]
     esperado = (n_entradas * 64 + 64) + (64 * 32 + 32) + (32 + 1)
-    assert semilla["n_parametros"] == esperado == s["modelos"]["mlp"]["n_parametros"]
+    assert semilla["n_parametros"] == esperado == s["mlp"]["n_parametros"]
+    # --set mlp.* saca la config de la búsqueda: presupuesto de la búsqueda en null (núcleo §5.4, como B)
+    m = s["mlp"]
+    assert m["config_de_busqueda"] is False
+    assert m["n_configuraciones_busqueda"] is None and m["tiempo_busqueda_s"] is None and m["busqueda"] is None
+    assert m["tiempo_total_s"] == m["tiempo_semillas_s"]
+
+
+def test_bloque_busqueda_distinto_al_de_mlp_final_no_es_de_la_busqueda(raiz: Path):
+    """Mismos datos y mismo ``mlp``, pero el bloque ``busqueda`` no es el de ``mlp_final.yaml`` → false (como B)."""
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg("base.yaml", ["semillas.n=1", "busqueda.fecha=otra"], carpeta, rapido=["datos.muestra=null"])
+    m = exp.entrenar_semillas(cfg, raiz)["mlp"]
+    assert m["config_de_busqueda"] is False and m["busqueda"] is None
+
+
+def test_optuna_sin_mlp_final_es_error(raiz: Path):
+    """Con ``tipo: optuna`` y sin el ``mlp_final.yaml`` de ``hpo.destino`` no se puede decidir la procedencia."""
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg("base.yaml", ["semillas.n=1", "hpo.destino=configs/lgd/no_existe.yaml"], carpeta)
+    with pytest.raises(ValueError, match="lgd-hpo"):
+        exp.entrenar_semillas(cfg, raiz)
 
 
 @pytest.mark.parametrize("clave, valor", [("evidencia.sha256_particion", "otro"),
@@ -388,7 +466,7 @@ def test_procedencia_de_otros_datos_es_error(raiz: Path, clave, valor):
     carpeta = _copiar_configs(raiz)
     exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
     cfg = _cfg("base.yaml", ["semillas.n=1", f"busqueda.{clave}={valor}"], carpeta)
-    with pytest.raises(ValueError, match=clave.split(".")[0]):
+    with pytest.raises(ValueError, match=re.escape(f"busqueda.{clave} = ")):
         exp.entrenar_semillas(cfg, raiz)
 
 
@@ -404,13 +482,14 @@ def test_busqueda_optuna_con_formato_viejo_es_error(raiz: Path):
         exp.entrenar_semillas(cfg, raiz)
 
 
-def test_demo_yaml_busqueda_alineada_con_b():
-    """Bloque propio de demo.yaml (sin la herencia: hasta D4b, mlp_final.yaml aún trae las claves viejas y la fusión
-    de ``hereda`` las conserva; con ``sin_busqueda`` no se leen)."""
-    import yaml
-    b = yaml.safe_load((RAIZ / "configs/lgd/demo.yaml").read_text(encoding="utf-8"))["busqueda"]
-    assert b["tipo"] == "sin_busqueda" and b["evidencia"] is None
-    assert not any(k.startswith("hash_") for k in b)
+def test_demo_yaml_sin_busqueda_corre(raiz: Path):
+    """La demo (``busqueda.tipo: sin_busqueda``, ``evidencia: null``) corre sin leer ``mlp_final.yaml`` y deja el
+    presupuesto de la búsqueda en null."""
+    cfg = _cfg("demo.yaml", ["semillas.n=1"])
+    cfg["busqueda"] = load_config(RAIZ / "configs/lgd/demo.yaml")["busqueda"]  # el de demo.yaml, no el de _cfg
+    assert cfg["busqueda"]["tipo"] == "sin_busqueda" and cfg["busqueda"]["evidencia"] is None
+    m = exp.entrenar_semillas(cfg, raiz)["mlp"]
+    assert m["config_de_busqueda"] is False and m["busqueda"] is None
 
 
 def test_busqueda_con_muestra_y_final_sin_muestra_es_error(raiz: Path):
@@ -533,7 +612,7 @@ def test_summary_trae_las_referencias(raiz: Path):
     s = exp.entrenar_semillas(cfg, raiz)
     disco = load_json(raiz / cfg["salida"] / "summary.json")
     assert set(disco["referencias"]) == {"constante_media", "constante_mediana"}
-    assert set(disco["modelos"]) == {"lineal", "mlp"}
+    assert set(disco) == CLAVES_RAIZ
     y_tr = pd.read_parquet(raiz / "data/processed/loans_lgd.parquet").query("split == 'train'")["lgd"]
     assert disco["referencias"]["constante_mediana"]["valor"] == pytest.approx(float(y_tr.median()))
     assert disco["referencias"]["constante_media"]["valor"] == pytest.approx(float(y_tr.mean()))

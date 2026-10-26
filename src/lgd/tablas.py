@@ -12,9 +12,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.lgd.experimento import METRICAS, SPLITS
+from src.lgd.experimento import METRICAS, MODELOS, SPLITS
 
-MODELOS = ("lineal", "mlp")
 NOMBRE_METRICA = {"mae_val": "MAE val", "rmse_val": "RMSE val", "mae_test": "MAE test", "rmse_test": "RMSE test"}
 DECIMALES = 4  # solo presentación de la tabla compacta
 SIN_DATO = "—"
@@ -34,11 +33,12 @@ def redirigir_salidas(cfg: dict, carpeta: str | Path) -> dict:
 
 # ----------------------------------------------------------------------------------------- resultados (summary.json)
 def tabla_metricas(resumen: dict) -> pd.DataFrame:
-    """Lineal, MLP y referencias constantes de ``summary.json``: MAE/RMSE (media y desv), semillas, parámetros,
-    configuraciones probadas y tiempo. Las constantes no tienen desv (0) ni tiempo (NaN)."""
+    """Lineal, MLP y referencias constantes de ``summary.json`` (por modelo, como el de B: ``resumen[modelo]``):
+    MAE/RMSE (media y desv), semillas, parámetros, configuraciones probadas y tiempo. Las constantes no tienen desv
+    (0) ni tiempo (NaN); ``configuraciones`` del MLP es null si su config no es la de la búsqueda (núcleo §5.4)."""
     filas = {}
     for nombre in MODELOS:
-        m = resumen["modelos"][nombre]
+        m = resumen[nombre]
         fila = {}
         for k in METRICAS:
             fila[NOMBRE_METRICA[k]] = m["metricas"][k]["media"]
@@ -66,8 +66,9 @@ def tabla_metricas_compacta(resumen: dict, decimales: int = DECIMALES) -> pd.Dat
         col = NOMBRE_METRICA[k]
         out[col] = [f"{m:.{decimales}f} ± {d:.{decimales}f}" if n > 1 else f"{m:.{decimales}f}"
                     for m, d, n in zip(t[col], t[f"{col} (desv)"], t["semillas"])]
-    for col in ("semillas", "parámetros", "configuraciones"):
+    for col in ("semillas", "parámetros"):
         out[col] = t[col]
+    out["configuraciones"] = [SIN_DATO if pd.isna(v) else int(v) for v in t["configuraciones"]]
     out["tiempo (s)"] = [SIN_DATO if pd.isna(v) else f"{v:.1f}" for v in t["tiempo (s)"]]
     return out
 
@@ -82,11 +83,26 @@ def comparacion(resumen: dict, metrica: str = "mae_test") -> dict:
     """``metrica`` (media) de cada modelo y referencia, diferencias MLP − otro (``mlp_menos``) y el de menor valor."""
     if metrica not in METRICAS:
         raise ValueError(f"métrica desconocida {metrica!r}; opciones: {', '.join(METRICAS)}")
-    valores = {n: resumen["modelos"][n]["metricas"][metrica]["media"] for n in MODELOS}
+    valores = {n: resumen[n]["metricas"][metrica]["media"] for n in MODELOS}
     valores.update({n: r["metricas"][metrica] for n, r in resumen["referencias"].items()})
-    return {"metrica": metrica, "valores": valores, "desv_mlp": resumen["modelos"]["mlp"]["metricas"][metrica]["desv"],
+    return {"metrica": metrica, "valores": valores, "desv_mlp": resumen["mlp"]["metricas"][metrica]["desv"],
             "mejor": min(valores, key=valores.get),
             "mlp_menos": {n: valores["mlp"] - v for n, v in valores.items() if n != "mlp"}}
+
+
+def describir_mlp(mlp: dict) -> str:
+    """Una línea con la procedencia, la arquitectura y el presupuesto de la entrada ``mlp`` de ``summary.json``.
+
+    Procedencia: ``busqueda.origen`` si ``config_de_busqueda``; si no, lo dice (el bloque ``busqueda`` es null).
+    """
+    if mlp["config_de_busqueda"]:
+        origen = mlp["busqueda"].get("origen", mlp["busqueda"]["tipo"])
+    else:
+        origen = "fuera de la búsqueda (config_de_busqueda: false)"
+    t_busqueda = mlp["tiempo_busqueda_s"]
+    busqueda = SIN_DATO if t_busqueda is None else f"{t_busqueda:.1f} s"
+    return (f"Configuración del MLP: {origen} · capas {mlp['config']['capas']} · pérdida {mlp['config']['perdida']} · "
+            f"búsqueda {busqueda} · semillas {mlp['tiempo_semillas_s']:.1f} s")
 
 
 # ------------------------------------------------------------------------- LGD observada (descriptivo["observado"])

@@ -11,7 +11,7 @@ import torch
 
 from src.common.config import load_config
 from src.lgd.lineal import LinealLGD
-from src.lgd.mlp import CLAVES_MLP, MLPLGD
+from src.lgd.mlp import CLAVES_MLP, MLPLGD, _construir_red, _entrenar_una_epoca, _penalizacion_l2
 from src.lgd.perdidas import PERDIDAS_VALIDAS, obtener_perdida, perdida_bce_fraccional, perdida_mse
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -294,13 +294,11 @@ def test_valores_invalidos_de_cfg(datos, clave, valor):
 
 # 10. L2 = (λ/2)·Σ‖W‖² (tarea D9; misma convención que B, B-pd §3.2, Spec v0.13): gradiente λW, sin sesgos
 def _red_pequena(semilla: int = 0):
-    from src.lgd.mlp import _construir_red
     torch.manual_seed(semilla)
     return _construir_red(N_FEATURES, [6, 3], "tanh", 0.0).double()
 
 
 def test_penalizacion_l2_gradiente_es_l2_por_w_y_cero_en_sesgos():
-    from src.lgd.mlp import _penalizacion_l2
     red = _red_pequena()
     l2 = 0.37
     pesos = [m.weight for m in red.modules() if isinstance(m, torch.nn.Linear)]
@@ -318,7 +316,6 @@ def test_penalizacion_l2_gradiente_es_l2_por_w_y_cero_en_sesgos():
 
 def test_paso_sgd_con_penalizacion_igual_a_weight_decay_solo_en_w():
     """Un paso del bucle de D (pérdida + (λ/2)Σ‖W‖², SGD sin momento) = SGD(weight_decay=λ) solo sobre las W."""
-    from src.lgd.mlp import _entrenar_una_epoca
     rng = np.random.default_rng(5)
     X = torch.from_numpy(rng.normal(size=(32, N_FEATURES)))
     y = torch.from_numpy(rng.uniform(size=32))

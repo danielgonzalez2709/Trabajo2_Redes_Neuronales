@@ -134,8 +134,8 @@ from src.lgd.tablas import redirigir_salidas, tabla_metricas_compacta
 carpeta_demo = Path(tempfile.mkdtemp(prefix="demo_lgd_"))
 inicio = time.perf_counter()
 resumen_demo = entrenar_semillas(redirigir_salidas(cfg, carpeta_demo))
-print(f"Tiempo de la demo: {time.perf_counter() - inicio:.1f} s · créditos: {resumen_demo['n']} · "
-      f"configuración del MLP: {resumen_demo['busqueda']['origen']}")
+print(f"Tiempo de la demo: {time.perf_counter() - inicio:.1f} s · créditos: {resumen_demo['mlp']['n']} · "
+      f"configuración del MLP: {cfg['busqueda']['origen']}")
 tabla_metricas_compacta(resumen_demo)
 
 # %% [markdown]
@@ -153,13 +153,11 @@ for nombre in ("lgd-distribucion-predicha.png", "lgd-qq.png", "lgd-error-por-ban
 # ## 5. Resultados oficiales (leídos de `summary.json` de la config oficial, sin entrenar)
 
 # %%
-from src.lgd.tablas import comparacion, tabla_referencias
+from src.lgd.tablas import comparacion, describir_mlp, tabla_referencias
 
 resumen = load_json(Path(load_config(CONFIG_OFICIAL)["salida"]) / "summary.json")
-mlp = resumen["modelos"]["mlp"]
-print(f"Configuración del MLP: {resumen['busqueda']['origen']}")
-print(f"Capas {mlp['config']['mlp']['capas']} · pérdida {mlp['config']['mlp']['perdida']} · "
-      f"búsqueda {mlp['tiempo_busqueda_s']:.1f} s · semillas {mlp['tiempo_semillas_s']:.1f} s")
+mlp = resumen["mlp"]
+print(describir_mlp(mlp))
 tabla_metricas_compacta(resumen)
 
 # %%

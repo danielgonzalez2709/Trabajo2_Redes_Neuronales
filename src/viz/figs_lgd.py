@@ -83,7 +83,7 @@ def cuantiles_qq(y: np.ndarray, pred: np.ndarray, probs: np.ndarray = PROBS_QQ) 
 
 def mae_semilla_mediana(semillas: list[dict], resumen: dict) -> tuple[int, float]:
     """(semilla, MAE de test) de la semilla mediana de summary.json; ValueError si no está entre las semillas."""
-    mediana = resumen["modelos"]["mlp"].get("semilla_mediana")
+    mediana = resumen["mlp"].get("semilla_mediana")
     for r in semillas:
         if r["seed"] == mediana:
             return mediana, r["metricas"]["mae_test"]
@@ -240,7 +240,7 @@ def figura_semillas(semillas: list[dict], resumen: dict, destino: Path) -> Path:
                label=f"{p.NOMBRE_MODELO['mlp']} ({len(seeds)} semillas)")
     ax.scatter([mediana], [mae_mediana], s=110, facecolors="none", edgecolors=p.TINTA, linewidths=1.5, zorder=4,
                label=f"Semilla mediana ({mediana})")
-    lineal = resumen["modelos"]["lineal"]["metricas"]["mae_test"]["media"]
+    lineal = resumen["lineal"]["metricas"]["mae_test"]["media"]
     ax.axhline(lineal, color=p.COLOR_MODELO["lineal"], linewidth=1.5,
                label=f"{p.NOMBRE_MODELO['lineal']} = {lineal:.4f}")
     for nombre, estilo in ESTILO_CONSTANTE.items():
