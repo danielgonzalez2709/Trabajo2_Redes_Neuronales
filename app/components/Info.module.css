@@ -53,7 +53,7 @@
   letter-spacing: 0;
   text-transform: none;
   color: #ffffff;
-  background: #1d1d1f; /* 16:1 con el texto blanco */
+  background: var(--ds-tinta); /* 16:1 con el texto blanco */
   border: 0;
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
@@ -65,7 +65,7 @@
 }
 
 /* Con anchor positioning: encima del botón; si no cabe, debajo. */
-@supports (anchor-name: --a) {
+@supports (position-area: top) {
   .globo {
     position-anchor: var(--ancla);
     position-area: top;
@@ -75,7 +75,7 @@
 }
 
 /* Sin anchor positioning, Info.tsx escribe top y left (getBoundingClientRect). */
-@supports not (anchor-name: --a) {
+@supports not (position-area: top) {
   .globo {
     top: 0;
     left: 0;

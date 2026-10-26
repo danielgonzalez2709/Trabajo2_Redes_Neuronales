@@ -86,4 +86,10 @@ describe("indiceBarra", () => {
   it("sin barras: -1", () => {
     expect(indiceBarra([], 541)).toBe(-1);
   });
+
+  it("puntaje no finito: error explícito", () => {
+    expect(() => indiceBarra(b, NaN)).toThrow(/no finito/);
+    expect(() => indiceBarra(b, Infinity)).toThrow(/no finito/);
+    expect(() => indiceBarra([], NaN)).toThrow(/no finito/);
+  });
 });

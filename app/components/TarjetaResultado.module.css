@@ -42,7 +42,7 @@
   font-weight: 600;
   line-height: 1.3;
   color: #ffffff;
-  background: #1d1d1f;
+  background: var(--ds-tinta);
   border-radius: 999px;
 }
 

@@ -41,6 +41,7 @@ export function barrasDesdePercentiles(p: number[], n = BARRAS): Barra[] {
 
 /** Índice de la barra que contiene el puntaje (el borde va con la barra de la derecha); fuera, se acota; sin barras, -1. */
 export function indiceBarra(barras: Barra[], puntaje: number): number {
+  if (!Number.isFinite(puntaje)) throw new Error(`puntaje no finito: ${puntaje}`);
   if (barras.length === 0) return -1;
   const min = barras[0].desde;
   const ancho = (barras[barras.length - 1].hasta - min) / barras.length;

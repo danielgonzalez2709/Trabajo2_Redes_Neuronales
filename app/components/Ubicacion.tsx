@@ -78,7 +78,7 @@ export function Ubicacion({ barras, puntaje, percentil, color, referencia, model
             width={PILDORA.ancho}
             height={PILDORA.alto}
             rx={PILDORA.alto / 2}
-            fill="#1d1d1f"
+            fill="var(--ds-tinta)"
           />
           <text x={0} y={-PILDORA.alto / 2} dominantBaseline="central" textAnchor="middle" className={estilos.tu}>
             Tú · {p}

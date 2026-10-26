@@ -3,7 +3,7 @@
 // foco del teclado o con un toque, y se cierra con Esc, al tocar fuera o al salir. Popover API (top layer) con anchor
 // positioning; donde no hay anchor positioning, el globo se coloca con getBoundingClientRect (Info.module.css,
 // @supports). Sin polyfills. El campo conserva su `aria-describedby` hacia el texto de ayuda (oculto visualmente).
-import type { CSSProperties, FocusEvent, PointerEvent as EventoPuntero } from "react";
+import type { CSSProperties, PointerEvent as EventoPuntero } from "react";
 import { useEffect, useId, useReducer, useRef } from "react";
 import { transicion } from "../lib/toggletip";
 import estilos from "./Info.module.css";
@@ -15,7 +15,7 @@ const BORDE_PX = 8;
 /** Un solo globo abierto a la vez: abrir uno cierra el anterior. */
 let cerrarAbierto: (() => void) | null = null;
 
-const hayAnclas = () => typeof CSS !== "undefined" && CSS.supports("anchor-name: --a");
+const hayAnclas = () => typeof CSS !== "undefined" && CSS.supports("position-area: top");
 
 /** Respaldo sin anchor positioning: encima del botón (debajo si no cabe), centrado y dentro de la ventana. */
 function colocar(boton: HTMLElement, globo: HTMLElement) {
@@ -96,10 +96,6 @@ export function Info({ etiqueta, texto }: Props) {
     window.clearTimeout(salida.current);
     salida.current = window.setTimeout(() => despachar("salir"), ESPERA_SALIR_MS);
   };
-  const desenfocar = (e: FocusEvent) => {
-    if (globo.current?.contains(e.relatedTarget as Node | null)) return;
-    despachar("desenfoque");
-  };
 
   return (
     <>
@@ -113,7 +109,7 @@ export function Info({ etiqueta, texto }: Props) {
         aria-controls={globoId}
         onClick={() => despachar("clic")}
         onFocus={() => despachar("foco")}
-        onBlur={desenfocar}
+        onBlur={() => despachar("desenfoque")}
         onPointerEnter={entrar}
         onPointerLeave={salir}
       >
