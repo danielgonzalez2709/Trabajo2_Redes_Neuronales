@@ -1,7 +1,9 @@
 "use client";
 // Deslizador + campo numérico con el mismo valor. El campo guarda un borrador local para poder escribir libremente;
-// solo comunica valores dentro de [min, max] y, al salir del campo, acota lo escrito al rango.
+// solo comunica valores válidos (lib/campo) y, al salir del campo, ajusta lo escrito al paso y al rango.
+import type { CSSProperties } from "react";
 import { useId, useState } from "react";
+import { acotar, esValido } from "../lib/campo";
 import type { EntradaNum } from "../lib/contrato";
 import { etiquetaSinUnidad, formatearNumero, unidad } from "../lib/formato";
 import estilos from "./Control.module.css";
@@ -9,23 +11,28 @@ import estilos from "./Control.module.css";
 interface Props {
   entrada: EntradaNum;
   valor: number;
+  /** Valor del perfil base: si difiere del actual, se marca tenue sobre el deslizador. */
+  valorBase?: number;
   onCambio: (v: number) => void;
 }
 
-export function ControlNumerico({ entrada: e, valor, onCambio }: Props) {
+export function ControlNumerico({ entrada: e, valor, valorBase, onCambio }: Props) {
   const id = useId();
   const [borrador, setBorrador] = useState<string | null>(null);
   const u = unidad(e);
-  const rango = `Entre ${formatearNumero(e.min, e.paso)} y ${formatearNumero(e.max, e.paso)}${u ? ` ${u}` : ""}.`;
+  const conUnidad = (x: number) => `${formatearNumero(x, e.paso)}${u ? ` ${u}` : ""}`;
+  const rango = `Entre ${formatearNumero(e.min, e.paso)} y ${conUnidad(e.max)}.`;
+  const base = valorBase !== undefined && valorBase !== valor ? valorBase : null; // solo se marca si difiere
 
   const alEscribir = (texto: string, x: number) => {
     setBorrador(texto);
-    if (Number.isFinite(x) && x >= e.min && x <= e.max) onCambio(x);
+    if (esValido(e, x)) onCambio(x);
   };
 
   const alSalir = (x: number) => {
     setBorrador(null);
-    if (Number.isFinite(x) && (x < e.min || x > e.max)) onCambio(Math.min(Math.max(x, e.min), e.max));
+    const ajustado = acotar(e, x);
+    if (ajustado !== null && ajustado !== valor) onCambio(ajustado);
   };
 
   return (
@@ -47,6 +54,7 @@ export function ControlNumerico({ entrada: e, valor, onCambio }: Props) {
             aria-describedby={`${id}-ayuda ${id}-rango`}
             onChange={(ev) => alEscribir(ev.target.value, ev.target.valueAsNumber)}
             onBlur={(ev) => alSalir(ev.target.valueAsNumber)}
+            onInvalid={(ev) => ev.preventDefault()} // sin globo nativo: el valor se ajusta al salir
           />
           <span className={estilos.unidad} aria-hidden={u ? undefined : true}>
             {u}
@@ -56,24 +64,39 @@ export function ControlNumerico({ entrada: e, valor, onCambio }: Props) {
       <p className={estilos.ayuda} id={`${id}-ayuda`}>
         {e.ayuda_es}
       </p>
-      <input
-        className={estilos.deslizador}
-        type="range"
-        min={e.min}
-        max={e.max}
-        step={e.paso}
-        value={valor}
-        aria-labelledby={`${id}-etiqueta`}
-        aria-describedby={`${id}-ayuda`}
-        aria-valuetext={`${formatearNumero(valor, e.paso)}${u ? ` ${u}` : ""}`}
-        onChange={(ev) => {
-          setBorrador(null);
-          onCambio(Number(ev.target.value));
-        }}
-      />
+      <div className={estilos.pista}>
+        {base !== null && (
+          <span
+            className={estilos.marcaBase}
+            style={{ "--fraccion": (base - e.min) / (e.max - e.min) } as CSSProperties}
+            title={`Tu perfil: ${conUnidad(base)}`}
+            aria-hidden="true"
+          />
+        )}
+        <input
+          className={estilos.deslizador}
+          type="range"
+          min={e.min}
+          max={e.max}
+          step={e.paso}
+          value={valor}
+          aria-labelledby={`${id}-etiqueta`}
+          aria-describedby={`${id}-ayuda${base !== null ? ` ${id}-base` : ""}`}
+          aria-valuetext={conUnidad(valor)}
+          onChange={(ev) => {
+            setBorrador(null);
+            onCambio(Number(ev.target.value));
+          }}
+        />
+      </div>
+      {base !== null && (
+        <span className="oculta" id={`${id}-base`}>
+          En tu perfil: {conUnidad(base)}.
+        </span>
+      )}
       <div className={estilos.extremos} id={`${id}-rango`}>
         <span aria-hidden="true">{formatearNumero(e.min, e.paso)}</span>
-        <span className={estilos.oculta}>{rango}</span>
+        <span className="oculta">{rango}</span>
         <span aria-hidden="true">{formatearNumero(e.max, e.paso)}</span>
       </div>
     </div>

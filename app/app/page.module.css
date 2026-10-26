@@ -28,9 +28,17 @@
     grid-area: entradas;
   }
 
+  /* Tarjeta + "¿Y si…?" pueden pasar del alto de la ventana: la columna fija se desplaza por dentro. El relleno
+     (compensado con margen negativo) deja ver la sombra de la tarjeta y el anillo de foco. */
   .resultado {
     grid-area: resultado;
     position: sticky;
-    top: 1.5rem;
+    top: 1rem;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: -0.5rem -0.75rem 0;
+    padding: 0.5rem 0.75rem 1rem;
+    scrollbar-width: thin;
   }
 }

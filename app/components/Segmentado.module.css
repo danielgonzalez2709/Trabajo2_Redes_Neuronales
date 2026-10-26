@@ -13,15 +13,6 @@
   letter-spacing: -0.005em;
 }
 
-.oculta {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .pista {
   display: grid;
   gap: 2px;

@@ -25,6 +25,43 @@
   color: var(--ds-texto-suave);
 }
 
+.enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.enlace,
+.enlaceInactivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 999px;
+}
+
+.enlace {
+  color: var(--ds-texto);
+  text-decoration: none;
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  transition: border-color 150ms ease;
+}
+
+.enlace:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.enlaceInactivo {
+  color: var(--ds-texto-suave);
+  border: 1px dashed var(--ds-borde);
+  cursor: default;
+}
+
 .pie {
   margin-top: 3rem;
   padding-top: 1.25rem;

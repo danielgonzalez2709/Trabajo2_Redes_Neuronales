@@ -13,6 +13,8 @@
   --ds-foco: #2a78d6;
   --ds-modelo-logistica: #2a78d6;
   --ds-modelo-mlp: #eb6834;
+  --ds-sube: #1a7f37; /* puntaje que sube: 5,1:1 sobre blanco; siempre con signo y texto, nunca solo color */
+  --ds-baja: #b42318; /* puntaje que baja: 6,3:1 sobre blanco */
   --ds-radio: 18px;
   --ds-radio-control: 10px;
   --ds-sombra: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
@@ -37,6 +39,16 @@ body {
   color: var(--ds-texto);
   background: var(--ds-pagina);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Solo para lectores de pantalla. */
+.oculta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 :focus-visible {

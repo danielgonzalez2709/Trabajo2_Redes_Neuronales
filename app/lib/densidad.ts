@@ -9,26 +9,34 @@ export interface Tramo {
   densidad: number;
 }
 
+/** Percentiles por tramo de la densidad: 20 tramos de 5 percentiles con los 101 de p0..p100 (menos ruido que 100). */
+export const PERCENTILES_POR_TRAMO = 5;
+
 /**
- * Entre dos percentiles consecutivos cae 1/(n-1) de la población (0,01 con los 101 de p0..p100), así que la densidad
- * del tramo k es 0,01 / (p[k+1] - p[k]). Un tramo de ancho 0 (percentiles repetidos) no tiene densidad finita: su masa
- * se suma al siguiente tramo con ancho (o al anterior si está al final). El área total es 1.
+ * Los tramos van de p[c·j] a p[c·(j+1)] con c = porTramo; en cada uno cae c/(n-1) de la población (0,05 con los 101
+ * de p0..p100 y c = 5), así que su densidad es 0,05 / (p[5(j+1)] - p[5j]). Un tramo de ancho 0 (percentiles
+ * repetidos) no tiene densidad finita: su masa se suma al siguiente tramo con ancho (o al anterior si está al final).
+ * El área total es 1.
  */
-export function densidadDesdePercentiles(p: number[]): Tramo[] {
+export function densidadDesdePercentiles(p: number[], porTramo = PERCENTILES_POR_TRAMO): Tramo[] {
   if (p.length < 2) return [];
   for (let k = 0; k < p.length; k++) {
     if (!Number.isFinite(p[k])) throw new Error(`percentiles_score[${k}] no es finito`);
     if (k > 0 && p[k] < p[k - 1]) throw new Error(`percentiles_score decrece en el índice ${k}`);
   }
-  const masaTramo = 1 / (p.length - 1);
+  if (!Number.isInteger(porTramo) || porTramo < 1 || (p.length - 1) % porTramo !== 0) {
+    throw new Error(`porTramo = ${porTramo} no divide los ${p.length - 1} tramos entre percentiles`);
+  }
+  const q = p.filter((_, k) => k % porTramo === 0); // p0, p5, …, p100
+  const masaTramo = 1 / (q.length - 1);
   const tramos: Tramo[] = [];
   let pendiente = 0; // masa de los tramos de ancho 0 aún sin asignar
-  for (let k = 0; k < p.length - 1; k++) {
-    if (p[k + 1] === p[k]) {
+  for (let k = 0; k < q.length - 1; k++) {
+    if (q[k + 1] === q[k]) {
       pendiente += masaTramo;
       continue;
     }
-    tramos.push({ desde: p[k], hasta: p[k + 1], masa: masaTramo + pendiente, densidad: 0 });
+    tramos.push({ desde: q[k], hasta: q[k + 1], masa: masaTramo + pendiente, densidad: 0 });
     pendiente = 0;
   }
   if (tramos.length === 0) return [];

@@ -8,10 +8,12 @@ import estilos from "./PanelEntradas.module.css";
 interface Props {
   entradas: Entrada[];
   valores: Valores;
+  /** Perfil base: cada deslizador marca su valor cuando el escenario difiere. */
+  base: Valores;
   onCambio: (nombre: string, v: number | string) => void;
 }
 
-export function PanelEntradas({ entradas, valores, onCambio }: Props) {
+export function PanelEntradas({ entradas, valores, base, onCambio }: Props) {
   return (
     <section className={estilos.panel} aria-labelledby="titulo-perfil">
       <h2 id="titulo-perfil" className={estilos.titulo}>
@@ -27,6 +29,7 @@ export function PanelEntradas({ entradas, valores, onCambio }: Props) {
                 key={e.nombre}
                 entrada={e}
                 valor={Number(valores[e.nombre])}
+                valorBase={Number(base[e.nombre])}
                 onCambio={(v) => onCambio(e.nombre, v)}
               />
             ) : (

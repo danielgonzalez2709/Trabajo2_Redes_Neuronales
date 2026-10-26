@@ -21,7 +21,7 @@ interface Props {
 export function Segmentado({ nombre, leyenda, leyendaVisible = true, opciones, valor, onCambio, ayudaId }: Props) {
   return (
     <fieldset className={estilos.grupo} aria-describedby={ayudaId}>
-      <legend className={leyendaVisible ? estilos.leyenda : estilos.oculta}>{leyenda}</legend>
+      <legend className={leyendaVisible ? estilos.leyenda : "oculta"}>{leyenda}</legend>
       <div className={estilos.pista} style={{ gridTemplateColumns: `repeat(${opciones.length}, minmax(0, 1fr))` }}>
         {opciones.map((o) => (
           <label key={o.valor} className={estilos.opcion}>
