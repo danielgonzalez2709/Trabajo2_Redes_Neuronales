@@ -1,0 +1,672 @@
+{
+  "version_contrato": 1,
+  "generado": "2026-10-26T03:44:41+00:00",
+  "commit": "2f51398c7526dee5ffdc70cae85feb47c0374fed",
+  "modelo": "logistica",
+  "entradas": [
+    {
+      "nombre": "loan_amnt",
+      "tipo": "num",
+      "etiqueta_es": "Monto solicitado (USD)",
+      "ayuda_es": "Cuánto dinero pides prestado.",
+      "min": 1350,
+      "max": 35000,
+      "paso": 25,
+      "valor_defecto": 10000
+    },
+    {
+      "nombre": "term",
+      "tipo": "cat",
+      "etiqueta_es": "Plazo",
+      "ayuda_es": "Número de cuotas mensuales (36 o 60).",
+      "categorias": [
+        "36 months",
+        "60 months"
+      ],
+      "valor_defecto": "36 months",
+      "etiquetas_categorias": {
+        "36 months": "36 meses",
+        "60 months": "60 meses"
+      }
+    },
+    {
+      "nombre": "emp_length",
+      "tipo": "cat",
+      "etiqueta_es": "Antigüedad en el empleo",
+      "ayuda_es": "Años en tu empleo actual.",
+      "categorias": [
+        "< 1 year",
+        "1 year",
+        "2 years",
+        "3 years",
+        "4 years",
+        "5 years",
+        "6 years",
+        "7 years",
+        "8 years",
+        "9 years",
+        "10+ years",
+        "DESCONOCIDO"
+      ],
+      "valor_defecto": "10+ years",
+      "etiquetas_categorias": {
+        "< 1 year": "Menos de 1 año",
+        "1 year": "1 año",
+        "2 years": "2 años",
+        "3 years": "3 años",
+        "4 years": "4 años",
+        "5 years": "5 años",
+        "6 years": "6 años",
+        "7 years": "7 años",
+        "8 years": "8 años",
+        "9 years": "9 años",
+        "10+ years": "10 años o más",
+        "DESCONOCIDO": "No lo reporto"
+      }
+    },
+    {
+      "nombre": "home_ownership",
+      "tipo": "cat",
+      "etiqueta_es": "Vivienda",
+      "ayuda_es": "Si alquilas, eres propietario o pagas una hipoteca.",
+      "categorias": [
+        "RENT",
+        "OWN",
+        "MORTGAGE",
+        "OTHER",
+        "NONE"
+      ],
+      "valor_defecto": "RENT",
+      "etiquetas_categorias": {
+        "RENT": "Arriendo",
+        "OWN": "Propia",
+        "MORTGAGE": "Hipoteca",
+        "OTHER": "Otra",
+        "NONE": "Ninguna"
+      }
+    },
+    {
+      "nombre": "annual_inc",
+      "tipo": "num",
+      "etiqueta_es": "Ingreso anual (USD)",
+      "ayuda_es": "Tus ingresos de un año, antes de impuestos.",
+      "min": 15000,
+      "max": 230000,
+      "paso": 1000,
+      "valor_defecto": 60000
+    },
+    {
+      "nombre": "purpose",
+      "tipo": "cat",
+      "etiqueta_es": "Destino del préstamo",
+      "ayuda_es": "Para qué vas a usar el dinero.",
+      "categorias": [
+        "debt_consolidation",
+        "credit_card",
+        "home_improvement",
+        "major_purchase",
+        "small_business",
+        "car",
+        "medical",
+        "moving",
+        "vacation",
+        "wedding",
+        "house",
+        "educational",
+        "renewable_energy",
+        "other"
+      ],
+      "valor_defecto": "debt_consolidation",
+      "etiquetas_categorias": {
+        "debt_consolidation": "Consolidar deudas",
+        "credit_card": "Tarjeta de crédito",
+        "home_improvement": "Mejoras a la vivienda",
+        "major_purchase": "Compra grande",
+        "small_business": "Pequeña empresa",
+        "car": "Carro",
+        "medical": "Gastos médicos",
+        "moving": "Mudanza",
+        "vacation": "Vacaciones",
+        "wedding": "Boda",
+        "house": "Vivienda",
+        "educational": "Educación",
+        "renewable_energy": "Energía renovable",
+        "other": "Otro"
+      }
+    },
+    {
+      "nombre": "dti",
+      "tipo": "num",
+      "etiqueta_es": "Deuda mensual sobre ingreso mensual (%)",
+      "ayuda_es": "Cuotas mensuales de tus deudas (sin hipoteca) divididas por tu ingreso mensual, en porcentaje.",
+      "min": 0.6,
+      "max": 32.5,
+      "paso": 0.1,
+      "valor_defecto": 15.0
+    },
+    {
+      "nombre": "delinq_2yrs",
+      "tipo": "num",
+      "etiqueta_es": "Moras de 30+ días en los últimos 2 años",
+      "ayuda_es": "Cuántas veces te atrasaste más de 30 días en algún pago.",
+      "min": 0,
+      "max": 3,
+      "paso": 1,
+      "valor_defecto": 0
+    },
+    {
+      "nombre": "antiguedad_credito_anios",
+      "tipo": "num",
+      "etiqueta_es": "Años de historial crediticio",
+      "ayuda_es": "Años desde que abriste tu primer producto de crédito.",
+      "min": 3,
+      "max": 36,
+      "paso": 1,
+      "valor_defecto": 13
+    },
+    {
+      "nombre": "inq_last_6mths",
+      "tipo": "num",
+      "etiqueta_es": "Consultas de crédito en los últimos 6 meses",
+      "ayuda_es": "Cuántas veces pediste crédito recientemente (sin contar auto ni hipoteca).",
+      "min": 0,
+      "max": 5,
+      "paso": 1,
+      "valor_defecto": 1
+    },
+    {
+      "nombre": "open_acc",
+      "tipo": "num",
+      "etiqueta_es": "Líneas de crédito abiertas",
+      "ayuda_es": "Tarjetas y créditos que tienes activos.",
+      "min": 2,
+      "max": 23,
+      "paso": 1,
+      "valor_defecto": 9
+    },
+    {
+      "nombre": "pub_rec",
+      "tipo": "num",
+      "etiqueta_es": "Registros públicos negativos",
+      "ayuda_es": "Quiebras, embargos u otros registros públicos en tu contra.",
+      "min": 0,
+      "max": 1,
+      "paso": 1,
+      "valor_defecto": 0
+    },
+    {
+      "nombre": "revol_bal",
+      "tipo": "num",
+      "etiqueta_es": "Saldo en tarjetas de crédito (USD)",
+      "ayuda_es": "Lo que debes hoy en tarjetas y cupos rotativos.",
+      "min": 0,
+      "max": 81900,
+      "paso": 100,
+      "valor_defecto": 10400
+    },
+    {
+      "nombre": "revol_util",
+      "tipo": "num",
+      "etiqueta_es": "Uso de tus cupos rotativos (%)",
+      "ayuda_es": "Qué porcentaje de tus cupos de tarjeta estás usando.",
+      "min": 0.0,
+      "max": 97.6,
+      "paso": 0.1,
+      "valor_defecto": 56.4
+    },
+    {
+      "nombre": "total_acc",
+      "tipo": "num",
+      "etiqueta_es": "Total de líneas de crédito en tu historial",
+      "ayuda_es": "Todas las cuentas de crédito que has tenido, abiertas o cerradas.",
+      "min": 4,
+      "max": 56,
+      "paso": 1,
+      "valor_defecto": 21
+    }
+  ],
+  "preprocesamiento": {
+    "version": 1,
+    "percentiles_recorte": [
+      1.0,
+      99.0
+    ],
+    "categoricas": {
+      "limpieza": "strip",
+      "vacio": "DESCONOCIDO",
+      "no_vista": "OTRA"
+    },
+    "orden_numericas": [
+      "imputar_mediana",
+      "recortar",
+      "log1p_si_aplica",
+      "estandarizar"
+    ],
+    "columnas_salida": [
+      "loan_amnt",
+      "term=36 months",
+      "term=60 months",
+      "term=OTRA",
+      "emp_length=1 year",
+      "emp_length=10+ years",
+      "emp_length=2 years",
+      "emp_length=3 years",
+      "emp_length=4 years",
+      "emp_length=5 years",
+      "emp_length=6 years",
+      "emp_length=7 years",
+      "emp_length=8 years",
+      "emp_length=9 years",
+      "emp_length=< 1 year",
+      "emp_length=DESCONOCIDO",
+      "emp_length=OTRA",
+      "home_ownership=MORTGAGE",
+      "home_ownership=NONE",
+      "home_ownership=OTHER",
+      "home_ownership=OWN",
+      "home_ownership=RENT",
+      "home_ownership=OTRA",
+      "annual_inc",
+      "purpose=car",
+      "purpose=credit_card",
+      "purpose=debt_consolidation",
+      "purpose=educational",
+      "purpose=home_improvement",
+      "purpose=house",
+      "purpose=major_purchase",
+      "purpose=medical",
+      "purpose=moving",
+      "purpose=other",
+      "purpose=renewable_energy",
+      "purpose=small_business",
+      "purpose=vacation",
+      "purpose=wedding",
+      "purpose=OTRA",
+      "dti",
+      "delinq_2yrs",
+      "antiguedad_credito_anios",
+      "inq_last_6mths",
+      "open_acc",
+      "pub_rec",
+      "revol_bal",
+      "revol_util",
+      "total_acc"
+    ],
+    "variables": [
+      {
+        "nombre": "loan_amnt",
+        "tipo": "num",
+        "mediana": 10000.0,
+        "recorte": [
+          1350.0,
+          35000.0
+        ],
+        "log1p": true,
+        "media": 9.17214254609383,
+        "desv": 0.7057320968696751
+      },
+      {
+        "nombre": "term",
+        "tipo": "cat",
+        "categorias": [
+          "36 months",
+          "60 months",
+          "OTRA"
+        ]
+      },
+      {
+        "nombre": "emp_length",
+        "tipo": "cat",
+        "categorias": [
+          "1 year",
+          "10+ years",
+          "2 years",
+          "3 years",
+          "4 years",
+          "5 years",
+          "6 years",
+          "7 years",
+          "8 years",
+          "9 years",
+          "< 1 year",
+          "DESCONOCIDO",
+          "OTRA"
+        ]
+      },
+      {
+        "nombre": "home_ownership",
+        "tipo": "cat",
+        "categorias": [
+          "MORTGAGE",
+          "NONE",
+          "OTHER",
+          "OWN",
+          "RENT",
+          "OTRA"
+        ]
+      },
+      {
+        "nombre": "annual_inc",
+        "tipo": "num",
+        "mediana": 60000.0,
+        "recorte": [
+          15058.54,
+          230000.0
+        ],
+        "log1p": true,
+        "media": 10.981100232922868,
+        "desv": 0.5234929956042197
+      },
+      {
+        "nombre": "purpose",
+        "tipo": "cat",
+        "categorias": [
+          "car",
+          "credit_card",
+          "debt_consolidation",
+          "educational",
+          "home_improvement",
+          "house",
+          "major_purchase",
+          "medical",
+          "moving",
+          "other",
+          "renewable_energy",
+          "small_business",
+          "vacation",
+          "wedding",
+          "OTRA"
+        ]
+      },
+      {
+        "nombre": "dti",
+        "tipo": "num",
+        "mediana": 14.99,
+        "recorte": [
+          0.6346000000000004,
+          32.5
+        ],
+        "log1p": false,
+        "media": 15.093069702369752,
+        "desv": 7.352874379877304
+      },
+      {
+        "nombre": "delinq_2yrs",
+        "tipo": "num",
+        "mediana": 0.0,
+        "recorte": [
+          0.0,
+          3.0
+        ],
+        "log1p": false,
+        "media": 0.16873830896432643,
+        "desv": 0.5002858655711986
+      },
+      {
+        "nombre": "antiguedad_credito_anios",
+        "tipo": "num",
+        "mediana": 12.837782340862423,
+        "recorte": [
+          3.5044490075290895,
+          36.0
+        ],
+        "log1p": false,
+        "media": 14.063051706332008,
+        "desv": 6.6704970483583255
+      },
+      {
+        "nombre": "inq_last_6mths",
+        "tipo": "num",
+        "mediana": 1.0,
+        "recorte": [
+          0.0,
+          5.0
+        ],
+        "log1p": false,
+        "media": 0.9250002767109036,
+        "desv": 1.1463169481800806
+      },
+      {
+        "nombre": "open_acc",
+        "tipo": "num",
+        "mediana": 9.0,
+        "recorte": [
+          2.0,
+          23.0
+        ],
+        "log1p": false,
+        "media": 9.985909880792942,
+        "desv": 4.401922900815645
+      },
+      {
+        "nombre": "pub_rec",
+        "tipo": "num",
+        "mediana": 0.0,
+        "recorte": [
+          0.0,
+          1.0
+        ],
+        "log1p": false,
+        "media": 0.04069863968919831,
+        "desv": 0.19759114458053811
+      },
+      {
+        "nombre": "revol_bal",
+        "tipo": "num",
+        "mediana": 10392.0,
+        "recorte": [
+          0.0,
+          81831.61999999998
+        ],
+        "log1p": true,
+        "media": 8.959273256786407,
+        "desv": 1.5858091982846447
+      },
+      {
+        "nombre": "revol_util",
+        "tipo": "num",
+        "mediana": 56.4,
+        "recorte": [
+          0.0,
+          97.6
+        ],
+        "log1p": false,
+        "media": 53.75247124973712,
+        "desv": 26.52542241432555
+      },
+      {
+        "nombre": "total_acc",
+        "tipo": "num",
+        "mediana": 21.0,
+        "recorte": [
+          4.0,
+          56.0
+        ],
+        "log1p": false,
+        "media": 22.795045767983442,
+        "desv": 11.094388575914147
+      }
+    ]
+  },
+  "red": {
+    "capas": [
+      {
+        "W": [
+          [
+            0.19722750477908763,
+            -0.5012390370002332,
+            0.5013170973229528,
+            0.0,
+            -0.06477602747657472,
+            0.06821143787689016,
+            -0.08873178001721027,
+            -0.03897977284633142,
+            -0.03883652297661665,
+            -0.044053857113636546,
+            0.004903737498111127,
+            0.06464366966138288,
+            0.02387515205716627,
+            -0.01430434494530909,
+            -0.05565361067392088,
+            0.1837799792787651,
+            0.0,
+            -0.06693312511595205,
+            0.0014384868400921305,
+            0.02937312614255657,
+            -0.0014817041746561673,
+            0.037681276630678134,
+            0.0,
+            -0.3051916118327715,
+            -0.14873347111348142,
+            -0.31323107452309296,
+            -0.09409393625554503,
+            0.04899261595069791,
+            -0.05448797802383197,
+            0.02528974794587713,
+            -0.1388752917062491,
+            0.06368521523013217,
+            0.04803707499335798,
+            0.13592450073910656,
+            0.03066813933816783,
+            0.4574265859721092,
+            0.05069275571400354,
+            -0.11121682393853667,
+            0.0,
+            0.05388316148113244,
+            0.058702341851068346,
+            -0.010954976723236656,
+            0.23247249919772542,
+            0.16348166021878052,
+            0.06772029287456269,
+            -0.13971496426093996,
+            0.3430219044843598,
+            -0.09388139786589067
+          ]
+        ],
+        "b": [
+          -1.346046912146862
+        ],
+        "activacion": "identidad"
+      }
+    ],
+    "salida": "sigmoid"
+  },
+  "scorecard": {
+    "base": 600.0,
+    "odds_base": 50.0,
+    "pdo": 20.0,
+    "factor": 28.85390081777927,
+    "offset": 487.1228762045055
+  },
+  "poblacion": {
+    "percentiles_score": [
+      457.5728197417094,
+      487.6039991312045,
+      491.86353627907556,
+      494.71277419368226,
+      496.92220073211485,
+      498.6328433078212,
+      500.2878806825443,
+      501.65947747937935,
+      502.95468118033676,
+      504.1524204271074,
+      505.32831915849613,
+      506.4240559185925,
+      507.4427707173666,
+      508.43432245557096,
+      509.4204274028645,
+      510.3467810952012,
+      511.2967121202016,
+      512.341512315352,
+      513.2963349907947,
+      514.1830489004533,
+      515.0888941750726,
+      516.0192471742471,
+      516.8957753348623,
+      517.7829602468482,
+      518.6497617480435,
+      519.4869823187175,
+      520.3143401909739,
+      521.1592323331294,
+      521.99658374888,
+      522.806580243074,
+      523.6463504631931,
+      524.4104725361608,
+      525.1565106566766,
+      525.9273277764567,
+      526.6144573059026,
+      527.3357563111018,
+      527.9941542897474,
+      528.6407296485467,
+      529.2746189511962,
+      529.8954903077617,
+      530.4616307430908,
+      531.0739815630106,
+      531.6787609491452,
+      532.2319269371724,
+      532.7829594743764,
+      533.3267308054101,
+      533.8373931503555,
+      534.3476031071973,
+      534.8822303244158,
+      535.3843850852764,
+      535.9109664552203,
+      536.4094235769417,
+      536.90033867791,
+      537.418704197709,
+      537.9020906835278,
+      538.3874749513003,
+      538.8731149589781,
+      539.3684836016007,
+      539.838172649818,
+      540.3079341658098,
+      540.7683669904728,
+      541.2345005842734,
+      541.741292537321,
+      542.230785270003,
+      542.7054442056157,
+      543.1842853081772,
+      543.6742149278626,
+      544.1580115856817,
+      544.6771613694019,
+      545.1860641969864,
+      545.6903032475452,
+      546.2122582030032,
+      546.7074751132193,
+      547.2112381789775,
+      547.6971078809015,
+      548.2305905028575,
+      548.79080808991,
+      549.3410931821346,
+      549.9397072604555,
+      550.5245893834034,
+      551.0733367412855,
+      551.6752406943306,
+      552.3344191538876,
+      552.975932735584,
+      553.6414051610686,
+      554.3124781328587,
+      555.0543017895469,
+      555.7936694485596,
+      556.6093881386059,
+      557.4249099038253,
+      558.2835543569707,
+      559.2433829482172,
+      560.2633621898312,
+      561.4111353495298,
+      562.6697872984028,
+      564.1488309572755,
+      565.770962860895,
+      567.7897460682515,
+      570.4393626567179,
+      574.7186766007864,
+      608.3806084726228
+    ],
+    "referencia": "test"
+  },
+  "metricas": {
+    "auc_test": 0.6696471920866485,
+    "ks_test": 0.24650160083183942,
+    "brier_test": 0.186521674060379
+  }
+}

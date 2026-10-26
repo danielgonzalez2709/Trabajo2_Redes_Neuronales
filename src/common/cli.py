@@ -97,6 +97,21 @@ def _figures(cfg: dict | None) -> int:
     return 0
 
 
+def _export(cfg: dict | None) -> int:
+    """Parte C (C2): pd_model.json y casos_paridad.json para la app. Lee `exportar_app.RUTA_CONFIG` al llamarse."""
+    import time
+
+    from src.export import exportar_app
+
+    inicio = time.perf_counter()
+    cfg = load_config(exportar_app.RUTA_CONFIG)
+    _imprimir_config(cfg)
+    for ruta in exportar_app.exportar(cfg):
+        print(ruta.as_posix())
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return 0
+
+
 def _notebooks(cfg: dict | None) -> int:
     """E10: notebooks/NN_*.py → .ipynb ejecutado (núcleo §5.8)."""
     from src.common.notebooks import manejador
@@ -113,7 +128,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
-    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
+    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _export),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
     "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _notebooks),
 }
