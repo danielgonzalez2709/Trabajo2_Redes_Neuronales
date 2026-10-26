@@ -1,0 +1,46 @@
+['id', 'target', 'pd', 'lgd', 'ead', 'el', 'ead_incumplimiento', 'estado', 'perdida_observada', 'perdida_provisional', 'principal_no_registrado', 'observacion_completa', 'score', 'banda'] 74154
+loans (237695, 20) montos (237695, 6) ['id', 'loan_status', 'funded_amnt', 'total_rec_prncp', 'recoveries', 'collection_recovery_fee']
+same id order: True
+['id', 'issue_d', 'anio_origen', 'target', 'split', 'loan_amnt', 'term', 'emp_length', 'home_ownership', 'annual_inc', 'purpose', 'dti', 'delinq_2yrs', 'antiguedad_credito_anios', 'inq_last_6mths', 'open_acc', 'pub_rec', 'revol_bal', 'revol_util', 'total_acc']
+test n 74154
+issue_d
+2014    74154
+Name: count, dtype: int64
+loan_status
+Fully Paid            54713
+Charged Off           13981
+Late (31-120 days)     4847
+Default                 613
+Name: count, dtype: int64
+train 0.16302699591574707
+val 0.22949968576659288
+test 0.26217061790328233
+anom n 1284 sum 1670028.92 n>1 197 sum>1 1670009.95 median 0.010000000000218279
+castigados 13981 min pend 200.3699999999999 frac pend media 0.838881547332407
+net rec negative? 0 P<0 0
+mora 5460 rec>0 0 fee>0 0 prov 61334969.06
+lgd pred (74154, 3) ['id', 'pred_lineal', 'pred_mlp'] std pop 0.009039652523806167 std m 0.009039713476310097 0.8547461032867432 0.944537878036499 0.9160417705339454
+max |L - lgdobs*pend| 3.637978807091713e-12
+1 ['1.132', '1.051', '0.977', '1.103']
+2 ['1.067', '0.983', '0.968', '1.121']
+3 ['1.080', '0.959', '0.972', '1.159']
+4 ['1.038', '0.873', '0.969', '1.228']
+5 ['0.926', '0.769', '0.968', '1.244']
+6 ['0.939', '0.775', '0.966', '1.254']
+7 ['1.005', '0.829', '0.966', '1.255']
+8 ['1.002', '0.818', '0.961', '1.274']
+9 ['1.107', '0.903', '0.965', '1.272']
+10 ['1.203', '0.981', '0.962', '1.275']
+T ['1.057', '0.925', '0.970', '1.179'] (np.float64(1.0574102166949297), np.float64(0.9251006631612468), np.float64(0.9696462637635163), np.float64(1.178802861966502))
+score monotone in pd? -1.0
+score range 457.5728197417094 608.3806084726228
+estado
+pagado       54713
+castigado    13981
+Name: count, dtype: int64
+ead    1.491079
+pd     6.639981
+el     9.915938
+dtype: float64
+share log PD 0.825192181438948 share log EAD 0.174139183806289
+1.05785775

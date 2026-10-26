@@ -63,6 +63,20 @@ def _eda(cfg: dict | None) -> int:
     return manejador(cfg)
 
 
+def _pd(cfg: dict | None) -> int:
+    """Parte B (B3/B5): logística + MLP de PD con semillas."""
+    from src.pd.experimento import manejador
+
+    return manejador(cfg)
+
+
+def _pd_hpo(cfg: dict | None) -> int:
+    """Parte B (B4): búsqueda Optuna del MLP de PD."""
+    from src.pd.hpo import manejador_hpo
+
+    return manejador_hpo(cfg)
+
+
 def _lgd(cfg: dict | None) -> int:
     """Parte D (D4): lineal + MLP de LGD con semillas."""
     from src.lgd.experimento import manejador
@@ -85,16 +99,44 @@ def _el(cfg: dict | None) -> int:
 
 
 def _figures(cfg: dict | None) -> int:
-    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A y la Parte D (D6)."""
+    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A, la Parte D (D6) y la Parte E (E5)."""
     import time
 
-    from src.viz import figs_datos, figs_lgd
+    from src.viz import figs_datos, figs_el, figs_lgd
 
     inicio = time.perf_counter()
-    for ruta in [*figs_datos.generar(), *figs_lgd.generar()]:
+    for ruta in [*figs_datos.generar(), *figs_lgd.generar(), *figs_el.generar()]:
         print(ruta.as_posix())
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0
+
+
+def _export(cfg: dict | None) -> int:
+    """Parte C (C2, C5): pd_model_{modelo}.json y casos_paridad_{modelo}.json de los dos modelos de PD para la app.
+    Lee `exportar_app.RUTA_CONFIG` al llamarse."""
+    import time
+
+    from src.export import exportar_app
+
+    inicio = time.perf_counter()
+    cfg = load_config(exportar_app.RUTA_CONFIG)
+    _imprimir_config(cfg)
+    for ruta in exportar_app.exportar(cfg):
+        print(ruta.as_posix())
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return 0
+
+
+def _scorecard(cfg: dict | None) -> int:
+    """Parte C (C3): scorecard de la logística → <salida>/scorecard.json."""
+    import time
+
+    from src.scorecard.puntos import manejador
+
+    inicio = time.perf_counter()
+    codigo = manejador(cfg)
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return codigo
 
 
 def _notebooks(cfg: dict | None) -> int:
@@ -107,13 +149,13 @@ def _notebooks(cfg: dict | None) -> int:
 # Registro único nombre -> (ayuda, usa_config, manejador). Cada parte conecta el suyo.
 SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
-    "pd": Subcomando("Parte B: logística + MLP de PD", True, _pendiente("pd", "B3/B5")),
-    "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pendiente("pd-hpo", "B4")),
+    "pd": Subcomando("Parte B: logística + MLP de PD", True, _pd),
+    "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pd_hpo),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
-    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
+    "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _scorecard),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
-    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
+    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _export),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
     "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _notebooks),
 }

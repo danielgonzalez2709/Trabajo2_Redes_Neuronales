@@ -5,15 +5,22 @@ bibliotecas de red. Ningún script usa internet: el crudo se descarga a mano (da
 Cada parte agrega su subcomando a la lista cuando lo conecte.
 """
 import ast
+import hashlib
+import importlib
+import pkgutil
 import socket
 import urllib.request
 from pathlib import Path
 
 import pytest
 
+import src.viz
 from src.common import cli
 
 RAIZ = Path(__file__).resolve().parents[1]
+FIGURAS_VERSIONADAS = RAIZ / "blog" / "docs" / "figures"
+MODELO_APP_VERSIONADO = RAIZ / "app" / "public" / "model"
+RESULTADOS_SCORECARD = RAIZ / "results" / "data" / "scorecard"
 MODULOS_DE_RED = {"socket", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib"}
 
 
@@ -42,20 +49,123 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 
 @pytest.mark.parametrize(
     "argv",
-    [["eda", "--config", "configs/datos.yaml"], ["figures"]],
-    ids=["eda", "figures"],
+    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"],
+     ["pd-hpo", "--config", "configs/pd/hpo.yaml"], ["pd", "--config", "configs/pd/base.yaml"],
+     ["scorecard", "--config", "configs/scorecard/base.yaml"]],
+    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
-    con el proceso por sockets locales (no es internet)."""
+    con el proceso por sockets locales (no es internet).
+
+    Ningún comando puede escribir en los archivos versionados: `eda` escribe en un directorio temporal y en `figures`
+    se redirige el `SALIDA` de **todos** los módulos `src/viz/figs_*.py` (también los que se agreguen después) a una
+    subcarpeta temporal por módulo. Después se comprueba que `blog/docs/figures/` quedó idéntico (SHA-256 antes y
+    después: ningún archivo cambiado, nuevo ni borrado) y que cada módulo dejó al menos un .png en su subcarpeta.
+
+    `export` (Parte C, C2) no recibe `--config`: lee `src.export.exportar_app.RUTA_CONFIG`, que se apunta a un YAML
+    temporal que hereda `configs/scorecard/export.yaml` y solo cambia `export.destino` a `tmp_path/app`. Se comprueba
+    que escribió allí EXACTAMENTE los archivos de `archivos_modelo(m)` para cada `m` de `MODELOS` (C5: pd_model y casos
+    de paridad de los dos modelos) y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
+
+    `scorecard` (Parte C, C3) recibe `--set salida=tmp_path` (como `eda`): se comprueba que escribió
+    `tmp_path/scorecard.json` y que `results/data/scorecard/` quedó idéntico (si no existe, huellas vacías).
+    """
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
         argv = [*argv, "--set", f"eda.salida={tmp_path.as_posix()}"]
-    if argv[0] == "figures":
-        from src.viz import figs_datos
-
-        monkeypatch.setattr(figs_datos, "SALIDA", tmp_path)
+    if argv[0] == "pd-hpo":  # escribe resultados y mlp_final.yaml: a tmp_path, nunca a configs/ ni a results/
+        argv = [*argv, "--set", "hpo.n_ensayos=1", "--set", "mlp.max_epocas=1",
+                "--set", f"hpo.destino={(tmp_path / 'mlp_final.yaml').as_posix()}",
+                "--set", f"hpo.salida={tmp_path.as_posix()}"]
+    if argv[0] == "pd":  # escribe resultados y modelos: a tmp_path, nunca a results/ ni a models/
+        argv = [*argv, "--set", f"salida={(tmp_path / 'res').as_posix()}",
+                "--set", f"modelos={(tmp_path / 'models').as_posix()}",
+                "--set", "semillas.n=1", "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
+    if argv[0] == "scorecard":  # scorecard.json: a un directorio temporal, nunca a results/data/scorecard/
+        argv = [*argv, "--set", f"salida={tmp_path.as_posix()}"]
+    destinos = _redirigir_figuras(monkeypatch, tmp_path) if argv[0] == "figures" else {}
+    destino_app = _redirigir_export(monkeypatch, tmp_path) if argv[0] == "export" else None
+    antes = _huellas(FIGURAS_VERSIONADAS)
+    antes_app = _huellas(MODELO_APP_VERSIONADO)
+    antes_scorecard = _huellas(RESULTADOS_SCORECARD)
     assert cli.main(argv) == 0
+    alterados_scorecard = _diferencias(antes_scorecard, _huellas(RESULTADOS_SCORECARD))
+    assert not alterados_scorecard, f"`run.py {argv[0]}` alteró results/data/scorecard/: {alterados_scorecard}"
+    if argv[0] == "scorecard":
+        from src.scorecard.puntos import ARCHIVO_SCORECARD
+
+        assert (tmp_path / ARCHIVO_SCORECARD).is_file(), "`run.py scorecard` no escribió scorecard.json en tmp_path"
+    alterados_app = _diferencias(antes_app, _huellas(MODELO_APP_VERSIONADO))
+    assert not alterados_app, f"`run.py {argv[0]}` alteró app/public/model/: {alterados_app}"
+    if destino_app is not None:
+        from src.export.exportar_app import MODELOS, archivos_modelo
+
+        escritos = sorted(r.name for r in destino_app.rglob("*") if r.is_file())
+        esperados = sorted(nombre for modelo in MODELOS for nombre in archivos_modelo(modelo))
+        assert escritos == esperados, escritos
+    alterados = _diferencias(antes, _huellas(FIGURAS_VERSIONADAS))
+    assert not alterados, (f"`run.py {argv[0]}` alteró figuras versionadas de blog/docs/figures/: {alterados}; "
+                           "restaurar con `git checkout -- blog/docs/figures/`")
+    sin_figuras = [f"src/viz/{nombre}.py" for nombre, destino in destinos.items() if not any(destino.rglob("*.png"))]
+    assert not sin_figuras, (f"`run.py figures` no generó ningún .png de {sin_figuras}: ¿falta conectarlos en "
+                             "src/common/cli.py::_figures?")
+
+
+def _modulos_de_figuras() -> list[str]:
+    """Nombres de los módulos `src/viz/figs_*.py` (los de las partes presentes y futuras)."""
+    return sorted(m.name for m in pkgutil.iter_modules(src.viz.__path__) if m.name.startswith("figs_"))
+
+
+def _redirigir_figuras(monkeypatch, tmp_path: Path) -> dict[str, Path]:
+    """Apunta el `SALIDA` de cada módulo de figuras a `tmp_path/<módulo>` y devuelve esos destinos.
+
+    Un módulo sin `SALIDA` hace fallar la prueba antes de correr nada: no habría cómo redirigirlo y escribiría sus
+    figuras en el repositorio. La convención (figs_datos, figs_lgd) es `SALIDA` + `generar(raiz, destino)`.
+    """
+    destinos = {}
+    for nombre in _modulos_de_figuras():
+        modulo = importlib.import_module(f"src.viz.{nombre}")
+        assert hasattr(modulo, "SALIDA"), (f"src/viz/{nombre}.py no tiene la constante SALIDA: la prueba no puede "
+                                           "redirigir sus figuras a un directorio temporal (seguir la convención de "
+                                           "figs_datos.py: SALIDA + generar(raiz, destino))")
+        destinos[nombre] = tmp_path / nombre
+        destinos[nombre].mkdir()
+        monkeypatch.setattr(modulo, "SALIDA", destinos[nombre])
+    assert destinos, "no se encontró ningún módulo src/viz/figs_*.py"
+    return destinos
+
+
+def _redirigir_export(monkeypatch, tmp_path: Path) -> Path:
+    """Apunta `RUTA_CONFIG` del exportador a un YAML temporal que hereda la config real (ruta absoluta; `load_config`
+    fusiona en profundidad) y cambia solo `export.destino`. Devuelve ese destino temporal.
+
+    El import va aquí y no arriba: así, mientras `src.export` no exista, solo falla el caso `export`.
+    """
+    import src.export.exportar_app as exportar_app
+
+    destino = tmp_path / "app"
+    yaml_tmp = tmp_path / "export_tmp.yaml"
+    base = (RAIZ / "configs" / "scorecard" / "export.yaml").as_posix()
+    yaml_tmp.write_text(f'hereda: "{base}"\nexport:\n  destino: "{destino.as_posix()}"\n', encoding="utf-8")
+    monkeypatch.setattr(exportar_app, "RUTA_CONFIG", yaml_tmp)
+    return destino
+
+
+def _huellas(carpeta: Path) -> dict[str, str]:
+    """SHA-256 de cada archivo de `carpeta` (recursivo), por ruta relativa; carpeta inexistente → {}."""
+    if not carpeta.exists():
+        return {}
+    return {ruta.relative_to(carpeta).as_posix(): hashlib.sha256(ruta.read_bytes()).hexdigest()
+            for ruta in sorted(carpeta.rglob("*")) if ruta.is_file()}
+
+
+def _diferencias(antes: dict[str, str], despues: dict[str, str]) -> dict[str, list[str]]:
+    """Archivos cambiados, nuevos y borrados entre dos juegos de huellas (solo las categorías no vacías)."""
+    cambios = {"cambiados": sorted(r for r in antes.keys() & despues.keys() if antes[r] != despues[r]),
+               "nuevos": sorted(despues.keys() - antes.keys()),
+               "borrados": sorted(antes.keys() - despues.keys())}
+    return {tipo: rutas for tipo, rutas in cambios.items() if rutas}
 
 
 def _modulos_importados(archivo: Path) -> set[str]:

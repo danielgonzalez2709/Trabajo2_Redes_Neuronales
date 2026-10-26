@@ -34,7 +34,7 @@
     "logloss_test": 0.5600049552127315
   },
   "n_parametros": 49,
-  "tiempo_s": 1.7188729430054082,
+  "tiempo_s": 1.5625055729906308,
   "device": "cpu",
   "epocas": 47,
   "evidencia": {

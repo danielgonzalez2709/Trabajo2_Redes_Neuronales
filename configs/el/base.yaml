@@ -1,14 +1,21 @@
 # Parte E — pérdida esperada E[L] = PD · LGD · EAD (Parte E §3.2). Lo lee `python run.py el --config configs/el/base.yaml`.
+# El bloque `scorecard` es el mismo de la Parte C (configs/scorecard/base.yaml; una prueba exige que coincidan): el
+# puntaje de cada crédito define las bandas, y `--set scorecard.pdo=40` cambia los rangos de puntaje de cada banda (no
+# qué créditos caen en cada decil). No se hereda el archivo de C para no arrastrar sus rutas y su salida (C3).
+scorecard:
+  base: 600       # puntaje de las odds de referencia
+  odds_base: 50   # odds de referencia 50:1 bueno:malo
+  pdo: 20         # +20 puntos cada vez que se duplican las odds bueno:malo
 base_seed: 0
 datos:
   loans: data/processed/loans_pd.parquet
   montos: data/processed/montos.parquet
 pd:
   predicciones: results/data/pd/pred_test.parquet       # entrega de B (núcleo §5.4)
-  modelo: mlp                                           # columna pred_<modelo>
+  modelo: logistica   # columna pred_<modelo>; con el MLP de B5: --set pd.modelo=mlp
 lgd:
   predicciones: results/data/lgd/pred_pd_test.parquet   # entrega de D: LGD para todo el test (núcleo §5.4)
   modelo: mlp
 bandas:
-  n: 10            # deciles de PD; con la scorecard de C se pasa a bandas de puntaje
+  n: 10            # deciles del puntaje de la scorecard: banda 1 = menor puntaje (más riesgo)
 salida: results/data/el

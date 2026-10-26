@@ -1,0 +1,26 @@
+# Configuración de la scorecard (Parte C §3.1 y §3.2, tareas C1 y C3; núcleo §4.1):
+#   python run.py scorecard --config configs/scorecard/base.yaml --set scorecard.pdo=40
+#   python run.py scorecard --config configs/scorecard/base.yaml --set salida=<otra carpeta>   # no pisa results/
+# Escribe <salida>/scorecard.json (núcleo §5.4). Rutas relativas al directorio de trabajo (la raíz del repositorio).
+# Valores por defecto: decisión de Juan José (25-oct) sobre C §3.1 y el plan de C3.
+scorecard:
+  base: 600       # puntaje de las odds de referencia
+  odds_base: 50   # odds de referencia 50:1 bueno:malo (p = 1/51) ⇒ 600 puntos
+  pdo: 20         # +20 puntos cada vez que se duplican las odds bueno:malo
+modelo: logistica   # modelo cuya scorecard se construye (C3: logística; el MLP es C4)
+rutas:
+  modelo: models/pd_logistica.joblib            # logística de B3
+  preprocesador: models/preprocesador_pd.json   # A: ajustado solo con train
+  datos: data/processed/loans_pd.parquet        # A: train, val y test
+  features: configs/features.yaml               # orden de las variables, etiquetas y categorias_es
+# Todos los estadísticos de este bloque salen SOLO de train (percentiles, fracciones y cortes); val y test solo se evalúan.
+distribucion:
+  percentiles_tabla: [1, 5, 25, 50, 75, 95, 99]   # percentiles del valor crudo de cada numérica en su tabla de puntos
+  # Rango de puntos de una numérica = |puntos(p99) − puntos(p1)|. El preprocesador recorta cada numérica en [p1, p99]
+  # de train, así que p1–p99 es todo el efecto que el modelo puede producir con esa variable; con p5–p95, pub_rec daba 0
+  # aunque β > 0 (resta 9,9 puntos con 1+ registros). Decisión de Juan José, 26-oct.
+  percentiles_rango: [1, 99]
+  fraccion_min_categoria: 0.01                    # rango de una categórica: solo categorías con ≥ 1 % de train
+  ancho_bin: 10                                   # ancho (en puntos) del histograma del puntaje
+  n_bandas: 10                                    # bandas de puntaje = deciles del puntaje de train
+salida: results/data/scorecard   # carpeta de scorecard.json
