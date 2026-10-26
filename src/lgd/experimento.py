@@ -15,9 +15,10 @@ su procedencia (bloque ``busqueda``). ``run.py lgd-hpo`` **reescribe** ese archi
 otra ruta). ``run.py lgd`` entrena con la config tal como la resolvió el cargador (herencia y luego ``--set``): no
 fusiona nada después, así que ``--set mlp.*`` siempre gana y la config impresa es la que se entrena.
 De la procedencia salen ``n_configuraciones_busqueda`` y el tiempo de la búsqueda (1 y 0 si ``tipo: sin_busqueda``).
-Con ``tipo: optuna``, si la huella de la partición, la del preprocesador (``busqueda.hash_particion`` y
-``busqueda.hash_preprocesador``, con los valores de ``evidencia``) o la ``muestra`` de la búsqueda no coinciden con la
-corrida actual → ``ValueError`` (p. ej. búsqueda con muestra y corrida final sin muestra).
+El bloque ``busqueda`` sigue el formato de B (``configs/pd/mlp_final.yaml``): ``evidencia`` =
+``{sha256_particion, sha256_preprocesador}`` de la búsqueda (``null`` con ``tipo: sin_busqueda``). Con ``tipo: optuna``,
+si falta ``busqueda.evidencia`` (formato anterior a D9) o si alguna de sus huellas o la ``muestra`` de la búsqueda no
+coinciden con la corrida actual → ``ValueError`` (p. ej. búsqueda con muestra y corrida final sin muestra).
 
 Búsqueda (``buscar``):
 - Optuna ``TPESampler(seed=base_seed)``, ``hpo.n_ensayos`` ensayos, espacio ``hpo.espacio`` (el de B §3.3): número de
@@ -52,8 +53,7 @@ Semillas (``entrenar_semillas``):
   ``loans_pd``: ``id, pred_lineal, pred_mlp``) con la semilla del MLP de **MAE de test mediano** (``_semilla_mediana``);
   esa semilla se guarda en ``modelos.mlp``.
 - ``evidencia`` = ``{sha256_particion, sha256_preprocesador}`` (núcleo §5.4 y §6) en cada ``semillas/*.json``, en cada
-  modelo de ``summary.json`` y en ``hpo_ensayos.json``: huella de las líneas ``"{id},{split}
-"`` del mismo DataFrame
+  modelo de ``summary.json`` y en ``hpo_ensayos.json``: huella de las líneas ``"{id},{split}\\n"`` del mismo DataFrame
   de ``loans_lgd`` del que salen las matrices (tras ``datos.muestra``, en su orden) y de los bytes del archivo del
   preprocesador; se definen en ``src/lgd/procedencia.py`` (igual que ``src/pd/experimento.py``).
 """
@@ -150,12 +150,6 @@ def cargar_datos(cfg: dict, raiz: Path = Path(".")) -> dict:
             "evidencia": ev, "n": {s: int(len(y[s])) for s in SPLITS}, "muestra": datos["muestra"]}
 
 
-def _hashes_busqueda(d: dict) -> dict:
-    """Huellas de ``evidencia`` con las claves del bloque ``busqueda`` de ``mlp_final.yaml``."""
-    return {"hash_particion": d["evidencia"]["sha256_particion"],
-            "hash_preprocesador": d["evidencia"]["sha256_preprocesador"]}
-
-
 def _metricas(modelo, d: dict) -> dict:
     p_val, p_test = modelo.predict(d["X"]["val"]), modelo.predict(d["X"]["test"])
     return {"mae_val": mae(d["y"]["val"], p_val), "rmse_val": rmse(d["y"]["val"], p_val),
@@ -194,10 +188,15 @@ def _leer_procedencia(cfg: dict, d: dict) -> tuple[int, float]:
         raise ValueError(f"busqueda.tipo debe ser uno de {list(TIPOS_BUSQUEDA)}; se recibió {b['tipo']!r}")
     if b["tipo"] == "sin_busqueda":
         return 1, 0.0
-    actual = {**_hashes_busqueda(d), "muestra": d["muestra"]}
-    for clave, valor in actual.items():
-        if b[clave] != valor:
-            raise ValueError(f"busqueda.{clave} = {b[clave]!r} no coincide con esta corrida ({valor!r}): la búsqueda "
+    ev_busqueda = b.get("evidencia")
+    if not isinstance(ev_busqueda, dict) or set(ev_busqueda) != set(d["evidencia"]):
+        raise ValueError(f"busqueda.evidencia debe ser {{{', '.join(d['evidencia'])}}} (formato de B; se recibió "
+                         f"{ev_busqueda!r}): repite lgd-hpo para regenerar mlp_final.yaml")
+    actual = {**{f"evidencia.{k}": (ev_busqueda[k], v) for k, v in d["evidencia"].items()},
+              "muestra": (b["muestra"], d["muestra"])}
+    for clave, (registrado, valor) in actual.items():
+        if registrado != valor:
+            raise ValueError(f"busqueda.{clave} = {registrado!r} no coincide con esta corrida ({valor!r}): la búsqueda "
                              "se hizo con otros datos; repite lgd-hpo con la misma partición, preprocesador y muestra")
     return validar_entero(b["n_ensayos"], "busqueda.n_ensayos", minimo=1), float(b["tiempo_s"])
 
@@ -266,7 +265,7 @@ def buscar(cfg: dict, raiz: Path = Path(".")) -> dict:
     save_json(raiz / cfg["salida"] / ARCHIVO_HPO, hpo)
     busqueda = {"tipo": "optuna", "origen": f"lgd-hpo: mejor de {len(registros)} ensayos ({CRITERIO_SELECCION})",
                 "ensayo": mejor["numero"], "n_ensayos": len(registros), "tiempo_s": hpo["tiempo_total_s"],
-                **_hashes_busqueda(d), "muestra": d["muestra"],
+                "evidencia": d["evidencia"], "muestra": d["muestra"],
                 "fecha": dt.datetime.now().isoformat(timespec="seconds")}
     escribir_mlp_final(raiz / cfg["hpo"]["destino"], {**cfg["mlp"], **mejor["parametros"]}, busqueda)
     return hpo

@@ -30,8 +30,7 @@ busqueda:
   ensayo: null
   n_ensayos: null
   tiempo_s: null
-  hash_particion: null
-  hash_preprocesador: null
+  evidencia: null
   muestra: null
   fecha: null
 salida: results/data/lgd_demo

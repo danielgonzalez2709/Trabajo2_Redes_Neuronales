@@ -81,7 +81,7 @@ def raiz(tmp_path: Path) -> Path:
 
 
 SIN_BUSQUEDA = {"tipo": "sin_busqueda", "origen": "prueba", "ensayo": None, "n_ensayos": None, "tiempo_s": None,
-                "hash_particion": None, "hash_preprocesador": None, "muestra": None, "fecha": None}
+                "evidencia": None, "muestra": None, "fecha": None}
 
 
 def _cfg(nombre: str = "base.yaml", extra: list[str] | None = None, carpeta: Path = RAIZ / "configs/lgd",
@@ -347,8 +347,9 @@ def test_buscar_reescribe_mlp_final_y_lgd_lo_hereda(raiz: Path):
     b = final["busqueda"]
     assert b["tipo"] == "optuna" and b["ensayo"] == mejor["numero"] and b["n_ensayos"] == 3
     assert b["tiempo_s"] == pytest.approx(h["tiempo_total_s"])
-    assert b["hash_particion"] == h["evidencia"]["sha256_particion"] and b["muestra"] is None
-    assert b["hash_preprocesador"] == h["evidencia"]["sha256_preprocesador"]
+    # bloque busqueda alineado con B (configs/pd/mlp_final.yaml): evidencia {sha256_particion, sha256_preprocesador}
+    assert b["evidencia"] == h["evidencia"] and b["muestra"] is None
+    assert not any(k.startswith("hash_") for k in b)
     for clave, valor in mejor["parametros"].items():
         assert final["mlp"][clave] == valor
 
@@ -381,14 +382,35 @@ def test_set_mlp_gana_sobre_la_busqueda(raiz: Path):
     assert semilla["n_parametros"] == esperado == s["modelos"]["mlp"]["n_parametros"]
 
 
-@pytest.mark.parametrize("clave, valor", [("hash_particion", "otro"), ("hash_preprocesador", "otro"),
-                                          ("muestra", 100)])
+@pytest.mark.parametrize("clave, valor", [("evidencia.sha256_particion", "otro"),
+                                          ("evidencia.sha256_preprocesador", "otro"), ("muestra", 100)])
 def test_procedencia_de_otros_datos_es_error(raiz: Path, clave, valor):
     carpeta = _copiar_configs(raiz)
     exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
     cfg = _cfg("base.yaml", ["semillas.n=1", f"busqueda.{clave}={valor}"], carpeta)
-    with pytest.raises(ValueError, match=clave):
+    with pytest.raises(ValueError, match=clave.split(".")[0]):
         exp.entrenar_semillas(cfg, raiz)
+
+
+def test_busqueda_optuna_con_formato_viejo_es_error(raiz: Path):
+    """Un ``mlp_final.yaml`` con ``hash_particion``/``hash_preprocesador`` (formato anterior a D9) y sin
+    ``evidencia`` no se acepta: hay que repetir lgd-hpo."""
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg("base.yaml", ["semillas.n=1"], carpeta)
+    ev = cfg["busqueda"].pop("evidencia")
+    cfg["busqueda"].update(hash_particion=ev["sha256_particion"], hash_preprocesador=ev["sha256_preprocesador"])
+    with pytest.raises(ValueError, match="evidencia"):
+        exp.entrenar_semillas(cfg, raiz)
+
+
+def test_demo_yaml_busqueda_alineada_con_b():
+    """Bloque propio de demo.yaml (sin la herencia: hasta D4b, mlp_final.yaml aún trae las claves viejas y la fusión
+    de ``hereda`` las conserva; con ``sin_busqueda`` no se leen)."""
+    import yaml
+    b = yaml.safe_load((RAIZ / "configs/lgd/demo.yaml").read_text(encoding="utf-8"))["busqueda"]
+    assert b["tipo"] == "sin_busqueda" and b["evidencia"] is None
+    assert not any(k.startswith("hash_") for k in b)
 
 
 def test_busqueda_con_muestra_y_final_sin_muestra_es_error(raiz: Path):
