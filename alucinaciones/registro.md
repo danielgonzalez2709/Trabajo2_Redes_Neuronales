@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 8 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-12) | 2 (H-03, H-04) |
+| Código | 10 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-12, H-13, H-14) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
 | Conceptos | 1 (H-11) | 0 |
@@ -301,3 +301,39 @@ falsas se registran como candidatos.
    (0.125, 0.375 y sus vecinos).
 6. **Lección aprendida:** una prueba de límite con `≤` necesita valores exactos en binario (potencias de 2); antes de
    proponer un caso, calcular la distancia en el intérprete.
+
+### H-13 — "La prueba 12 (reloj de paso fijo) atrapa que el tiempo incluya la carga o la medición"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión orquestadora (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `implementador` (ronda 1 de B5), con un mutante
+1. **Prompt (literal):** `prompts/B5.md`, prompt de Andrés ("Quiero el plan con: … (d) riesgos y qué prueba los atrapa").
+2. **Respuesta relevante de la IA:** tabla de riesgos del plan de B5: "Tiempo incluye carga/medición | 12", con la prueba 12
+   = "reloj inyectado: `tiempo_s` = 1.0 en cada semilla (solo el fit)".
+3. **Cómo sospechamos:** el implementador metió la medición dentro de la zona cronometrada y la prueba 12 siguió en verde.
+4. **Evidencia:** `evidencias/H-13_reloj_paso_fijo.py` y `.txt`: con un reloj que avanza un paso por lectura, cronometrar
+   solo el fit o el fit más trabajo extra da lo mismo (1.0 y 1.0): el reloj cuenta lecturas, no trabajo.
+5. **Corrección:** prueba 12b (`tests/test_experimento_pd.py`): un reloj espía registra los eventos y comprueba que entre
+   los dos tics de cada semilla hay exactamente un `fit` y ninguna predicción.
+6. **Lección aprendida:** antes de afirmar "esta prueba atrapa X", escribir el mutante X y verlo fallar.
+
+### H-14 — "Las pruebas 17–18 comprueban que `pd_mlp.pt` y `pred_mlp` son los de la semilla mediana"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión orquestadora y subagente `implementador` (Claude Opus 5.5) · **Fecha:**
+  26-oct-2026 · **Quién lo cazó:** el subagente `revisor-calidad` (ronda 2 de B5), con mutantes
+1. **Prompt (literal):** `prompts/B5.md`, prompt de Andrés (prueba 5: "MLPPD.cargar(...).predict_proba(X_test) ==
+   pred_mlp, y es la red de summary.semilla_mediana") y sección 5 (revisor-calidad).
+2. **Respuesta relevante de la IA:** el plan (pruebas 17–18) y el implementador dieron por cubierta la regla "se guarda la
+   red de la semilla mediana" con un escenario de 3 semillas reales.
+3. **Cómo sospechamos:** el revisor-calidad aplicó el mutante "guardar la red de la primera semilla" y sobrevivió (el de
+   "la última" sí moría).
+4. **Evidencia:** en ese escenario la semilla mediana coincidía con la primera, así que el mutante y el código correcto
+   escribían el mismo archivo; el script de mutantes (`mutar.py` del revisor, en el scratchpad de la sesión) lo reportó
+   como "sobrevive". En la ronda 3, `test_36` usa un modelo falso con log-loss de val monótona en la semilla: con {7, 8, 9} la
+   mediana es 8 y el mutante muere.
+5. **Corrección:** `test_36_red_guardada_es_la_mediana_del_medio` (`tests/test_experimento_pd.py`).
+6. **Lección aprendida:** una prueba de "elige el elemento k" necesita un caso donde k no sea el primero ni el último.
+
