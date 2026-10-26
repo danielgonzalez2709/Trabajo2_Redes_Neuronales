@@ -1,0 +1,19 @@
+# Parte B — búsqueda del MLP de PD: `python run.py pd-hpo --config configs/pd/hpo.yaml` (Parte B §3.3).
+# Escribe {hpo.salida}/hpo_ensayos.json y reescribe hpo.destino (configs/pd/mlp_final.yaml), que hereda base.yaml.
+# Demo: --set hpo.n_ensayos=5. En pruebas, usar --set hpo.destino=<carpeta temporal>/mlp_final.yaml y
+# --set hpo.salida=<carpeta temporal> para no reescribir los archivos versionados ni los resultados reales.
+# destino y salida son relativos al directorio actual (la raíz del repositorio).
+hereda: base.yaml
+hpo:
+  n_ensayos: 40                       # presupuesto de la búsqueda (Parte B §3.3); demo: 5
+  destino: configs/pd/mlp_final.yaml  # YAML que reescribe pd-hpo con el mejor ensayo
+  salida: results/data/pd             # carpeta de hpo_ensayos.json (núcleo §5.4)
+  espacio:                            # espacio de búsqueda (Parte B §3.3)
+    n_capas: [1, 4]                   # número de capas ocultas (entero, extremos incluidos)
+    neuronas: [16, 32, 64, 128, 256]  # anchura de cada capa (se elige por separado en cada capa)
+    activacion: [relu, leaky_relu, tanh]
+    dropout: [0.0, 0.5]               # uniforme
+    l2: [1.0e-6, 1.0e-2]              # log-uniforme
+    optimizador: [adam, sgd]          # sgd con mlp.momento
+    lr: [1.0e-4, 1.0e-2]              # log-uniforme
+    batch: [256, 512, 1024, 2048]

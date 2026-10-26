@@ -1,0 +1,1 @@
+solo fit: 1.0 · fit + medir: 1.0 · iguales: True
