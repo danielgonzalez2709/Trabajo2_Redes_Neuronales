@@ -103,6 +103,25 @@ corrida y se explica por qué su desviación entre semillas es 0.
 - Antes de entrenar se borran solo los archivos `mlp_seed<entero>.json` de `{salida}/semillas`; si un `fit` lanza `FloatingPointError`, el error sale con la semilla y avisa que `summary.json` conserva la entrada `mlp` anterior, que ya no corresponde a `semillas/` (hay que volver a correr); no se escriben `summary.json`, `pred_mlp` ni `pd_mlp.pt` (quedan las semillas terminadas). La huella del pre-chequeo (solo `id, split`) debe ser idéntica a la del DataFrame completo (lo comprueba una prueba). Campos extra de la semilla y del summary: núcleo §5.4 (v0.16).
 - Bloques y pre-chequeo [DECIDIDO, Andrés, 26-oct; v0.16, tras revisor-spec]: `semillas` tiene exactamente la clave `n`. `busqueda` es o bien el bloque de `pd-hpo` (exactamente `tipo: optuna`, `ensayo`, `n_ensayos`, `tiempo_s`, `evidencia`, `fecha`) o bien exactamente `{tipo: sin_busqueda}` (config fijada a mano, p. ej. una demo): con `sin_busqueda`, `config_de_busqueda` es false y el presupuesto de la búsqueda queda en null. Si no existe `configs/pd/mlp_final.yaml` → `ValueError` ("corre pd-hpo"). Antes de la logística, `correr_pd` comprueba además el bloque `logistica` y las salidas previas: `summary.json` (si existe) con un diccionario en la raíz y `pred_test.parquet` (si existe) con los mismos ids e `y` de test; cualquier falla → `ValueError` sin entrenar nada. La consola informa cuántos `mlp_seed*.json` anteriores se borraron.
 
+### 3.6 Figuras [DECIDIDO, Andrés, 26-oct; Spec v0.19]
+- `src/viz/figs_pd.py` (formato percent): una función **pura** de datos por figura (no lee archivos ni dibuja) y una
+  función de dibujo; la lectura (`insumos_de_corrida`) y la escritura (`_guardar`, `_escribir_json`) van aparte.
+  `generar(raiz, destino, datos)` resuelve `destino or raiz / SALIDA` al llamarse (`SALIDA = blog/docs/figures`), así que
+  `test_no_network` la redirige; `datos=` permite dibujar una corrida en memoria (notebook 02, B9). Los modelos no dibujan:
+  todo sale de `results/data/pd/` (núcleo §3).
+- Figuras (todas de **prueba** salvo las de búsqueda y aprendizaje; MLP = semilla mediana de §3.5):
+  `pd-roc` (ROC de los dos modelos, AUC y Gini), `pd-ks` (acumuladas de la PD en malos y buenos y separación máxima),
+  `pd-calibracion` (10 bins por cuantiles, §3.4, con la diagonal), `pd-semillas` (AUC, KS y Brier de las 30 semillas
+  frente a la logística), `pd-aprendizaje` (BCE de train y val por época de la semilla mediana, mejor época y paciencia),
+  `pd-busqueda-mlp` (log-loss de val de los ensayos TPE completos, mejor acumulado, fin de los `n_startup_trials`
+  aleatorios y la logística como referencia) y `pd-busqueda-logistica` (log-loss y AUC de val contra C, C elegido).
+- `blog/docs/figures/pd-calibracion.json` = `{split: "test", n_bins, semilla_mediana, modelos: {logistica|mlp:
+  {pd_media[], tasa_observada[], n[], pd_media_global, tasa_global}}}` (los puntos de `pd-calibracion.png`; floats
+  nativos, sin NaN). Lo importa la escena 7 del video (`video/src/datos.ts`); no es un contrato de `results/`.
+- Lectura: en prueba los dos modelos ordenan bien el riesgo pero lo **subestiman**: en los 10 bins la tasa observada
+  supera a la PD media, es decir, los puntos quedan **por encima** de la diagonal (PD media 0,187 y 0,204 frente a una
+  tasa de 0,262; hallazgo candidato H-21 por haberlo descrito al revés).
+
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
@@ -112,7 +131,7 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | ✅ B4 | Optuna del MLP (con datos reales) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
 | ✅ B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | Andrés |
 | B6 | Demo: `configs/pd/demo.yaml` + `datos.muestra` (§3.5, v0.18) | B2, B3, B5 | **< 2 min en CPU medido**: 13,8–15,1 s aquí; **pendiente: otra máquina** | auditor-reproducibilidad | sáb 24 | Andrés |
-| B7 | Figuras: ROC, KS, calibración, cajas por semilla | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 | Andrés |
+| B7 | Figuras: ROC, KS, calibración, cajas por semilla + aprendizaje y búsquedas; JSON de calibración para el video (§3.6, v0.19) | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 (hecha 26-oct) | Andrés |
 | B9 | Notebook `02_pd` (núcleo §5.8) | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código | revisor-spec | dom 25 | Andrés |
 | B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | Andrés |
 | B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Andrés |

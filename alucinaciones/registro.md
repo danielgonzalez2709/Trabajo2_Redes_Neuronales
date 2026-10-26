@@ -10,7 +10,7 @@
 | Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
 | Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 2 (H-15, H-16) | 1 (H-15) |
+| Conceptos | 3 (H-15, H-16, H-21) | 1 (H-15) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -477,3 +477,23 @@ falsas se registran como candidatos.
    pruebas para el umbral exacto de `fraccion_min_categoria` y para el error de aditividad rota.
 6. **Lección aprendida:** en un caso de prueba, los parámetros que deben distinguirse no pueden coincidir por casualidad
    (aquí, rango = extremos de la tabla); verificar cada prueba con el mutante que debería matar.
+
+### H-21 — "En test, los 10 bins de ambos modelos quedan por debajo de la diagonal" (calibración que subestima)
+- **Estado:** candidato
+- **Categoría:** Conceptos
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el orquestador, al mirar `pd-calibracion.png` generada por el subagente `implementador`
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" (pide las figuras de B7 y sugerir la curva
+   para el video).
+2. **Respuesta relevante de la IA:** el plan aprobado (copia literal en `prompts/B7.md`, "Hallazgo que hay que contar"): "En
+   test, los 10 bins de ambos modelos quedan **por debajo de la diagonal**"; el mismo texto en el mensaje a Andrés y repetido
+   por el `implementador` en su entrega ("los 10 bins de los dos modelos quedan por debajo de la diagonal").
+3. **Cómo sospechamos:** la figura dibuja la tasa observada (eje y) contra la PD media (eje x), y los puntos se ven arriba de
+   y = x. Si el modelo subestima (PD < tasa), los puntos deben quedar por encima.
+4. **Evidencia:** `evidencias/H-21_calibracion_diagonal.txt`: en los 20 bins (10 por modelo) la tasa observada supera a la
+   PD media (y − x entre +0,012 y +0,109); PD media global 0,187 y 0,204 frente a una tasa de 0,262.
+5. **Corrección:** el blog 06 (§6.4) y la Spec dicen "por encima de la diagonal"; el prompt de la escena 7 del video ya
+   pedía no disimularlo y lo dice bien ("los puntos quedan POR ENCIMA").
+6. **Lección aprendida:** una frase sobre una figura se verifica contra la figura y sus ejes, no contra la conclusión
+   (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
