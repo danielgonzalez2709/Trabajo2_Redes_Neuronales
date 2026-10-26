@@ -32,6 +32,10 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- App: arquitectura y UX (José, 26-oct): `app/lib/` es dominio puro (`contrato`, `preprocesar`, `modelo`, `escenarios`), hooks como
+  adaptadores, componentes presentacionales y una sola página contenedora; los casos de paridad solo en pruebas. Un solo panel:
+  perfil base → escenario (+Δ) con deslizadores y el top-3 de cambios; densidad SVG desde los 101 percentiles; entradas en la URL;
+  CSS Modules + `apple-design`. El aviso "no es una oferta de crédito" va como una línea discreta en el pie.
 - App (Daniel, 26-oct; Spec v0.17): **los dos modelos de PD** (logística y MLP, semilla 20) con selector, por defecto el MLP;
   `pd_model_{logistica,mlp}.json` y `casos_paridad_{logistica,mlp}.json`, paridad para cada uno (núcleo §5.5).
 - Scorecard (Juan José, C1): base 600 en odds 50:1 bueno:malo, PDO 20; `{base, odds_base, pdo, factor, offset}` en float;
