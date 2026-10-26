@@ -1347,7 +1347,7 @@ def _lanzar(exc):
 
 def test_54_manejador_errores(escenario, tmp_path, monkeypatch, capsys):
     """Config inválida → 2 y UNA línea con el prefijo, sin traza; RuntimeError y FloatingPointError → 2 conservando
-    el aviso; un mensaje de varias líneas sale en una; TypeError se propaga."""
+    el aviso; un mensaje de varias líneas sale en una; TypeError, NotImplementedError y RecursionError se propagan."""
     cfg = _cfg_muestra(escenario, 2)  # muestra inválida
     cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas
     _apuntar_al_escenario(escenario, monkeypatch)  # rutas del escenario
@@ -1365,9 +1365,10 @@ def test_54_manejador_errores(escenario, tmp_path, monkeypatch, capsys):
     assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
     err = capsys.readouterr().err  # stderr
     assert err.splitlines() == [PREFIJO_ERROR + "primera segunda"]  # una línea
-    monkeypatch.setattr(ex, "correr_pd", _lanzar(TypeError("bug")))  # error de programación
-    with pytest.raises(TypeError):  # no se traga
-        ex.manejador(cfg)  # se propaga
+    for bug in (TypeError("bug"), NotImplementedError("bug"), RecursionError("bug")):  # errores de programación
+        monkeypatch.setattr(ex, "correr_pd", _lanzar(bug))  # NotImplementedError y RecursionError son RuntimeError
+        with pytest.raises(type(bug)):  # no se tragan
+            ex.manejador(cfg)  # se propagan con su traza
 
 
 # %% [markdown]

@@ -85,6 +85,8 @@ MINIMO_MUESTRA = len(SPLITS)  # datos.muestra ≥ 3: al menos una fila por split
 RUN_ID_MUESTRA = 0  # run_id del generador del muestreo: make_rng(base_seed, 0) (como src/lgd/experimento.py)
 CODIGO_ERROR = 2  # código de salida de run.py pd ante un error esperado (el mismo de argparse en cli.main)
 PREFIJO_ERROR = "run.py pd: error: "  # inicio de la línea de error en stderr (como argparse)
+ERRORES_ESPERADOS = (ValueError, RuntimeError, FloatingPointError)  # config, datos o fit: código 2 sin traza
+ERRORES_DE_PROGRAMACION = (NotImplementedError, RecursionError)  # subclases de RuntimeError que son bugs: con traza
 
 
 # %% [markdown]
@@ -1207,12 +1209,17 @@ def _una_linea(exc: BaseException) -> str:
 # `run.py pd: error: <mensaje>` en stderr y código 2, como los errores de argumentos del CLI (argparse), sin traza
 # (B6: en la demo en vivo se lee el mensaje). Cualquier otra excepción (p. ej. `TypeError`, un error de programación)
 # se propaga con su traza.
+#
+# `NotImplementedError` y `RecursionError` son subclases de `RuntimeError` pero indican un bug, no una falla esperada:
+# se relanzan **antes** del `except` de los errores esperados (`ERRORES_DE_PROGRAMACION`, decisión de Andrés, 26-oct).
 
 # %%
 def manejador(cfg: dict | None) -> int:
     """`run.py pd`: _correr_e_informar; ValueError/RuntimeError/FloatingPointError → mensaje en stderr y código 2."""
     try:  # solo los errores esperados se informan sin traza
         return _correr_e_informar(cfg)  # corrida completa (0 si termina)
-    except (ValueError, RuntimeError, FloatingPointError) as exc:  # config, datos o fit
+    except ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
+        raise  # se propagan con su traza
+    except ERRORES_ESPERADOS as exc:  # config, datos o fit
         print(PREFIJO_ERROR + _una_linea(exc), file=sys.stderr)  # una línea en stderr
         return CODIGO_ERROR  # como argparse
