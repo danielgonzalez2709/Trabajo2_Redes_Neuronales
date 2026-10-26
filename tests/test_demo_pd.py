@@ -27,7 +27,8 @@ import time  # reloj de pared de la corrida
 from pathlib import Path  # rutas
 
 import numpy as np  # rangos de las PD
-import pandas as pd  # pred_test.parquet y filas para predecir
+import pandas as pd  # pred_test.parquet
+import pyarrow.parquet as pq  # lectura de unas pocas filas y columnas del parquet real
 import pytest  # marcador lento, skip y parametrización
 
 from src.common.preprocesamiento import Preprocesador  # preprocesador guardado de A (sin reajustar)
@@ -77,13 +78,21 @@ def _demo(carpeta: Path, extra=()) -> tuple[subprocess.CompletedProcess, float]:
     return proceso, time.perf_counter() - inicio  # resultado y duración
 
 
+def _filas_reales(pre: Preprocesador, n: int) -> pd.DataFrame:
+    """Las primeras ``n`` filas del parquet real con solo las columnas del preprocesador."""
+    nombres = [v["nombre"] for v in pre.variables]  # variables de originación del preprocesador
+    lote = next(pq.ParquetFile(PARQUET).iter_batches(batch_size=n, columns=nombres))  # un lote de n filas
+    return lote.to_pandas()  # DataFrame de n filas
+
+
 # %% [markdown]
 # ## L1. La demo completa
 
 # %%
 def test_l1_demo_pd(tmp_path):
-    """Código 0 en < 115 s; summary con logistica y mlp (fuera de la búsqueda); pred_test con las dos PD en [0, 1];
-    pd_mlp.pt carga y predice; los artefactos reales no cambian; la consola trae las filas de la muestra."""
+    """Código 0 en < 115 s de pared (el corte de correr_demo del notebook 00); summary con logistica y mlp (fuera de
+    la búsqueda); pred_test con las dos PD en [0, 1]; pd_mlp.pt carga y predice; los artefactos reales no cambian; la
+    consola trae las filas de la muestra. Referencia (26-oct): AMD Ryzen 5 3500U, hilos_torch 4, demo 13,8–15,1 s."""
     antes = [_sha(r) for r in REALES]  # huellas de los artefactos reales
     proceso, segundos = _demo(tmp_path)  # la demo
     assert proceso.returncode == 0, proceso.stderr  # terminó bien
@@ -95,7 +104,7 @@ def test_l1_demo_pd(tmp_path):
     for columna in ("pred_logistica", "pred_mlp"):  # ambos modelos
         assert pred[columna].between(0.0, 1.0).all()  # probabilidades
     pre = Preprocesador.from_dict(load_json(PREPROCESADOR))  # preprocesador de A (sin reajustar)
-    X = pre.transform(pd.read_parquet(PARQUET).head(N_FILAS_PREDICCION))  # unas filas reales
+    X = pre.transform(_filas_reales(pre, N_FILAS_PREDICCION))  # unas filas reales (sin leer todo el parquet)
     p = MLPPD.cargar(tmp_path / "models" / "pd_mlp.pt").predict_proba(X)  # red de la demo
     assert p.shape == (N_FILAS_PREDICCION,) and np.all((p >= 0.0) & (p <= 1.0))  # predice PD
     assert [_sha(r) for r in REALES] == antes  # nada real cambió
@@ -108,7 +117,8 @@ def test_l1_demo_pd(tmp_path):
 @pytest.mark.parametrize("cambio", CAMBIOS_EN_VIVO, ids=["capas", "dropout", "lr_alta", "max_epocas", "muestra",
                                                          "semillas", "lr_baja"])
 def test_l2_demo_pd_en_vivo(tmp_path, cambio):
-    """Cada --set de la sustentación termina con código 0 en < 115 s, en su carpeta temporal."""
+    """Cada --set de la sustentación termina con código 0 en < 115 s de pared (corte del notebook 00), en su carpeta
+    temporal. Referencia (26-oct): AMD Ryzen 5 3500U, hilos_torch 4; el peor caso medido (lr = 1e-4) tardó 17,5 s."""
     proceso, segundos = _demo(tmp_path, [cambio])  # demo modificada
     assert proceso.returncode == 0, proceso.stderr  # terminó bien
     assert segundos < LIMITE_S  # < 115 s de pared

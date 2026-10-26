@@ -947,7 +947,7 @@ def test_37_config_que_no_es_mapeo(cfg, capsys):
     with pytest.raises(ValueError, match="la config de pd debe ser un mapeo"):  # mensaje claro
         ex.correr_pd(cfg)  # orquestación
     assert ex.manejador(cfg) == 2  # también desde el CLI: código de error, sin traza
-    assert capsys.readouterr().err.startswith("run.py pd: error: la config de pd debe ser un mapeo")  # mensaje
+    assert capsys.readouterr().err.startswith("run.py pd: error: ValueError: la config de pd debe ser un mapeo")  # tipo
 
 
 def test_38_hilos_y_version_de_torch(corrida):
@@ -1101,6 +1101,32 @@ def test_43_split_vacio(escenario):
     assert ex._repartir(3, {"train": 150, "val": 150, "test": 1}) == {"train": 2, "val": 1, "test": 0}  # a mano
     with pytest.raises(ValueError, match="'test'"):  # nombra el split vacío
         ex.muestrear(chico, 3, BASE_SEED)  # muestra mínima
+
+
+def test_43b_split_fuera_de_splits(escenario):
+    """Un split fuera de SPLITS con muestra → ValueError que lo nombra (no el de numpy); sin muestra, df intacto."""
+    df = pd.DataFrame({"id": [f"i{k}" for k in range(10)],  # 10 filas
+                       "split": ["train"] * 3 + ["val"] * 3 + ["test"] * 2 + ["otro"] * 2})  # 3/3/2/2
+    with pytest.raises(ValueError, match="'otro'"):  # nombra el split desconocido
+        ex.muestrear(df, 9, BASE_SEED)  # muestra < 10 filas
+    assert ex.muestrear(df, None, BASE_SEED) is df  # sin muestra no cambia nada
+
+
+def test_43c_muestra_minima(escenario):
+    """Muestra = 3 con los tres splits llenos → una fila por split."""
+    m = ex.muestrear(escenario["df"], 3, BASE_SEED)  # mínimo permitido
+    assert m["split"].value_counts().to_dict() == {"train": 1, "val": 1, "test": 1}  # una por split
+
+
+def test_43d_muestra_sin_base_seed(escenario, tmp_path):
+    """Con muestra y base_seed por defecto (None) los lectores fallan con un ValueError que nombra base_seed."""
+    rutas = _rutas(escenario, tmp_path)  # entradas del escenario
+    for leer in (lambda: ex.cargar_datos(rutas, muestra=MUESTRA_ESC),  # carga completa
+                 lambda: ex.evidencia_rapida(escenario["parquet"], escenario["pre"], muestra=MUESTRA_ESC),  # huella
+                 lambda: ex.leer_test_rapido(escenario["parquet"], muestra=MUESTRA_ESC)):  # test
+        with pytest.raises(ValueError, match="base_seed"):  # mensaje claro
+            leer()  # sin semilla del sorteo
+    assert ex.cargar_datos(rutas)[0] is not None  # sin muestra no hace falta base_seed
 
 
 def test_44_muestrear_orden_del_parquet(escenario):
@@ -1345,30 +1371,69 @@ def _lanzar(exc):
     return correr  # doble
 
 
-def test_54_manejador_errores(escenario, tmp_path, monkeypatch, capsys):
-    """Config inválida → 2 y UNA línea con el prefijo, sin traza; RuntimeError y FloatingPointError → 2 conservando
-    el aviso; un mensaje de varias líneas sale en una; TypeError, NotImplementedError y RecursionError se propagan."""
+def _cfg_rota(escenario, tmp_path, monkeypatch) -> dict:
+    """Config del escenario con muestra inválida (2), salidas en tmp_path y RUTAS_PD del escenario."""
     cfg = _cfg_muestra(escenario, 2)  # muestra inválida
     cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas
     _apuntar_al_escenario(escenario, monkeypatch)  # rutas del escenario
-    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    return cfg  # config que falla en el pre-chequeo
+
+
+def _una_linea_de_error(capsys) -> str:
+    """La única línea de stderr (falla si hay más o si hay traza) y comprueba que no se imprimió el éxito."""
     capturado = capsys.readouterr()  # consola
     lineas = capturado.err.splitlines()  # stderr
-    assert len(lineas) == 1 and lineas[0].startswith(PREFIJO_ERROR + "datos.muestra")  # una línea con el prefijo
-    assert "Traceback" not in capturado.err and "Tiempo de ejecución" not in capturado.out  # sin traza ni éxito
-    for exc in (RuntimeError(f"fallo. {AVISO}"), FloatingPointError(f"semilla 3: nan. {AVISO}")):  # del fit
-        monkeypatch.setattr(ex, "correr_pd", _lanzar(exc))  # correr_pd falso
-        assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
-        err = capsys.readouterr().err  # stderr
-        assert err.startswith(PREFIJO_ERROR) and AVISO in err and len(err.splitlines()) == 1  # aviso conservado
-    monkeypatch.setattr(ex, "correr_pd", _lanzar(ValueError("primera\nsegunda")))  # caso nuevo: varias líneas
+    assert len(lineas) == 1 and "Traceback" not in capturado.err  # una línea, sin traza
+    assert "Tiempo de ejecución" not in capturado.out  # no terminó como éxito
+    return lineas[0]  # la línea de error
+
+
+def test_54a_manejador_config_invalida(escenario, tmp_path, monkeypatch, capsys):
+    """Config inválida → 2 y UNA línea 'run.py pd: error: ValueError: datos.muestra…', sin traza."""
+    assert ex.manejador(_cfg_rota(escenario, tmp_path, monkeypatch)) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys).startswith(PREFIJO_ERROR + "ValueError: datos.muestra")  # tipo y mensaje
+
+
+@pytest.mark.parametrize("exc", [RuntimeError(f"fallo. {AVISO}"), FloatingPointError(f"semilla 3: nan. {AVISO}"),
+                                 FileNotFoundError(f"no existe x.parquet. {AVISO}")],
+                         ids=["runtime", "floating_point", "file_not_found"])
+def test_54b_manejador_errores_esperados(escenario, tmp_path, monkeypatch, capsys, exc):
+    """RuntimeError, FloatingPointError y FileNotFoundError → 2 y una línea con el tipo, conservando el aviso."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config (correr_pd está parcheado)
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(exc))  # correr_pd falso
     assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
-    err = capsys.readouterr().err  # stderr
-    assert err.splitlines() == [PREFIJO_ERROR + "primera segunda"]  # una línea
-    for bug in (TypeError("bug"), NotImplementedError("bug"), RecursionError("bug")):  # errores de programación
-        monkeypatch.setattr(ex, "correr_pd", _lanzar(bug))  # NotImplementedError y RecursionError son RuntimeError
-        with pytest.raises(type(bug)):  # no se tragan
-            ex.manejador(cfg)  # se propagan con su traza
+    linea = _una_linea_de_error(capsys)  # stderr
+    assert linea.startswith(f"{PREFIJO_ERROR}{type(exc).__name__}: ") and AVISO in linea  # tipo y aviso
+
+
+def test_54b_parquet_inexistente(escenario, tmp_path, monkeypatch, capsys):
+    """Config válida con RUTAS_PD apuntando a un parquet inexistente (tmp_path) → 2 y una línea FileNotFoundError."""
+    cfg, ruta = _escenario_sin_busqueda(escenario, tmp_path)  # config válida
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas temporales
+    monkeypatch.setattr(ex, "RUTAS_PD", ex.RutasPD(tmp_path / "no_existe.parquet", escenario["pre"], Path("x"),
+                                                   Path("y")))  # parquet que no existe (no las rutas reales)
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", ruta)  # mlp_final.yaml del escenario
+    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys).startswith(PREFIJO_ERROR + "FileNotFoundError: ")  # tipo
+
+
+def test_54c_mensaje_de_varias_lineas(escenario, tmp_path, monkeypatch, capsys):
+    """Un mensaje con saltos de línea sale en una sola línea, con el tipo."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(ValueError("primera\nsegunda")))  # varias líneas
+    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys) == PREFIJO_ERROR + "ValueError: primera segunda"  # una línea
+
+
+@pytest.mark.parametrize("bug", [TypeError("bug"), NotImplementedError("bug"), RecursionError("bug"),
+                                 PermissionError("bug")],
+                         ids=["type", "not_implemented", "recursion", "permission"])
+def test_54d_errores_que_se_propagan(escenario, tmp_path, monkeypatch, bug):
+    """TypeError, NotImplementedError y RecursionError (bugs) y otras OSError (PermissionError) se propagan."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(bug))  # correr_pd falso
+    with pytest.raises(type(bug)):  # no se traga
+        ex.manejador(cfg)  # se propaga con su traza
 
 
 # %% [markdown]
@@ -1380,9 +1445,16 @@ RUTA_BASE = ROOT / "configs" / "pd" / "base.yaml"  # config completa
 RUTA_FINAL_REAL = ROOT / "configs" / "pd" / "mlp_final.yaml"  # la que escribe pd-hpo
 
 
+GIT_SIN_REPOSITORIO = 128  # código de git check-ignore fuera de un repositorio (error fatal de git)
+
+
 def _ignorado_por_git(ruta: str) -> bool:
-    """True si git ignora ``ruta`` (relativa a la raíz)."""
+    """True si git ignora ``ruta`` (relativa a la raíz); skip si no hay repositorio git."""
+    if not (ROOT / ".git").exists():  # p. ej. un zip del proyecto
+        pytest.skip("no hay repositorio git")  # no se puede consultar .gitignore con git
     res = subprocess.run(["git", "check-ignore", "-q", ruta], cwd=ROOT, check=False)  # 0 = ignorado
+    if res.returncode == GIT_SIN_REPOSITORIO:  # git no reconoce el repositorio
+        pytest.skip("git check-ignore no encuentra el repositorio")  # ídem
     return res.returncode == 0  # código de git check-ignore
 
 

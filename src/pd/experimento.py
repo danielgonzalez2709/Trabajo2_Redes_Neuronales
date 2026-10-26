@@ -85,7 +85,7 @@ MINIMO_MUESTRA = len(SPLITS)  # datos.muestra ≥ 3: al menos una fila por split
 RUN_ID_MUESTRA = 0  # run_id del generador del muestreo: make_rng(base_seed, 0) (como src/lgd/experimento.py)
 CODIGO_ERROR = 2  # código de salida de run.py pd ante un error esperado (el mismo de argparse en cli.main)
 PREFIJO_ERROR = "run.py pd: error: "  # inicio de la línea de error en stderr (como argparse)
-ERRORES_ESPERADOS = (ValueError, RuntimeError, FloatingPointError)  # config, datos o fit: código 2 sin traza
+ERRORES_ESPERADOS = (ValueError, RuntimeError, FloatingPointError, FileNotFoundError)  # config, datos, fit, archivo
 ERRORES_DE_PROGRAMACION = (NotImplementedError, RecursionError)  # subclases de RuntimeError que son bugs: con traza
 
 
@@ -222,7 +222,7 @@ def _repartir(n_total: int, tamanos: dict[str, int]) -> dict[str, int]:
     cuotas = {s: n_total * tamanos[s] / total for s in tamanos}  # n·N_s/N
     n = {s: int(np.floor(c)) for s, c in cuotas.items()}  # ⌊cuota_s⌋
     faltan = n_total - sum(n.values())  # filas por repartir
-    for s in sorted(tamanos, key=lambda s: (-(cuotas[s] - n[s]), SPLITS.index(s)))[:faltan]:  # restos mayores
+    for s in sorted(tamanos, key=lambda t: (-(cuotas[t] - n[t]), SPLITS.index(t)))[:faltan]:  # restos mayores
         n[s] += 1  # una fila más
     return n  # n_s por split
 
@@ -234,7 +234,8 @@ def _repartir(n_total: int, tamanos: dict[str, int]) -> dict[str, int]:
 # B5). Si no, reparte $n$ con `_repartir`, sortea sin reemplazo dentro de cada split con `make_rng(base_seed, 0)` y
 # devuelve las filas en el **orden del parquet** (posiciones ordenadas) con el índice $0, \dots, n-1$. Solo depende de
 # la columna `split` y del orden de las filas: el DataFrame completo y una lectura de `id, split` dan los mismos ids. Un
-# split que queda con 0 filas → `ValueError` que lo nombra.
+# split que queda con 0 filas → `ValueError` que lo nombra; un valor de `split` fuera de `SPLITS` → `ValueError` que lo
+# nombra, antes del reparto. Con muestra, `base_seed` es obligatorio (None → `ValueError`).
 #
 # Copia de `_muestrear` de `src/lgd/experimento.py` (Parte D). TODO(refactor-post-B5): unificar con la de la LGD.
 
@@ -246,8 +247,11 @@ def muestrear(df: pd.DataFrame, muestra: int | None, base_seed: int | None) -> p
     muestra = _entero_cfg(muestra, "datos.muestra", minimo=MINIMO_MUESTRA)  # entero ≥ 3
     if muestra >= len(df):  # nada que recortar
         return df  # el mismo objeto
-    base_seed = _entero_cfg(base_seed, "base_seed", minimo=0)  # semilla del sorteo
+    base_seed = _entero_cfg(base_seed, "base_seed", minimo=0)  # semilla del sorteo (None → ValueError)
     splits = df[COLUMNA_SPLIT].to_numpy()  # split de cada fila, en orden
+    ajenos = sorted(set(splits) - set(SPLITS))  # valores de split desconocidos
+    if ajenos:  # el reparto solo conoce train, val y test
+        raise ValueError(f"datos.muestra: la columna split tiene valores fuera de {list(SPLITS)}: {ajenos}")  # nombra
     n = _repartir(muestra, {s: int((splits == s).sum()) for s in SPLITS})  # filas por split
     vacios = [s for s in SPLITS if n[s] == 0]  # splits sin filas
     if vacios:  # una métrica de ese split no existiría
@@ -286,8 +290,11 @@ def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
     return matrices  # tres splits
 
 
-def cargar_datos(rutas: RutasPD, muestra: int | None = None, base_seed: int | None = 0) -> tuple[pd.DataFrame,
-                                                                                               dict]:
+def cargar_datos(
+    rutas: RutasPD,  # entradas y salidas del experimento
+    muestra: int | None = None,  # datos.muestra (None: todos los datos)
+    base_seed: int | None = None,  # semilla del sorteo (obligatoria con muestra)
+) -> tuple[pd.DataFrame, dict]:
     """(DataFrame del parquet o de su muestra, matrices por split) con una sola lectura del parquet."""
     df = muestrear(pd.read_parquet(rutas.parquet), muestra, base_seed)  # datos de A (o su muestra, B6)
     pre = Preprocesador.from_dict(load_json(rutas.preprocesador))  # sin reajustar
@@ -843,7 +850,8 @@ def entrenar_semilla(modelo_cls, datos: dict, cfg_mlp: dict, seed: int, reloj) -
 # muestra, la huella es la de las filas muestreadas (`muestrear` solo mira `split` y el orden).
 
 # %%
-def evidencia_rapida(ruta_parquet, ruta_preprocesador, muestra: int | None = None, base_seed: int | None = 0) -> dict:
+def evidencia_rapida(ruta_parquet, ruta_preprocesador, muestra: int | None = None,
+                     base_seed: int | None = None) -> dict:
     """``evidencia`` del parquet (o de su muestra) leyendo solo id y split."""
     df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # dos columnas
     df = muestrear(df, muestra, base_seed)  # las mismas filas que cargar_datos (B6)
@@ -1057,8 +1065,11 @@ def rutas_de(cfg: dict) -> RutasPD:
 # las de test de la muestra.
 
 # %%
-def leer_test_rapido(ruta_parquet, muestra: int | None = None, base_seed: int | None = 0) -> tuple[np.ndarray,
-                                                                                                    np.ndarray]:
+def leer_test_rapido(
+    ruta_parquet,  # data/processed/loans_pd.parquet
+    muestra: int | None = None,  # datos.muestra (None: todos los datos)
+    base_seed: int | None = None,  # semilla del sorteo (obligatoria con muestra)
+) -> tuple[np.ndarray, np.ndarray]:
     """(ids, y) de test (del parquet o de su muestra) leyendo solo id, split y target."""
     df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT, COLUMNA_OBJETIVO])  # tres columnas
     df = muestrear(df, muestra, base_seed)  # las mismas filas que cargar_datos (B6)
@@ -1205,10 +1216,10 @@ def _una_linea(exc: BaseException) -> str:
 # ## `run.py pd`
 #
 # Llama a `_correr_e_informar`. Los errores **esperados** (config inválida, salidas previas incompatibles, búsqueda con
-# otros datos: `ValueError`; fallas del fit: `RuntimeError` y `FloatingPointError`) salen como una línea
-# `run.py pd: error: <mensaje>` en stderr y código 2, como los errores de argumentos del CLI (argparse), sin traza
+# otros datos: `ValueError`; fallas del fit: `RuntimeError` y `FloatingPointError`; un archivo de entrada que no
+# existe: `FileNotFoundError`) salen como una línea `run.py pd: error: <Tipo>: <mensaje>` en stderr y código 2, como los errores de argumentos del CLI (argparse), sin traza
 # (B6: en la demo en vivo se lee el mensaje). Cualquier otra excepción (p. ej. `TypeError`, un error de programación)
-# se propaga con su traza.
+# se propaga con su traza; también las demás `OSError` (p. ej. `PermissionError`).
 #
 # `NotImplementedError` y `RecursionError` son subclases de `RuntimeError` pero indican un bug, no una falla esperada:
 # se relanzan **antes** del `except` de los errores esperados (`ERRORES_DE_PROGRAMACION`, decisión de Andrés, 26-oct).
@@ -1221,5 +1232,5 @@ def manejador(cfg: dict | None) -> int:
     except ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
         raise  # se propagan con su traza
     except ERRORES_ESPERADOS as exc:  # config, datos o fit
-        print(PREFIJO_ERROR + _una_linea(exc), file=sys.stderr)  # una línea en stderr
+        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {_una_linea(exc)}", file=sys.stderr)  # una línea con el tipo
         return CODIGO_ERROR  # como argparse
