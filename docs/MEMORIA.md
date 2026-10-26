@@ -90,6 +90,9 @@ mar 27 6 p. m. entrega.
 Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día.
 
 ## 📓 Bitácora
+- **2026-10-26** — App E1–E3c (José, `dev/jose`, sin PR): Next 16 estático; paridad 1000/1000 por modelo (|ΔPD| 2,2e-16); panel
+  único base → escenario, top-3 "¿Y si…?", tarjeta con anillo, 25 barras, tooltips, avatar de José; 104 pruebas; revisores APROBADO.
+  Falta: Vercel (cuenta de José), E4 (paridad en CI), E9, URL del video, decidir ±25 % en el top-3.
 - **2026-10-26** — D9/D10/D4b/D7b (José, `dev/jose`; Spec v0.19): D4 rehecho. Mejor ensayo #29 [32,64,64,32] leaky_relu, λ 8,9e-4; MLP
   MAE test 0,07686 ± 0,00037 (9 953 parám.), lineal 0,07712, mediana 0,06986 (gana); semilla 22; búsqueda casi plana.
 - **2026-10-26** — Blog 10 (discusión): 2 rondas; verificador-matematico y cazador APROBADO. Corregidas la 2.4 y la 09; H-21. Blog 12 (cacería): 21 hallazgos,
