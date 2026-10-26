@@ -20,9 +20,9 @@ $$
 donde cada factor viene de una parte distinta del trabajo:
 
 - **$\mathrm{PD}_i$**: probabilidad de incumplimiento predicha por la **regresión logística** de la Parte B (sección 6), con AUC
-  de prueba 0,670 (Fuente: `results/data/pd/summary.json`, `logistica.metricas.auc_test`). El MLP de PD todavía no está
-  disponible; cuando exista, basta cambiar `pd.modelo` en `configs/el/base.yaml` y volver a correr `python run.py el`.
-  <!-- revisar: autor (actualizar cuando exista B5 y se decida el modelo de PD de la E[L]) -->
+  de prueba 0,670 (Fuente: `results/data/pd/summary.json`, `logistica.metricas.auc_test`). La pérdida esperada con el MLP
+  de PD se obtiene con `python run.py el --config configs/el/base.yaml --set pd.modelo=mlp` y se compara con esta en la
+  sección 10.4.
 - **$\mathrm{LGD}_i$**: LGD predicha por el **MLP de la Parte D** (sección 8; semilla mediana 10, Fuente:
   `results/data/lgd/summary.json`, `modelos.mlp.semilla_mediana`) para **todos** los créditos de prueba, no solo para los
   castigados: la fórmula necesita la LGD *condicional a incumplir* de cada crédito, aunque el crédito haya terminado pagándose.
@@ -281,8 +281,8 @@ observado: la tasa de malos y la pérdida realizada por banda bajan de forma mon
 
 Tres limitaciones adicionales. Primera, el contraste deja fuera a los créditos en mora, cuyo desenlace todavía no se conoce.
 Segunda, la pérdida esperada usa una sola PD (la logística es determinista) y una sola LGD (la semilla mediana del MLP); no
-calculamos cómo varía la pérdida esperada entre las 30 semillas de la LGD, ni con el MLP de PD, cuya búsqueda de
-hiperparámetros ya existe (B4, en la rama de la Parte B) pero cuyas predicciones de prueba (B5) todavía no.
+calculamos cómo varía la pérdida esperada entre las 30 semillas de la LGD ni entre las 30 del MLP de PD (cuya semilla
+mediana se compara en la sección 10.4).
 Tercera, tanto la pérdida esperada como la realizada se miden en principal, sin intereses ni descuento del dinero en el
 tiempo (sección 8.1).
-<!-- revisar: autor (variabilidad entre semillas de la E[L] y E[L] con el MLP de PD: pendientes de B5) -->
+<!-- revisar: autor (variabilidad entre semillas de la E[L]: no calculada) -->
