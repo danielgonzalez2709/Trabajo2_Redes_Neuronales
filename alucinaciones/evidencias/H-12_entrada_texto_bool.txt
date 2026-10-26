@@ -1,0 +1,13 @@
+H-12 — evidencia (25-oct-2026). src/scorecard/scorecard.py de la fase verde de C1 (sin commit), _a_float64:
+    try:  # texto u objetos no numéricos fallan aquí
+        return np.asarray(x, dtype=np.float64)  # float32 o lista → float64, sin copiar si ya lo es
+    except (TypeError, ValueError) as exc:  # unifica el tipo de error del contrato
+        raise ValueError(f"{nombre} debe ser numérico; se recibió {x!r}") from exc  # ValueError
+
+Reproducción (Python 3.12.6, .venv, Windows):
+score_desde_logit('1.5', P) = 443.84202497783656
+score_desde_pd('0.3', P) = 511.57072463123444
+score_desde_logit(True, P) = 458.2689753867262
+score_desde_logit(np.array([True, False]), P) = [458.26897539 487.1228762 ]
+score_desde_logit('abc', P) -> ValueError
+validar_cfg_scorecard({'base': True, ...}) -> ValueError (la config s� rechaza bool)
