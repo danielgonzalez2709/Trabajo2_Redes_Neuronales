@@ -391,9 +391,11 @@ originación, censura en las cosechas recientes o ambas) queda abierta; la discu
 documenta sobre la masa en LGD = 1 y la censura, aunque ninguno prueba por sí solo una causa:
 
 1. **La constante mediana de entrenamiento gana en MAE y RMSE de prueba** (0,0699 y 0,0811) a la lineal y a las 30 semillas
-   del MLP. Como se vio en la sección 8.5, la explicación no requiere suponer nada sobre el riesgo: la mediana es el valor que
-   minimiza el error absoluto y la prueba está desplazada hacia 1 (62,7 % con LGD = 1 frente a 25,9 % en entrenamiento), un
-   desplazamiento consistente con censura, pero no atribuido a ella de forma probada.
+   del MLP. Como se vio en la sección 8.5, una explicación posible, no contrastada, tiene dos partes: la mediana es el valor
+   que minimiza el error absoluto, lo que explica la ventaja en MAE; y la prueba está desplazada hacia 1 (62,7 % con LGD = 1
+   frente a 25,9 % en entrenamiento), de modo que la mediana de entrenamiento (0,943) queda más cerca de la media de prueba
+   (0,945) que la media de entrenamiento (0,917), lo que explica también la ventaja en RMSE. Ese desplazamiento es
+   consistente con censura, pero no se atribuye a ella de forma probada.
 2. **La superficie de búsqueda es casi plana**: 29 de 30 ensayos a menos de 0,001 de la mejor pérdida de validación. Si las
    variables aportan poca señal sobre la LGD (sección 8.2), cabe esperar que arquitecturas muy distintas lleguen a casi la
    misma pérdida; no comprobamos que esa sea la razón.
@@ -403,4 +405,4 @@ documenta sobre la masa en LGD = 1 y la censura, aunque ninguno prueba por sí s
 4. **El orden entre el MLP y la lineal cambia entre validación y prueba** en MAE: en validación la lineal es mejor que las 30
    semillas; en prueba 23 de 30 semillas la mejoran. Con diferencias del orden de 10⁻⁴ y una prueba cuya distribución difiere
    de la de validación (42,9 % frente a 62,7 % con LGD = 1), este cambio de orden no indica que un modelo generalice mejor que
-   el otro; muestra que, a esta escala, validación no anticipa el orden en prueba. <!-- revisar: autor -->
+   el otro; muestra que, en este caso, validación no anticipa el orden en prueba. <!-- revisar: autor -->

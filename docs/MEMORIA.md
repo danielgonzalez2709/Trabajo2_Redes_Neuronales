@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-26 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10, 26-oct 12:38 p. m.), Parte D: D1–D8 (PR #7), Parte C: C1 scorecard y C2 exportador con la logística real (PR #8); C3 puntos de la logística y C5 export de los dos modelos ✅ en `dev/juanjose` y Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9). Spec v0.16 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 (demo) y B7; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C3 + C5 (declarar `cli.py`, `sustentacion.yaml` e `implementador-web.md`); luego C4 y C6; PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` y `src/scorecard/puntos.py` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 con selector de modelo (R-APP-2, v0.17). Daniel: PR de Spec v0.17 (dos modelos en la app); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 (demo) y B7; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C3 + C5 (declarar `cli.py`, `sustentacion.yaml` e `implementador-web.md`); luego C4 y C6; PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` y `src/scorecard/puntos.py` en el núcleo §4. D (José): PR de `dev/jose` (D9, D10, D4b, D7b; Spec v0.18) para revisión de Daniel; luego Daniel rehace la E[L] (semilla LGD 22). Camila: E1–E2 con selector de modelo (R-APP-2, v0.17). Daniel: PR de Spec v0.17 (dos modelos en la app); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -41,6 +41,7 @@ Juan José González Morales.
 - Export (Juan José, C2/C5): `run.py export` → `pd_model_{logistica,mlp}.json` + `casos_paridad_{…}.json` (todo o nada; MLP =
   semilla 20), MISMA muestra de 1 000 casos para los dos. min/max = recorte HACIA AFUERA al paso; defecto = mediana / moda de
   train; cat sin OTRA en orden de `categorias_es`, con `ayuda_es`; casos [{id, entradas crudas, pd, score}].
+- LGD (José, 26-oct; v0.18, D §3.3): L2 (λ/2)‖W‖², `evidencia` §6, summary por modelo y semilla por MAE de **val** (como B).
 - LGD (Camila, 24-oct): población = Charged Off (2 estados); EAD ≤ 0 o NA → excluir y contar; diferencia entre particiones
   (LGD = 1: train 26 %, test 63 %) se acepta y documenta ("consistente con censura"); `preprocesador_lgd.json` = el de A
   ajustado solo con el train de la población LGD (D §3.2).
@@ -80,7 +81,6 @@ mar 27 6 p. m. entrega.
    20; PD media de test 0,204 vs tasa 0,262). Luego refactor `TODO(refactor-post-B5)`; blog 06: `mejor_epoca` = 1 en la
    mediana (val ruidosa) como limitación.
 7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
-8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
 9. E5 → núcleo §5.4: `evidencia` de la E[L] = {sha256_particion, sha256_pred_pd, sha256_pred_lgd} (no usa preprocesador) y
    `perdida_observada` = pérdida realizada (NaN en mora); árbol §4 con `src/el/{experimento,tablas}.py` (PR de Spec, Daniel).
 
@@ -88,6 +88,8 @@ mar 27 6 p. m. entrega.
 Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código. Candidato de C sin confirmar: H-20 Código (C3).
 
 ## 📓 Bitácora
+- **2026-10-26** — D9/D10/D4b/D7b (José, `dev/jose`): D4 rehecho. Mejor ensayo #29 [32,64,64,32] leaky_relu, λ 8,9e-4; MLP
+  MAE test 0,07686 ± 0,00037 (9 953 parám.), lineal 0,07712, mediana 0,06986 (gana); semilla 22; búsqueda casi plana.
 - **2026-10-26** — C5 (Juan José): los 4 JSON de la app (logística y MLP) en `app/public/model/`; receta vs modelo |ΔPD| ≤ 4,5e-8;
   118 pruebas. Spec APROBADO; calidad APROBADO en la 2.ª (todo o nada al escribir).
 - **2026-10-26** — C3 (Juan José): `puntos.py` + `run.py scorecard` → `scorecard.json`; aditividad 1,1e-13; candidato H-20. Aprobado.
@@ -146,5 +148,3 @@ Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11
   ≤ 2012 / 2013 / 2014 (2015: 93 % sin resolver) y `loans_pd.parquet` (237 695), aprobados por Daniel (Spec v0.8, con la
   sensibilidad `grade`/`int_rate`). A6/A6b: 11 hipótesis y PSI (H-01). revisor-spec RECHAZADA → APROBADA (Spec v0.7, H-02).
   `.venv` 3.12, `requirements.txt` fijado y CI; blog portado del Trabajo 1 con 01–03.
-- **2026-10-19 a 22** — Spec v0.1–v0.4 (historial en la cabecera del núcleo): repo, PLAN, agentes; núcleo + una spec
-  por parte; equipo asignado; enunciado en el Anexo; notebooks como capa delgada (§5.8); descriptivos posteriores (A6b, D1b).

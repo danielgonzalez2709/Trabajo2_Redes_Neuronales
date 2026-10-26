@@ -99,6 +99,10 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 | D6 ✅ | Figuras: distribuciones, Q-Q, error por banda | D4 | `run.py figures` las regenera | revisor-spec | sáb 24 | Camila |
 | D8 ✅ | Notebook `04_lgd` (núcleo §5.8) | D4, D6 | Corre en < 2 min; cero lógica propia | revisor-spec | dom 25 | Camila |
 | D7 ✅ | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Camila |
+| D9 ✅ | L2 = (λ/2)‖W‖² y `evidencia` con las huellas del núcleo §6 | D3, D4 | Huellas = las de B; gradiente λW | revisor-spec, revisor-calidad + verificador-matematico | lun 26 | José |
+| D10 ✅ | `summary.json` por modelo como B; semilla por MAE de val | D9 | Claves = §5.4 y entrada `mlp` de B | revisor-spec, revisor-calidad | lun 26 | José |
+| D4b ✅ | Rehacer D4 (Optuna 30 + 30 semillas), figuras y notebook 04 | D9, D10 | Reproducible bit a bit; `evidencia` igual en todos los JSON | analista-experimentos | lun 26 | José |
+| D7b ✅ | Blog 08 con las cifras de D4b | D4b | Cifras desde los JSON | redactor-tecnico + verificador-matematico | lun 26 | José |
 
 ## 5. Pruebas de la parte
 `test_lgd.py` (fórmula, recorte, EAD ≤ 0), `test_lgd_mlp.py` (salida en [0, 1], pérdida con objetivo fraccional),
