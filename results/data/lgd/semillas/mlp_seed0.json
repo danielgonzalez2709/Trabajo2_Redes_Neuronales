@@ -4,16 +4,18 @@
   "config": {
     "mlp": {
       "capas": [
-        128,
-        64
+        32,
+        64,
+        64,
+        32
       ],
-      "activacion": "tanh",
-      "dropout": 0.05426572640095942,
-      "l2": 0.003340334194956007,
+      "activacion": "leaky_relu",
+      "dropout": 0.3915788095788214,
+      "l2": 0.000886503551270592,
       "optimizador": "adam",
-      "lr": 0.009801607304582592,
+      "lr": 0.009397991170979513,
       "momento": 0.9,
-      "batch": 512,
+      "batch": 2048,
       "max_epocas": 200,
       "paciencia": 10,
       "device": "auto",
@@ -21,22 +23,179 @@
     }
   },
   "metricas": {
-    "mae_val": 0.07613315967975787,
-    "rmse_val": 0.09234834713931049,
-    "mae_test": 0.07662437998370361,
-    "rmse_test": 0.08515845945047543
+    "mae_val": 0.07598296439333821,
+    "rmse_val": 0.09241647292883688,
+    "mae_test": 0.07706050171292576,
+    "rmse_test": 0.08587832447765388
   },
-  "n_parametros": 14593,
-  "tiempo_s": 0.9506207919912413,
+  "n_parametros": 9953,
+  "tiempo_s": 2.7312679999995453,
   "device": "cpu",
-  "epocas": 18,
+  "epocas": 30,
+  "evidencia": {
+    "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+    "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+  },
   "n": {
     "train": 14419,
     "val": 14836,
     "test": 13981
   },
   "muestra": null,
-  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
-  "mejor_epoca": 8
+  "mejor_epoca": 20,
+  "mejor_perdida_val": 0.28384727239608765,
+  "historial": [
+    {
+      "epoca": 1,
+      "perdida_train": 0.5300628572146417,
+      "perdida_val": 0.358092725276947
+    },
+    {
+      "epoca": 2,
+      "perdida_train": 0.3447082640931431,
+      "perdida_val": 0.3045588433742523
+    },
+    {
+      "epoca": 3,
+      "perdida_train": 0.3184721021676528,
+      "perdida_val": 0.28790175914764404
+    },
+    {
+      "epoca": 4,
+      "perdida_train": 0.31103887019106813,
+      "perdida_val": 0.28739702701568604
+    },
+    {
+      "epoca": 5,
+      "perdida_train": 0.30529277461214516,
+      "perdida_val": 0.2840415835380554
+    },
+    {
+      "epoca": 6,
+      "perdida_train": 0.30209108141905655,
+      "perdida_val": 0.2845745086669922
+    },
+    {
+      "epoca": 7,
+      "perdida_train": 0.30138826167685157,
+      "perdida_val": 0.28423306345939636
+    },
+    {
+      "epoca": 8,
+      "perdida_train": 0.30130640333267134,
+      "perdida_val": 0.28413936495780945
+    },
+    {
+      "epoca": 9,
+      "perdida_train": 0.3010374215098292,
+      "perdida_val": 0.28465041518211365
+    },
+    {
+      "epoca": 10,
+      "perdida_train": 0.29870341608962336,
+      "perdida_val": 0.28402891755104065
+    },
+    {
+      "epoca": 11,
+      "perdida_train": 0.29969027452622976,
+      "perdida_val": 0.28408265113830566
+    },
+    {
+      "epoca": 12,
+      "perdida_train": 0.29849195379483007,
+      "perdida_val": 0.2845078110694885
+    },
+    {
+      "epoca": 13,
+      "perdida_train": 0.299310852853127,
+      "perdida_val": 0.28394070267677307
+    },
+    {
+      "epoca": 14,
+      "perdida_train": 0.29794787866198347,
+      "perdida_val": 0.2840016484260559
+    },
+    {
+      "epoca": 15,
+      "perdida_train": 0.2972368869902861,
+      "perdida_val": 0.28420236706733704
+    },
+    {
+      "epoca": 16,
+      "perdida_train": 0.29747374576845664,
+      "perdida_val": 0.28394246101379395
+    },
+    {
+      "epoca": 17,
+      "perdida_train": 0.29832128735122376,
+      "perdida_val": 0.2844448983669281
+    },
+    {
+      "epoca": 18,
+      "perdida_train": 0.29665087545304153,
+      "perdida_val": 0.284071683883667
+    },
+    {
+      "epoca": 19,
+      "perdida_train": 0.29622825339040726,
+      "perdida_val": 0.284400075674057
+    },
+    {
+      "epoca": 20,
+      "perdida_train": 0.2960014224994926,
+      "perdida_val": 0.28384727239608765
+    },
+    {
+      "epoca": 21,
+      "perdida_train": 0.29562480269114,
+      "perdida_val": 0.2839321494102478
+    },
+    {
+      "epoca": 22,
+      "perdida_train": 0.29577267350184205,
+      "perdida_val": 0.28394585847854614
+    },
+    {
+      "epoca": 23,
+      "perdida_train": 0.2952264942163171,
+      "perdida_val": 0.2844430208206177
+    },
+    {
+      "epoca": 24,
+      "perdida_train": 0.29491873661641216,
+      "perdida_val": 0.28451550006866455
+    },
+    {
+      "epoca": 25,
+      "perdida_train": 0.2962072708006664,
+      "perdida_val": 0.2839806377887726
+    },
+    {
+      "epoca": 26,
+      "perdida_train": 0.2948553047036156,
+      "perdida_val": 0.2842821180820465
+    },
+    {
+      "epoca": 27,
+      "perdida_train": 0.29466755771382325,
+      "perdida_val": 0.2840084433555603
+    },
+    {
+      "epoca": 28,
+      "perdida_train": 0.2949878785293388,
+      "perdida_val": 0.2839076519012451
+    },
+    {
+      "epoca": 29,
+      "perdida_train": 0.29518026121570956,
+      "perdida_val": 0.284429132938385
+    },
+    {
+      "epoca": 30,
+      "perdida_train": 0.29389553523872225,
+      "perdida_val": 0.2844087481498718
+    }
+  ],
+  "hilos_torch": 8,
+  "version_torch": "2.14.1+cpu"
 }
