@@ -56,12 +56,32 @@ corrida y se explica por qué su desviación entre semillas es 0.
   pasada; épocas numeradas desde 1; `cargar()` reconstruye en CPU (la config guardada conserva el `device` de
   entrenamiento). `iterar_minilotes(n, batch, rng, device)` recibe el dispositivo (D, si la llama directo).
 
-### 3.3 Búsqueda [PROPUESTO]
-- Optuna TPE, **40 ensayos** (`configs/pd/hpo.yaml`; demo: 5), semilla del muestreador fija.
-- Espacio: capas 1–4; neuronas {16, 32, 64, 128, 256}; activación {relu, leaky_relu, tanh}; dropout [0, 0.5]; l2 log-uniforme
-  [1e-6, 1e-2]; optimizador {adam, sgd con momento}; lr log-uniforme [1e-4, 1e-2]; batch {256, 512, 1024, 2048}.
-- Criterio: **log-loss de validación** (regla de puntuación propia: premia discriminación y calibración); AUC de validación al lado.
-- Justificación citada: TPE (Bergstra et al., 2011) y Optuna (Akiba et al., 2019) [VERIFICAR referencias].
+### 3.3 Búsqueda [DECIDIDO, Andrés, 25-oct; Spec v0.15]
+- Optuna TPE, **40 ensayos** (`configs/pd/hpo.yaml`; demo: `--set hpo.n_ensayos=5`). `python run.py pd-hpo` escribe
+  `results/data/pd/hpo_ensayos.json` (campos en núcleo §5.4) y reescribe `configs/pd/mlp_final.yaml` (no se edita a mano),
+  que `configs/pd/base.yaml` hereda: B5 entrena el ganador sin copiar nada.
+- Espacio: capas 1–4; neuronas {16, 32, 64, 128, 256}, **una elección por capa** (sin forma de pirámide); activación {relu,
+  leaky_relu, tanh}; dropout [0, 0.5]; l2 log-uniforme [1e-6, 1e-2]; optimizador {adam, sgd con momento}; lr log-uniforme
+  [1e-4, 1e-2]; batch {256, 512, 1024, 2048}. Nombres de Optuna: `n_capas`, `neuronas_capa{k}`, `activacion`, `dropout`,
+  `l2`, `optimizador`, `lr`, `batch`; el JSON guarda los parámetros ya armados (`capas: [...]`). No se buscan `momento`,
+  `max_epocas`, `paciencia`, `device` ni `pos_weight` (= 1, §3.2): salen del bloque `mlp` heredado (`--set mlp.*` los cambia
+  en todos los ensayos) y son el `mlp_base` del JSON. Validación antes de leer datos: claves exactas, rangos con mín ≤ máx
+  (> 0 en escala log, dropout < 1), listas no vacías y sin duplicados; se aceptan listas de un elemento y rangos con
+  mín = máx para fijar un parámetro desde el CLI.
+- Muestreador: `TPESampler(seed=base_seed)` con los valores por defecto y `NopPruner`, en memoria, `n_jobs = 1`. **En
+  Optuna 5.0.0 el TPE por defecto es multivariado** en estudios de un objetivo (no el TPE univariado de Bergstra et al.);
+  el JSON registra `multivariate` (efectivo) y `n_startup_trials`. Misma `base_seed` en el muestreador y en todos los fit.
+- Criterio: **log-loss de validación** (regla de puntuación propia: premia discriminación y calibración), con la `logloss`
+  de §3.1 sobre `predict_proba(X_val)`; AUC de validación al lado. Mejor = argmin entre los ensayos completos; empate →
+  menor número de ensayo. Test no se usa en la búsqueda.
+- Fallos: solo `FloatingPointError` (pérdida no finita, §3.2) deja el ensayo FAIL con su error y su tiempo; cualquier otro
+  error detiene la búsqueda. Si ningún ensayo completa → error y no se escribe nada.
+- Presupuesto (núcleo §6): `n_ensayos` cuenta todos los ensayos; `tiempo_total_s` = Σ del tiempo de cada fit, incluidos los
+  fallidos; `tiempo_reloj_s` = todo el estudio, aparte.
+- `en_borde` = {lr, l2, dropout: "min" | "max" | null}: el valor elegido está en el borde si queda a ≤ 5 % del ancho del
+  rango respecto de un extremo (en log10 para lr y l2, lineal para dropout); con mín = máx → null.
+- Justificación citada: TPE (Bergstra et al., 2011) y Optuna (Akiba et al., 2019), verificadas en `blog/references.bib`;
+  TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
 
 ### 3.4 Métricas (`src/common/metricas.py`)
 - AUC; **Gini = 2·AUC − 1**; **KS = máx_t |F₁(t) − F₀(t)|** (acumuladas de la PD en malos y buenos).
@@ -79,7 +99,7 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | Andrés |
 | ✅ B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | Andrés |
 | ✅ B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | Andrés |
-| B4 | Optuna del MLP (con datos reales, de noche) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
+| B4 | Optuna del MLP (con datos reales) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
 | B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | Andrés |
 | B6 | Demo | B2, B3 | **< 2 min en CPU medido** | auditor-reproducibilidad | sáb 24 | Andrés |
 | B7 | Figuras: ROC, KS, calibración, cajas por semilla | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 | Andrés |
