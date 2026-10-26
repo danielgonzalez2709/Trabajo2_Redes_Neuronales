@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-26 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6), Parte D: D1–D8 (PR #7) y Parte C: C1 scorecard y C2 exportador con la logística real (PR #8, 26-oct 7:46 a. m.). Spec v0.14. En `dev/daniel` (sin PR): E5 E[L] por banda de puntaje, notebook 05 y blog 09 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5; marcar ✅ B1 en `B-pd.md`. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de `dev/daniel` (E5, E11, blog 09); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6), Parte D: D1–D8 (PR #7) y Parte C: C1 scorecard y C2 exportador con la logística real (PR #8, 26-oct 7:46 a. m.). Spec v0.14. Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9, 26-oct 10:26 a. m.) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5; marcar ✅ B1 en `B-pd.md`. C (Juan José): C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 (la app ya puede leer `app/public/model/*.json` reales). Daniel: PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -84,11 +84,11 @@ mar 27 6 p. m. entrega.
 Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**.
 
 ## 📓 Bitácora
-- **2026-10-26** — Daniel confirma los 15 hallazgos de la cacería (meta cumplida: 4 categorías, las 5 partes).
+- **2026-10-26** — PR #9 fusionado (10:26 a. m., CI en verde): E5, E11 y blog 09 en `main`. Daniel confirma los 15 hallazgos
+  de la cacería (meta cumplida: 4 categorías, las 5 partes).
 - **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la
   MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
-  en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179.
-  Revisores: E5 3 rondas, notebook 05 y blog 09 2 rondas. Candidatos H-13, H-14 y H-15 (Conceptos).
+  en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179. H-13–H-15.
 - **2026-10-26** — PR #8 fusionado (7:46 a. m., CI en verde; revisado por Daniel): Parte C C1–C2 en `main`. JSON de la app verificado
   aparte: contrato §5.5, 600 puntos en 50:1, paridad |ΔPD| ≤ 1,3e-8 en los 1 000 casos e igual al joblib de B en todo el test.
 - **2026-10-25** — PR #7 fusionado (1:26 p. m.; revisado por Daniel): Parte D D1–D8 en `main`. Primera E[L] real (logística de B +
