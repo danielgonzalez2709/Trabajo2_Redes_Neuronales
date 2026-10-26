@@ -7,10 +7,10 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 7 (H-01, H-03, H-04, H-05, H-06, H-07, H-09) | 2 (H-03, H-04) |
+| Código | 8 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-12) | 2 (H-03, H-04) |
 | Datos del mundo real | 1 (H-02) | 0 |
 | Bibliografía | 0 | 0 |
-| Conceptos | 0 | 0 |
+| Conceptos | 1 (H-11) | 0 |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -264,3 +264,40 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** un resultado asintótico tiene hipótesis (modelo paramétrico, media bien especificada); citarlo para
    un modelo que no las cumple es una exageración. Pedir al verificador que contraste cada "es consistente / es insesgado"
    con las hipótesis del teorema citado.
+
+### H-11 — "Optuna TPE" justificado solo con Bergstra et al. (2011), cuando Optuna 5 usa TPE multivariado por defecto
+- **Estado:** candidato (falta el texto literal de la respuesta: la asesoría inicial solo guardó un resumen)
+- **Categoría:** Conceptos
+- **Parte:** B
+- **Herramienta y modelo:** Claude (asesoría inicial del puente y Spec v0.1) · **Fecha:** 25-oct-2026 · **Quién lo cazó:**
+  la sesión orquestadora de Andrés (Claude Opus 5.5), al planear B4, leyendo el código fuente de Optuna instalado
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md` (prompt A); la respuesta guardada es un resumen ("Optuna TPE").
+   El texto que se usó está en la Spec: B-pd §3.3 hasta v0.14, "Justificación citada: TPE (Bergstra et al., 2011)".
+2. **Respuesta relevante de la IA:** B-pd §3.3 (v0.14): "Optuna TPE, 40 ensayos … Justificación citada: TPE (Bergstra et
+   al., 2011) y Optuna (Akiba et al., 2019)".
+3. **Cómo sospechamos:** `TPESampler` tiene `multivariate=None` en la firma, no `False`; había que saber qué hace `None`.
+4. **Evidencia:** `evidencias/H-11_tpe_multivariado.py` y `.txt`: con Optuna 5.0.0 (versión fijada), `_is_multivariate`
+   devuelve True en estudios de un objetivo ("By default, the multivariate TPE is used for single-objective optimization").
+   El TPE de Bergstra et al. (2011) modela cada hiperparámetro por separado.
+5. **Corrección:** Spec v0.15 (B-pd §3.3): se mantienen los valores por defecto (decisión de Andrés), `hpo_ensayos.json`
+   registra `multivariate: true` y el blog cita además el TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
+   Aviso a D, que también usa los valores por defecto.
+6. **Lección aprendida:** los valores por defecto cambian entre versiones mayores; antes de citar el método de una
+   biblioteca, leer la firma y el código de la versión fijada en `requirements.txt`, no la documentación de memoria.
+
+### H-12 — Caso de prueba "dropout = 0.475 → borde máximo" falso en coma flotante
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `revisor-calidad` y sesión orquestadora (Claude Opus 5.5) · **Fecha:**
+  25-oct-2026 · **Quién lo cazó:** el subagente `implementador` al escribir la prueba (ronda 2 de B4)
+1. **Prompt (literal):** `prompts/B4.md`, sección 5 (ronda 2), recomendado 1: "test_04: caso dropout = 0.475 → "max" y otro
+   justo fuera (simétricos a dropout_justo/dropout_fuera)".
+2. **Respuesta relevante de la IA:** el revisor-calidad propuso el caso y el orquestador lo pasó sin verificarlo.
+3. **Cómo sospechamos:** la prueba falló contra el código correcto.
+4. **Evidencia:** `evidencias/H-12_borde_coma_flotante.py` y `.txt`: 0.5 − 0.475 = 0.025000000000000022 > 0.05 · 0.5 =
+   0.025, así que la regla `distancia ≤ tolerancia` da False; con valores exactos en binario (f = 0.25, 0.375) da True.
+5. **Corrección:** `test_04_en_borde_limites_exactos_simetricos` usa `fraccion = 0.25` y valores representables exactamente
+   (0.125, 0.375 y sus vecinos).
+6. **Lección aprendida:** una prueba de límite con `≤` necesita valores exactos en binario (potencias de 2); antes de
+   proponer un caso, calcular la distancia en el intérprete.

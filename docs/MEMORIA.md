@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-25 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **D en `dev/camila`:** D1–D8 ✅. D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B4 (Optuna) y B5. C (Juan José): C1–C2; C3 ya puede usar `models/pd_logistica.joblib`. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1 métricas, B2 MLP + entrenar, B3 logística (PR #6). Spec v0.14 (L2 = (λ/2)‖W‖²; campo `evidencia`). **B4 en `dev/andres`** (Spec v0.15): `run.py pd-hpo` y `configs/pd/mlp_final.yaml` con el ganador. **D en `dev/camila`:** D1–D8 ✅. D debe adaptarse a v0.13–v0.14 (L2 y `evidencia`) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): PR de B4 y luego B5 (hereda `configs/pd/mlp_final.yaml`). C (Juan José): C1–C2; C3 ya puede usar `models/pd_logistica.joblib`. D (Camila): adaptar D a v0.13 (`mlp.l2` = λ con (λ/2)‖W‖²) y v0.14 (`evidencia` en los JSON de la LGD) y rehacer D4; PR de `dev/camila`. Daniel: correr E5 con `results/data/lgd/pred_pd_test.parquet` (`pred_mlp`); blog 09, notebook 05, confirmar H-01 y H-02. Camila: E1 (app) |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 2) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -48,6 +48,10 @@ Juan José González Morales.
   celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
 - [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
   Trabajo 1; app Next.js estática en Vercel con inferencia en el navegador; video con Remotion; Design System `apple-design`.
+- B4 (Andrés, 25-oct; Spec v0.15, B-pd §3.3): TPE de Optuna 5 con valores por defecto (= **multivariado**, se registra;
+  TODO(cita) Falkner 2018), NopPruner, misma `base_seed`; criterio log-loss de val, empate → menor ensayo; solo
+  `FloatingPointError` = FAIL; presupuesto = Σ de los fit; `en_borde` {lr, l2, dropout} a ≤ 5 % del rango (log10 en lr y
+  l2); `mlp_base` = claves no buscadas; `base.yaml` hereda `mlp_final.yaml` y declara `base_seed: 0`.
 - B3 (Andrés, 25-oct; Spec v0.14, B-pd §3.1): rejilla de 13 C (10⁻⁴…10², sin duplicados); criterio log-loss de val, empate →
   menor C; sin refit con train+val; ConvergenceWarning = error; campo `evidencia` (SHA-256 de partición y preprocesador)
   en todos los JSON de resultados; `desv` muestral (n = 1 → 0); métricas `{auc,gini,ks,brier,logloss}_{val,test}`;
@@ -64,23 +68,25 @@ mar 27 6 p. m. entrega.
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 4. Modelo que va a la app (sáb 24).
-5. **PR de `dev/andres`** (B1 + B2 + B3), declarar: (a) añade `src/common/torch_utils.py` y `src/common/metricas.py`
-   (compartidos); (b) Spec v0.13 corrige B-pd §3.2 (L2 = (λ/2)‖W‖², H-08): avisar a Daniel y pedirle que confirme el origen
-   de H-08; (c) `iterar_minilotes(n, batch, rng, device)` recibe `device`: avisar a D (Camila y José); (d) B3 y Spec v0.14:
-   el campo `evidencia` también aplica a los JSON de la LGD (§5.4): avisar a D; C3 puede usar el modelo de la logística.
+5. **PR de `dev/andres`** (B4, Spec v0.15): declarar `src/common/cli.py` y `tests/test_no_network.py` (compartidos);
+   avisar a D: TPE multivariado por defecto, `FloatingPointError` ≠ `RuntimeError`, figuras `lgd-*` reescritas por la suite.
 6. Para B5: conectar `run.py pd` (imprimir la config resuelta y el tiempo total, núcleo §4.1) reutilizando
    `escribir_semilla`, `actualizar_summary`, `actualizar_pred_test`, `resumir` y las huellas de `src/pd/experimento.py`.
    Después de B5: refactor `TODO(refactor-post-B5)` (validadores duplicados de `mlp.py`, `logistica.py`, `experimento.py`).
 7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
    Para C/E: la PD de Python sale de X float32 → float64; vigilar la paridad < 1e-6 si la app preprocesa en float64.
-
 8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
    PR de `dev/camila`: declarar `src/common/cli.py` (`lgd`, `lgd-hpo`, `figures`) y `configs/sustentacion.yaml` (demo `lgd`).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 8 (H-01, H-05, H-06, H-07, H-09 Código; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
+Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 10 (H-01, H-05, H-06, H-07, H-09, H-12 Código; H-02 Datos; H-08 y H-10 Matemáticas; H-11 Conceptos; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
+- **2026-10-25** — B4 (Andrés): `src/pd/hpo.py` + `run.py pd-hpo`; 40/40 ensayos completos, 702,4 s de entrenamiento.
+  Mejor #11: [32, 16, 32] relu, adam, lr 5,0e-3; log-loss val 0,50748 (logística 0,51782), AUC val 0,6708, 2 673 parám.;
+  sin borde; reproducible bit a bit. revisor-spec APROBADO; revisor-calidad RECHAZADO 1 vez y APROBADO (42/43 mutantes);
+  analista-experimentos OK. Candidatos H-11 (TPE multivariado) y H-12. Aviso a D: `test_no_network[figures]` reescribe
+  `blog/docs/figures/lgd-*.png`.
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
 - **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
 - **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos
