@@ -7,14 +7,21 @@ type Props = { readonly titulo: string; readonly subtitulo: string };
 // Escena 7 (1:55–2:10): "Y es honesta." Curva de calibración real del MLP de PD (semilla mediana, prueba), leída de
 // blog/docs/figures/pd-calibracion.json (B7). Los dos ejes comparten la escala [0, L]: los puntos quedan donde caen
 // respecto de la diagonal y = x (en prueba, por encima: el modelo subestima la tasa de malos).
-// Límite común de los ejes: el máximo de x e y redondeado hacia arriba al múltiplo de 0,1 (el −1e-9 evita el error de coma flotante).
-const limite = Math.ceil(Math.max(...calibracionPd, ...calibracionTasa) * 10 - 1e-9) / 10;
+// Hay curva solo si el JSON trae bins y las dos listas están alineadas; si no, se dibuja solo la diagonal (como
+// antes de B7) para no calcular Math.max() = −Infinity ni unir puntos desalineados.
+const hayCurva = calibracionPd.length > 0 && calibracionPd.length === calibracionTasa.length;
+// Límite común de los ejes: misma regla que `limite_ejes` de src/viz/figs_pd.py, ceil(max/0,1 − 1e-9)·0,1, aplicada
+// solo a los puntos del MLP (el −1e-9 evita el error de coma flotante); sin curva vale 1 y no se usa.
+const limite = hayCurva ? Math.ceil(Math.max(...calibracionPd, ...calibracionTasa) * 10 - 1e-9) / 10 : 1;
 // Texto del límite con coma decimal.
 const textoLimite = String(limite).replace(".", ",");
 
 export const Honesta: React.FC<Props> = ({ titulo, subtitulo }) => {
+  // Cuadro actual dentro de la escena (empieza en 0).
   const frame = useCurrentFrame();
+  // Cuadros por segundo del video, para expresar los tiempos en segundos.
   const { fps } = useVideoConfig();
+  // Lado en píxeles del cuadrado del gráfico.
   const lado = 440;
   // Margen izquierdo e inferior para las etiquetas de los ejes.
   const margen = 70;
@@ -24,6 +31,7 @@ export const Honesta: React.FC<Props> = ({ titulo, subtitulo }) => {
   const aX = (p: number) => margen + (p / limite) * lado;
   // Convierte una tasa observada en la coordenada y del SVG (el eje y crece hacia arriba).
   const aY = (t: number) => borde + lado - (t / limite) * lado;
+  // Parte de la diagonal aún sin trazar: se dibuja entre los segundos 1,5 y 3.
   const trazo = interpolate(frame, [1.5 * fps, 3 * fps], [lado * Math.SQRT2, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -48,8 +56,11 @@ export const Honesta: React.FC<Props> = ({ titulo, subtitulo }) => {
         </div>
         <div style={{ fontSize: 48, color: tema.textoTenue, lineHeight: 1.3, marginTop: 24 }}>{subtitulo}</div>
       </div>
+      {/* Lienzo del gráfico: cuadrado más márgenes para las etiquetas. */}
       <svg width={margen + lado + borde} height={borde + lado + margen}>
+        {/* Marco del área de los ejes. */}
         <rect x={margen} y={borde} width={lado} height={lado} fill="none" stroke="#3a3a3c" strokeWidth={2} />
+        {/* Diagonal y = x (calibración perfecta), de (0, 0) a (L, L). */}
         <line
           x1={margen}
           y1={lado + borde}
@@ -61,43 +72,61 @@ export const Honesta: React.FC<Props> = ({ titulo, subtitulo }) => {
           strokeDasharray={lado * Math.SQRT2}
           strokeDashoffset={trazo}
         />
-        {/* Origen común de los dos ejes. */}
-        <text x={margen - 10} y={borde + lado + 28} textAnchor="end" {...marca}>
-          0
-        </text>
-        {/* Extremo del eje x. */}
-        <text x={margen + lado} y={borde + lado + 28} textAnchor="end" {...marca}>
-          {textoLimite}
-        </text>
-        {/* Extremo del eje y. */}
-        <text x={margen - 10} y={borde + 18} textAnchor="end" {...marca}>
-          {textoLimite}
-        </text>
-        {/* Etiqueta del eje x. */}
-        <text x={margen + lado / 2} y={borde + lado + 56} textAnchor="middle" {...marca}>
-          PD predicha
-        </text>
-        {/* Etiqueta del eje y, girada. */}
-        <text x={margen - 30} y={borde + lado / 2} textAnchor="middle" transform={`rotate(-90 ${margen - 30} ${borde + lado / 2})`} {...marca}>
-          Tasa observada
-        </text>
-        {/* Tramos que unen cada punto con el anterior; aparecen con el punto de llegada. */}
-        {calibracionPd.slice(1).map((p, i) => (
-          <line
-            key={`tramo-${i}`}
-            x1={aX(calibracionPd[i])}
-            y1={aY(calibracionTasa[i])}
-            x2={aX(p)}
-            y2={aY(calibracionTasa[i + 1])}
-            stroke={tema.acento2}
-            strokeWidth={4}
-            opacity={opacidad(i + 1)}
-          />
-        ))}
-        {/* Puntos de la curva de calibración del MLP (x = PD media del bin, y = tasa observada). */}
-        {calibracionPd.map((p, i) => (
-          <circle key={`punto-${i}`} cx={aX(p)} cy={aY(calibracionTasa[i])} r={9} fill={tema.acento2} opacity={opacidad(i)} />
-        ))}
+        {/* Sin curva no hay escala que marcar: solo el marco y la diagonal. */}
+        {hayCurva && (
+          <>
+            {/* Origen común de los dos ejes. */}
+            <text x={margen - 10} y={borde + lado + 28} textAnchor="end" {...marca}>
+              0
+            </text>
+            {/* Extremo del eje x. */}
+            <text x={margen + lado} y={borde + lado + 28} textAnchor="end" {...marca}>
+              {textoLimite}
+            </text>
+            {/* Extremo del eje y. */}
+            <text x={margen - 10} y={borde + 18} textAnchor="end" {...marca}>
+              {textoLimite}
+            </text>
+            {/* Etiqueta del eje x. */}
+            <text x={margen + lado / 2} y={borde + lado + 56} textAnchor="middle" {...marca}>
+              PD predicha
+            </text>
+            {/* Etiqueta del eje y, girada. */}
+            <text
+              x={margen - 30}
+              y={borde + lado / 2}
+              textAnchor="middle"
+              transform={`rotate(-90 ${margen - 30} ${borde + lado / 2})`}
+              {...marca}
+            >
+              Tasa observada
+            </text>
+            {/* Tramos que unen cada punto con el anterior; aparecen con el punto de llegada. */}
+            {calibracionPd.slice(1).map((p, i) => (
+              <line
+                key={`tramo-${i}`}
+                x1={aX(calibracionPd[i])}
+                y1={aY(calibracionTasa[i])}
+                x2={aX(p)}
+                y2={aY(calibracionTasa[i + 1])}
+                stroke={tema.acento2}
+                strokeWidth={4}
+                opacity={opacidad(i + 1)}
+              />
+            ))}
+            {/* Puntos de la curva de calibración del MLP (x = PD media del bin, y = tasa observada). */}
+            {calibracionPd.map((p, i) => (
+              <circle
+                key={`punto-${i}`}
+                cx={aX(p)}
+                cy={aY(calibracionTasa[i])}
+                r={9}
+                fill={tema.acento2}
+                opacity={opacidad(i)}
+              />
+            ))}
+          </>
+        )}
       </svg>
     </AbsoluteFill>
   );
