@@ -42,8 +42,9 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 
 @pytest.mark.parametrize(
     "argv",
-    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["pd-hpo", "--config", "configs/pd/hpo.yaml"]],
-    ids=["eda", "figures", "pd-hpo"],
+    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["pd-hpo", "--config", "configs/pd/hpo.yaml"],
+     ["pd", "--config", "configs/pd/base.yaml"]],
+    ids=["eda", "figures", "pd-hpo", "pd"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -55,6 +56,10 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
         argv = [*argv, "--set", "hpo.n_ensayos=1", "--set", "mlp.max_epocas=1",
                 "--set", f"hpo.destino={(tmp_path / 'mlp_final.yaml').as_posix()}",
                 "--set", f"hpo.salida={tmp_path.as_posix()}"]
+    if argv[0] == "pd":  # escribe resultados y modelos: a tmp_path, nunca a results/ ni a models/
+        argv = [*argv, "--set", f"salida={(tmp_path / 'res').as_posix()}",
+                "--set", f"modelos={(tmp_path / 'models').as_posix()}",
+                "--set", "semillas.n=1", "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
     if argv[0] == "figures":
         from src.viz import figs_datos
 
