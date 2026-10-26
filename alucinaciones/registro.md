@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 2 (H-03, H-04) |
-| Datos del mundo real | 1 (H-02) | 0 |
+| Matemáticas | 3 (H-08, H-10, H-14) | 3 (H-08, H-10, H-14) |
+| Código | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
+| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 0 | 0 |
+| Conceptos | 1 (H-15) | 1 (H-15) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -52,7 +52,7 @@ falsas se registran como candidatos.
 ## Candidatos
 
 ### H-01 — PSI que da 0 en silencio para variables discretas
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** la misma sesión de
@@ -74,7 +74,7 @@ falsas se registran como candidatos.
    resultados exactamente 0 o 1 en datos reales. Una prueba con solo datos continuos no habría fallado.
 
 ### H-02 — "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora"
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Datos del mundo real (significado de una variable)
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** el subagente
@@ -138,7 +138,7 @@ falsas se registran como candidatos.
    umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.
 
 ### H-05 — Prueba de L2 "con lr y gradiente de la pérdida en 0", que no verifica nada
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) en modo plan · **Fecha:**
@@ -160,7 +160,7 @@ falsas se registran como candidatos.
    haría fallar; si ninguna, la prueba no verifica nada.
 
 ### H-06 — "La prueba de determinismo y la de dropout al predecir ya cubren los minilotes y `evaluar_perdida`"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 24/25-oct-2026 ·
@@ -182,7 +182,7 @@ falsas se registran como candidatos.
    Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
 
 ### H-07 — "`@dataclass(frozen=True)` hace inmutable el historial de entrenamiento"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -200,13 +200,14 @@ falsas se registran como candidatos.
    también es una afirmación que se verifica.
 
 ### H-08 — "Penalizar λ‖W‖² en la pérdida equivale al `weight_decay` de Adam/SGD"
-- **Estado:** candidato (origen por confirmar con Daniel)
+- **Estado:** confirmado (Daniel, 25-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** B
-- **Herramienta y modelo:** por confirmar. El Spec v0.1 lo generó el puente con Claude (MEMORIA, 19-oct); la línea entra
-  al historial en la v0.4 (commit b562895, 22-oct) · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
+- **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, en la sesión del puente (Daniel) que escribió el
+  Spec; la línea entra al historial en la v0.4 (commit b562895, 22-oct). Daniel confirma el origen el 25-oct · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
   `verificador-matematico` (B2)
-1. **Prompt (literal):** por confirmar (el que produjo la v0.1–v0.4 del Spec). Verificación: `prompts/B2.md`, sección
+1. **Prompt (literal):** "Dame el spec yo lo reviso" (`prompts/asesoria_puente_claude.md`), el pedido que produjo la spec por partes
+   (v0.2), donde se creó `B-pd.md`. La versión exacta en que entró la línea no quedó registrada: el primer commit es la v0.4. Verificación: `prompts/B2.md`, sección
    "9. verificador-matematico".
 2. **Respuesta relevante de la IA:** `docs/spec/partes/B-pd.md` §3.2 (hasta v0.9): "el código debe hacer L2 (término
    λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente)".
@@ -220,7 +221,7 @@ falsas se registran como candidatos.
    gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
 
 ### H-09 — "La prueba compara `warnings.filters` antes y después de `fit`, así que detecta un filtro global"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -238,7 +239,7 @@ falsas se registran como candidatos.
    produciría; verificarla con un mutante, no por lectura.
 
 ### H-10 — "El estimador es consistente para la media condicional", dicho del MLP de LGD
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** D
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
@@ -266,7 +267,7 @@ falsas se registran como candidatos.
    con las hipótesis del teorema citado.
 
 ### H-11 — "Las funciones usan factor y offset tal como vienen", probado solo en dos de las cuatro funciones
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -291,7 +292,7 @@ falsas se registran como candidatos.
    por función); y una regla de validación (rechazar bool) se prueba en cada lugar donde se aplica, no solo en el primero.
 
 ### H-12 — "Texto u objetos no numéricos fallan aquí", dicho de `np.asarray(x, dtype=np.float64)`
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -310,3 +311,70 @@ falsas se registran como candidatos.
    texto, objeto, complejo) antes de convertir, con pruebas parametrizadas sobre las cuatro funciones.
 6. **Lección aprendida:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X; una regla de
    validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
+
+### H-13 — "La pérdida observada es la misma construcción de la LGD de D" y "en mora es parcial"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Datos del mundo real
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, la sesión orquestadora de Daniel, que escribió
+  la 1.ª versión de `src/el/` sin subagente · **Fecha:** 24-oct-2026 · **Quién lo cazó:** el subagente
+  `verificador-matematico` en la revisión de E5 (26-oct); el revisor-spec, en paralelo, señaló el contraste por banda
+1. **Prompt (literal):** "Vamos haciendo lo de la parte E" (Daniel, 24-oct, en la sesión del puente); la verificación está en
+   `prompts/E5.md`, sección 3.
+2. **Respuesta relevante de la IA:** docstring de `src/el/perdida_esperada.py` (commit de E5 del 24-oct): la pérdida
+   observada `max(0, (funded_amnt − total_rec_prncp) − (recoveries − collection_recovery_fee))` "es la misma construcción de
+   la LGD de la Parte D (D §3.2) multiplicada por la EAD al incumplimiento. En los créditos en mora […] su pérdida observada
+   es parcial y se marca", aplicada a todos los estados de test.
+3. **Cómo sospechamos:** el verificador recalculó la pérdida por estado y la contrastó con la población de la LGD de D
+   (solo castigados).
+4. **Evidencia:** `evidencias/H-13_perdida_observada.py` y `.txt`: de los 231,2 M USD "observados", 168,2 M son pérdida
+   realizada de castigados; 1 284 créditos `Fully Paid` suman 1,67 M (197 con más de 1 USD) porque su principal recibido
+   no llega al desembolsado; y los 5 460 en mora suman 61,3 M (26,5 %) con `recoveries` = 0 en todos: no es una pérdida
+   "parcial" (cota inferior) sino LGD = 1 supuesta, una cifra provisional y pesimista. Con eso, la razón E[L]/observada
+   salía 0,85 ("el modelo subestima") cuando en los créditos resueltos es 1,06.
+5. **Corrección:** ronda 2 de E5 (26-oct): pérdida realizada solo en castigados, 0 en pagados (la diferencia se reporta
+   como anomalía de los datos), pérdida provisional aparte en mora y contraste solo con los resueltos, total y por banda.
+6. **Lección aprendida:** una pérdida "observada" se define por estado del crédito y con la misma población que la LGD; antes
+   de llamar "parcial" a una cifra, se mira si de verdad es una cota (aquí las recuperaciones en mora eran 0).
+
+### H-14 — "Montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia la produce la PD"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Matemáticas
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién
+  lo cazó:** el subagente `cazador-alucinaciones` y, en paralelo, el `verificador-matematico`, en la revisión del blog 09
+1. **Prompt (literal):** `prompts/E7.md`, sección 1 (punto 5: "explica con cuidado […] SIN afirmar más de lo que muestran
+   los datos"); la verificación, en la sección 2.
+2. **Respuesta relevante de la IA:** `blog/secciones/09-perdida-esperada.md` (borrador sin commit, línea 95): la E[L] de la
+   banda 1 es casi diez veces la de la banda 10 "con montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia
+   la produce la PD (de 0,416 a 0,063)".
+3. **Cómo sospechamos:** la frase llama "parecidos" a dos montos que ella misma cita y que difieren en un 49 %.
+4. **Evidencia:** `evidencias/H-14_bandas_1_y_10.py` y `.txt`: la razón 9,92 entre las E[L] de las bandas 1 y 10 se
+   reparte en PD × 6,64, EAD × 1,49 y LGD × 1,01; en escala logarítmica la PD explica el 82,5 % y la EAD el 17,4 %. La PD
+   pesa más, pero no es "la" diferencia. Además, las bandas son deciles del puntaje, que es una transformación monótona de
+   la misma PD (correlación de rangos −1): parte de la conclusión es por construcción.
+5. **Corrección:** ronda 2 del blog 09: "sobre todo la PD", con el factor de la EAD, y aclaración de que las bandas
+   ordenan por la PD de la logística.
+6. **Lección aprendida:** un adjetivo cualitativo ("parecidos", "la causa") junto a cifras se comprueba con las cifras
+   mismas; una descomposición multiplicativa dice cuánto aporta cada factor.
+
+### H-15 — "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Conceptos
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `cazador-alucinaciones` (Claude Opus 5.5), en su propia ronda 1 de
+  verificación del blog 09 · **Fecha:** 26-oct-2026 · **Quién lo cazó:** el mismo subagente, en la ronda 2 (lo reportó
+  como error propio)
+1. **Prompt (literal):** `prompts/E7.md`, sección 2 (verificación del blog 09); la frase pasó al encargo de la ronda 2 del
+   redactor (sección 3, punto 5), que la copió en el texto.
+2. **Respuesta relevante de la IA:** informe de la ronda 1 del cazador: "Lo que hace alta la razón de la banda 10 es el
+   factor EAD, el mayor de todos (1,275)".
+3. **Cómo sospechamos:** en la ronda 2, el cazador comparó los factores de las bandas 8 a 10 y los del orden alternativo de
+   la descomposición.
+4. **Evidencia:** `evidencias/H-15_factor_ead_banda_10.py` y `.txt`: la banda 8 tiene casi el mismo factor EAD (1,2742
+   frente a 1,2747) y razón 1,002; la 9, 1,2718 y razón 1,107. Lo que separa a la banda 10 es su factor PD (0,981 frente a
+   0,818 y 0,903). Con el orden alternativo, el factor EAD máximo es el de la banda 8 (1,2706 frente a 1,2696).
+5. **Corrección:** el orquestador aplicó al blog 09 la redacción que propuso el cazador: la razón de la banda 10 combina un
+   factor PD cercano a 1 con el factor EAD más alto, comparada con las bandas 2, 8 y 9.
+6. **Lección aprendida:** un verificador también puede atribuir una causa única donde hay dos que se combinan; antes de
+   explicar un extremo por un factor, se mira si otra banda con ese factor igual tiene el mismo resultado.

@@ -1,0 +1,375 @@
+{
+  "modelo_pd": "logistica",
+  "modelo_lgd": "mlp",
+  "ead": "funded_amnt (originación)",
+  "scorecard": {
+    "base": 600.0,
+    "odds_base": 50.0,
+    "pdo": 20.0,
+    "factor": 28.85390081777927,
+    "offset": 487.1228762045055
+  },
+  "bandas": "cuantiles del puntaje de la scorecard en 10 bandas; banda 1 = menor puntaje (más riesgo)",
+  "n_bandas_pedidas": 10,
+  "n_bandas_obtenidas": 10,
+  "total": {
+    "n": 74154,
+    "el": 196707300.92895442,
+    "ead": 1061569725.0,
+    "tasa_malos": 0.26217061790328233,
+    "pd_media": 0.18676790032968169,
+    "lgd_media": 0.9160417705339454
+  },
+  "resueltos": {
+    "n": 68694,
+    "el": 177851730.78423753,
+    "ead": 977742625.0,
+    "tasa_malos": 0.2035257809997962,
+    "pd_media": 0.18333637433027783,
+    "lgd_media": 0.9159625909078707,
+    "perdida_observada": 168195585.75869992,
+    "razon_el_sobre_perdida_observada": 1.0574102166949297
+  },
+  "en_mora": {
+    "n": 5460,
+    "el": 18855570.144716866,
+    "ead": 83827100.0,
+    "tasa_malos": 1.0,
+    "pd_media": 0.2299410224914121,
+    "lgd_media": 0.9170379546426591,
+    "perdida_provisional": 61334969.06
+  },
+  "anomalia_pagados": {
+    "descripcion": "pagados (Does not meet the credit policy. Status:Fully Paid y Fully Paid) con total_rec_prncp < funded_amnt; no se suma a la pérdida",
+    "n": 1284,
+    "principal_no_registrado": 1670028.92
+  },
+  "por_banda": [
+    {
+      "banda": 1,
+      "score_min": 457.5728197417094,
+      "score_max": 505.32813596891464,
+      "total": {
+        "n": 7416,
+        "el": 51685976.41191735,
+        "ead": 136145050.0,
+        "tasa_malos": 0.4761326860841424,
+        "pd_media": 0.41554009645008133,
+        "lgd_media": 0.9174500495082867
+      },
+      "resueltos": {
+        "n": 6464,
+        "el": 44959039.81979403,
+        "ead": 118542900.0,
+        "tasa_malos": 0.3989789603960396,
+        "pd_media": 0.41504732277413814,
+        "lgd_media": 0.9173804893720858,
+        "perdida_observada": 39717900.1128999,
+        "razon_el_sobre_perdida_observada": 1.1319591340930903
+      },
+      "en_mora": {
+        "n": 952,
+        "el": 6726936.592123324,
+        "ead": 17602150.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.4188859883001832,
+        "lgd_media": 0.9179223569877007,
+        "perdida_provisional": 14566488.4
+      }
+    },
+    {
+      "banda": 2,
+      "score_min": 505.32874660085287,
+      "score_max": 515.088135392879,
+      "total": {
+        "n": 7415,
+        "el": 38792143.007097974,
+        "ead": 137009550.0,
+        "tasa_malos": 0.38880647336480106,
+        "pd_media": 0.30942063664224384,
+        "lgd_media": 0.9157343727547176
+      },
+      "resueltos": {
+        "n": 6613,
+        "el": 34536847.93177782,
+        "ead": 122013725.0,
+        "tasa_malos": 0.3146831997580523,
+        "pd_media": 0.30925567209851845,
+        "lgd_media": 0.915723951586108,
+        "perdida_observada": 32373620.251099974,
+        "razon_el_sobre_perdida_observada": 1.0668206911645708
+      },
+      "en_mora": {
+        "n": 802,
+        "el": 4255295.075320149,
+        "ead": 14995825.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.31078087420789907,
+        "lgd_media": 0.9158203019168312,
+        "perdida_provisional": 12163940.530000001
+      }
+    },
+    {
+      "banda": 3,
+      "score_min": 515.0894000298682,
+      "score_max": 523.6443566152409,
+      "total": {
+        "n": 7415,
+        "el": 27117452.1897256,
+        "ead": 120151875.0,
+        "tasa_malos": 0.33553607552258935,
+        "pd_media": 0.24627914576818555,
+        "lgd_media": 0.9170212066905047
+      },
+      "resueltos": {
+        "n": 6712,
+        "el": 24554935.94389253,
+        "ead": 108856050.0,
+        "tasa_malos": 0.2659415971394517,
+        "pd_media": 0.2461947805828547,
+        "lgd_media": 0.9168946214721797,
+        "perdida_observada": 22726622.73699993,
+        "razon_el_sobre_perdida_observada": 1.0804480818839848
+      },
+      "en_mora": {
+        "n": 703,
+        "el": 2562516.2458330663,
+        "ead": 11295825.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.24708463527592495,
+        "lgd_media": 0.9182297984193772,
+        "perdida_provisional": 8666643.030000001
+      }
+    },
+    {
+      "banda": 4,
+      "score_min": 523.6465720018545,
+      "score_max": 530.461575138087,
+      "total": {
+        "n": 7416,
+        "el": 18852772.932259575,
+        "ead": 102992075.0,
+        "tasa_malos": 0.30906148867313915,
+        "pd_media": 0.19962161993800598,
+        "lgd_media": 0.9187178396757495
+      },
+      "resueltos": {
+        "n": 6739,
+        "el": 17113268.387281545,
+        "ead": 93530325.0,
+        "tasa_malos": 0.23964979967354208,
+        "pd_media": 0.19954995569186068,
+        "lgd_media": 0.9186613613587314,
+        "perdida_observada": 16480938.509400021,
+        "razon_el_sobre_perdida_observada": 1.0383673464663963
+      },
+      "en_mora": {
+        "n": 677,
+        "el": 1739504.544978031,
+        "ead": 9461750.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.20033498087563234,
+        "lgd_media": 0.9192800366896118,
+        "perdida_provisional": 6565053.65
+      }
+    },
+    {
+      "banda": 5,
+      "score_min": 530.4618531631058,
+      "score_max": 535.9109510055232,
+      "total": {
+        "n": 7415,
+        "el": 14942791.089172311,
+        "ead": 96930875.0,
+        "tasa_malos": 0.2763317599460553,
+        "pd_media": 0.1681799360996102,
+        "lgd_media": 0.9186032805986205
+      },
+      "resueltos": {
+        "n": 6846,
+        "el": 13750236.031274274,
+        "ead": 89180575.0,
+        "tasa_malos": 0.21618463336254748,
+        "pd_media": 0.1681818891058645,
+        "lgd_media": 0.9186332622380274,
+        "perdida_observada": 14843698.017000068,
+        "razon_el_sobre_perdida_observada": 0.9263349345645888
+      },
+      "en_mora": {
+        "n": 569,
+        "el": 1192555.0578980385,
+        "ead": 7750300.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.16815643824228715,
+        "lgd_media": 0.9182425524731721,
+        "perdida_provisional": 5078761.3100000005
+      }
+    },
+    {
+      "banda": 6,
+      "score_min": 535.9109819049174,
+      "score_max": 540.7665995180017,
+      "total": {
+        "n": 7415,
+        "el": 12311641.969687812,
+        "ead": 92764450.0,
+        "tasa_malos": 0.24032366824005394,
+        "pd_media": 0.1448699075735063,
+        "lgd_media": 0.9181187412743623
+      },
+      "resueltos": {
+        "n": 6925,
+        "el": 11517613.118998691,
+        "ead": 86811175.0,
+        "tasa_malos": 0.18657039711191337,
+        "pd_media": 0.14481910863934785,
+        "lgd_media": 0.9180853238174631,
+        "perdida_observada": 12268275.915700044,
+        "razon_el_sobre_perdida_observada": 0.9388126904008811
+      },
+      "en_mora": {
+        "n": 490,
+        "el": 794028.8506891208,
+        "ead": 5953275.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.1455878312858477,
+        "lgd_media": 0.9185910185989068,
+        "perdida_provisional": 3746227.3500000006
+      }
+    },
+    {
+      "banda": 7,
+      "score_min": 540.7688088585905,
+      "score_max": 545.6903004237942,
+      "total": {
+        "n": 7416,
+        "el": 10886417.850580895,
+        "ead": 95023000.0,
+        "tasa_malos": 0.2024002157497303,
+        "pd_media": 0.1253572130663356,
+        "lgd_media": 0.9164428648487649
+      },
+      "resueltos": {
+        "n": 6987,
+        "el": 10228836.300542757,
+        "ead": 89280650.0,
+        "tasa_malos": 0.1534277944754544,
+        "pd_media": 0.1253549452899532,
+        "lgd_media": 0.9164588781100614,
+        "perdida_observada": 10176412.161999922,
+        "razon_el_sobre_perdida_observada": 1.0051515345200535
+      },
+      "en_mora": {
+        "n": 429,
+        "el": 657581.5500381405,
+        "ead": 5742350.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.12539414769007398,
+        "lgd_media": 0.9161820614532435,
+        "perdida_provisional": 3683873.37
+      }
+    },
+    {
+      "banda": 8,
+      "score_min": 545.6903286613045,
+      "score_max": 551.0729370890612,
+      "total": {
+        "n": 7415,
+        "el": 9252496.48937486,
+        "ead": 94466275.0,
+        "tasa_malos": 0.17208361429534727,
+        "pd_media": 0.10724311160514068,
+        "lgd_media": 0.9153539524718225
+      },
+      "resueltos": {
+        "n": 7043,
+        "el": 8769160.02542153,
+        "ead": 89532900.0,
+        "tasa_malos": 0.12835439443418997,
+        "pd_media": 0.10722695965267558,
+        "lgd_media": 0.91535210640749,
+        "perdida_observada": 8755139.642800018,
+        "razon_el_sobre_perdida_observada": 1.001601388806293
+      },
+      "en_mora": {
+        "n": 372,
+        "el": 483336.46395332995,
+        "ead": 4933375.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.10754891322130118,
+        "lgd_media": 0.915388903630677,
+        "perdida_provisional": 3103344.2300000004
+      }
+    },
+    {
+      "banda": 9,
+      "score_min": 551.073936219622,
+      "score_max": 558.2830146686698,
+      "total": {
+        "n": 7415,
+        "el": 7653194.723049888,
+        "ead": 94780200.0,
+        "tasa_malos": 0.13378287255563048,
+        "pd_media": 0.08857826477144816,
+        "lgd_media": 0.9132903560141977
+      },
+      "resueltos": {
+        "n": 7134,
+        "el": 7348064.068101183,
+        "ead": 91035000.0,
+        "tasa_malos": 0.09966358284272497,
+        "pd_media": 0.08854740911171861,
+        "lgd_media": 0.9133258329107543,
+        "perdida_observada": 6635934.115600086,
+        "razon_el_sobre_perdida_observada": 1.1073141987391024
+      },
+      "en_mora": {
+        "n": 281,
+        "el": 305130.65494870633,
+        "ead": 3745200.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.08936162518607708,
+        "lgd_media": 0.9123896720994834,
+        "perdida_provisional": 2352596.4000000004
+      }
+    },
+    {
+      "banda": 10,
+      "score_min": 558.2837856519568,
+      "score_max": 608.3806084726228,
+      "total": {
+        "n": 7416,
+        "el": 5212414.266088137,
+        "ead": 91306375.0,
+        "tasa_malos": 0.0872437971952535,
+        "pd_media": 0.06258151523345691,
+        "lgd_media": 0.9096852938334147
+      },
+      "resueltos": {
+        "n": 7231,
+        "el": 5073729.157153179,
+        "ead": 88959325.0,
+        "tasa_malos": 0.06389157792836399,
+        "pd_media": 0.062496402882184277,
+        "lgd_media": 0.9096881332708714,
+        "perdida_observada": 4217044.29519997,
+        "razon_el_sobre_perdida_observada": 1.2031481772501955
+      },
+      "en_mora": {
+        "n": 185,
+        "el": 138685.10893495815,
+        "ead": 2347050.0,
+        "tasa_malos": 1.0,
+        "pd_media": 0.06590825800130742,
+        "lgd_media": 0.9095743101996344,
+        "perdida_provisional": 1408040.79
+      }
+    }
+  ],
+  "fraccion_principal_pendiente_media_castigados": 0.838881547332407,
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_pred_pd": "0e9cad311c724667dc0a69819365137239ef7fdf346928dcd7a2e15017fcd048",
+    "sha256_pred_lgd": "27571e5abc0db619cc4941776017af2975197cf502c375587288bd48a61b6a42"
+  }
+}
