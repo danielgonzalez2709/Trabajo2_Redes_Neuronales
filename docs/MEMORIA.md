@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- Ahorro de tokens (Daniel, 26-oct): blog con 1 verificador (cazador, `model: sonnet`); informes de subagente ≤ 15 líneas; sesiones cortas.
 - App (Daniel, 26-oct; Spec v0.17): **los dos modelos de PD** (logística y MLP, semilla 20) con selector, por defecto el MLP;
   `pd_model_{logistica,mlp}.json` y `casos_paridad_{logistica,mlp}.json`, paridad para cada uno (núcleo §5.5).
 - Scorecard (Juan José, C1): base 600 en odds 50:1 bueno:malo, PDO 20; `{base, odds_base, pdo, factor, offset}` en float;
@@ -52,7 +53,6 @@ Juan José González Morales.
   force push ni borrado; Daniel fusiona sus propios PR con el bypass de admin.
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
-- Para no bloquearse: contratos congelados el jue 22 + datos sintéticos con el mismo esquema (núcleo §5.6).
 - [PROPUESTO] Notebooks por parte (`notebooks/NN_*.py` en formato percent → `.ipynb` ejecutado con `run.py notebooks`):
   celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
 - [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
