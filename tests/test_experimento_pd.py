@@ -334,7 +334,8 @@ def test_07_semillas_n_invalido(escenario, tmp_path, n):
     cfg["semillas"]["n"] = n  # valor inválido
     cargar = _CargarContador()  # cuenta las lecturas
     with pytest.raises(ValueError):  # antes de leer datos
-        ex.correr_mlp(cfg, _rutas(escenario, tmp_path), cargar=cargar, ruta_mlp_final=escenario["ruta_final"])
+        ex.correr_mlp(cfg, _rutas(escenario, tmp_path), cargar=cargar,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida con la config rota
     assert cargar.llamadas == 0  # no leyó datos
 
 
@@ -358,16 +359,21 @@ def _mutar(cambio):
     ("poner", ("busqueda", "extra"), 1), ("poner", ("busqueda",), "optuna"),  # busqueda con clave de más o no mapeo
     ("poner", ("mlp", "dropout"), 1.0), ("quitar", ("mlp", "capas")), ("poner", ("mlp",), [1]),  # mlp inválido
     ("poner", ("semillas",), 3), ("quitar", ("semillas", "n")),  # semillas no es mapeo o sin n
+    ("poner", ("semillas", "extra"), 1),  # E3: semillas con una clave de más
+    ("poner", ("busqueda", "tipo"), "otro"),  # E2: tipo desconocido con las 6 claves
+    ("poner", ("busqueda",), {"tipo": "sin_busqueda", "ensayo": 1}),  # E2: sin_busqueda con clave extra
+    ("poner", ("busqueda",), {"ensayo": 1}),  # E2: sin tipo
 ], ids=["seed_neg", "seed_bool", "seed_txt", "seed_float", "sin_semillas", "sin_busqueda", "sin_evidencia",
         "busqueda_extra", "busqueda_no_mapeo", "dropout_1", "sin_capas", "mlp_no_mapeo", "semillas_no_mapeo",
-        "sin_n"])
+        "sin_n", "semillas_extra", "tipo_otro", "sin_busqueda_extra", "busqueda_sin_tipo"])
 def test_08_config_invalida_antes_de_cargar(escenario, tmp_path, cambio):
     """base_seed, semillas, busqueda o mlp inválidos → ValueError sin leer datos."""
     cfg = _cfg(escenario)  # config válida
     _mutar(cambio)(cfg)  # la rompe
     cargar = _CargarContador()  # cuenta las lecturas
     with pytest.raises(ValueError):  # antes de leer datos
-        ex.correr_mlp(cfg, _rutas(escenario, tmp_path), cargar=cargar, ruta_mlp_final=escenario["ruta_final"])
+        ex.correr_mlp(cfg, _rutas(escenario, tmp_path), cargar=cargar,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida con la config rota
     assert cargar.llamadas == 0  # no leyó datos
 
 
@@ -377,13 +383,15 @@ def test_09_salidas_previas_incompatibles(escenario, tmp_path):
     save_json(rutas.resultados / ex.ARCHIVO_SUMMARY, [1, 2])  # raíz no dict
     modelo_cls, contador = _fabrica_falsa()  # modelo falso
     with pytest.raises(ValueError):  # falla rápido
-        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls, ruta_mlp_final=escenario["ruta_final"])
+        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida con el modelo falso
     assert contador["fit"] == 0  # ningún fit
     (rutas.resultados / ex.ARCHIVO_SUMMARY).unlink()  # quita el summary ajeno
     pd.DataFrame({"id": ["otro"], "y": [0], "pred_logistica": [0.1]}).to_parquet(
         rutas.resultados / ex.ARCHIVO_PRED_TEST, index=False)  # pred_test de otros ids
     with pytest.raises(ValueError):  # falla rápido
-        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls, ruta_mlp_final=escenario["ruta_final"])
+        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida con el modelo falso
     assert contador["fit"] == 0  # ningún fit
     assert not (rutas.resultados / ex.CARPETA_SEMILLAS).exists()  # no escribió semillas
 
@@ -428,7 +436,8 @@ def test_10c_comprobar_antes_usa_el_lector_inyectado(escenario, tmp_path):
         return {**escenario["huellas"], "sha256_particion": "0" * 64}  # otra partición
 
     with pytest.raises(ValueError, match="repite pd-hpo"):  # otros datos
-        ex.comprobar_antes(_cfg(escenario), rutas, ruta_mlp_final=escenario["ruta_final"], leer_particion=leer)
+        ex.comprobar_antes(_cfg(escenario), rutas, ruta_mlp_final=escenario["ruta_final"],
+                           leer_particion=leer)  # pre-chequeo con el lector espía
     assert llamadas == [(rutas.parquet, rutas.preprocesador)]  # una lectura con las rutas
 
 
@@ -441,7 +450,8 @@ def test_11_floating_point_error_en_la_segunda_semilla(escenario, tmp_path):
     antes = ruta_summary.read_bytes()  # bytes previos
     modelo_cls, _ = _fabrica_falsa(falla_en=1)  # diverge en la 2.ª llamada
     with pytest.raises(FloatingPointError) as exc:  # mismo tipo
-        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls, ruta_mlp_final=escenario["ruta_final"])
+        ex.correr_mlp(_cfg(escenario), rutas, modelo_cls=modelo_cls,
+                      ruta_mlp_final=escenario["ruta_final"])  # corrida con el modelo falso
     assert f"semilla {BASE_SEED + 1}" in str(exc.value) and AVISO in str(exc.value)  # semilla y aviso
     assert MENSAJE_DIVERGE in str(exc.value)  # conserva el mensaje original
     assert isinstance(exc.value.__cause__, FloatingPointError)  # from exc
@@ -493,7 +503,8 @@ def test_13_no_muta_la_config(escenario, tmp_path):
     cfg = _cfg(escenario)  # config
     copia = copy.deepcopy(cfg)  # antes
     modelo_cls, _ = _fabrica_falsa()  # modelo falso
-    ex.correr_mlp(cfg, _rutas(escenario, tmp_path), modelo_cls=modelo_cls, ruta_mlp_final=escenario["ruta_final"])
+    ex.correr_mlp(cfg, _rutas(escenario, tmp_path), modelo_cls=modelo_cls,
+                  ruta_mlp_final=escenario["ruta_final"])  # corrida con el modelo falso
     assert cfg == copia  # intacta
 
 
@@ -530,7 +541,7 @@ def test_14_semillas_escritas(corrida):
 
 def test_15_contenido_de_cada_semilla(escenario, corrida):
     """Claves del núcleo §5.4 + extras; epocas = len(historial); config validada; evidencia; n por split;
-    calibracion_global de la semilla mediana = medias de predict_proba e y."""
+    calibracion_global de cada semilla con ȳ exacta y p̄ en (0, 1), y la de la mediana = media de predict_proba."""
     datos = corrida["datos"]  # matrices por split
     for s, r in corrida["semillas"].items():  # cada semilla
         assert set(r) == CLAVES_SEMILLA  # claves exactas
@@ -540,8 +551,9 @@ def test_15_contenido_de_cada_semilla(escenario, corrida):
         assert r["evidencia"] == escenario["huellas"]  # misma evidencia
         assert r["n"] == {k: int(len(datos[k][1])) for k in ("train", "val", "test")}  # filas por split
         assert set(r["calibracion_global"]) == CLAVES_CALIBRACION  # claves
-        assert r["calibracion_global"]["tasa_val"] == pytest.approx(float(np.mean(datos["val"][1])))  # ȳ val
-        assert r["calibracion_global"]["tasa_test"] == pytest.approx(float(np.mean(datos["test"][1])))  # ȳ test
+        for split in ("val", "test"):  # cada split medido
+            assert r["calibracion_global"][f"tasa_{split}"] == float(np.mean(datos[split][1]))  # ȳ exacta
+            assert 0.0 < r["calibracion_global"][f"pd_media_{split}"] < 1.0  # p̄ es una probabilidad
     mediana = corrida["semillas"][corrida["entrada"]["semilla_mediana"]]  # registro de la mediana
     modelo = MLPPD.cargar(corrida["rutas"].modelos / ex.ARCHIVO_MODELO_MLP)  # red guardada
     for split in ("val", "test"):  # p̄ de cada split
@@ -679,12 +691,20 @@ def _huella_carpetas():
     return huella  # listado + mtime
 
 
-def _cli_pd(escenario, tmp_path, monkeypatch, n=2):
-    """Corre run.py pd con el escenario (RUTAS_PD apuntado al parquet sintético) y salidas en tmp_path."""
-    monkeypatch.chdir(ROOT)  # configs/pd/mlp_final.yaml relativo a la raíz
-    monkeypatch.setattr(ex, "RUTAS_PD", ex.RutasPD(escenario["parquet"], escenario["pre"], Path("x"), Path("y")))
+def _apuntar_al_escenario(escenario, monkeypatch):
+    """RUTAS_PD y RUTA_MLP_FINAL del módulo apuntan al escenario sintético (se leen al llamar)."""
+    monkeypatch.setattr(ex, "RUTAS_PD", ex.RutasPD(escenario["parquet"], escenario["pre"], Path("x"),
+                                                   Path("y")))  # entradas sintéticas (salidas: las de la config)
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", escenario["ruta_final"])  # mlp_final.yaml coherente con el escenario
+
+
+def _cli_pd(escenario, tmp_path, monkeypatch, n=2, extra=()):
+    """Corre run.py pd con el escenario sintético y salidas en tmp_path; ``extra`` = más --set."""
+    _apuntar_al_escenario(escenario, monkeypatch)  # datos y mlp_final.yaml del escenario
     argv = ["pd", "--config", str(escenario["ruta_base"]), "--set", f"salida={(tmp_path / 'res').as_posix()}",
             "--set", f"modelos={(tmp_path / 'models').as_posix()}", "--set", f"semillas.n={n}"]  # salidas temporales
+    for s in extra:  # overrides adicionales
+        argv += ["--set", s]  # uno por uno
     return cli.main(argv)  # código de salida
 
 
@@ -703,7 +723,135 @@ def test_25_cli_pd(escenario, tmp_path, monkeypatch, capsys):
     salida = capsys.readouterr().out  # consola
     for texto in (cli.CABECERA_CONFIG, "logistica:", "mlp:", "Semilla mediana", "Tiempo de ejecución"):  # piezas
         assert texto in salida  # impresas
-    assert load_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY)["mlp"]["metricas"]["auc_test"]["n"] == 2  # 2 semillas
+    mlp = load_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY)["mlp"]  # entrada escrita
+    assert mlp["metricas"]["auc_test"]["n"] == 2 and mlp["config_de_busqueda"] is True  # 2 semillas, de la búsqueda
+    assert "Config de la búsqueda: sí" in salida  # procedencia en consola
+    assert f"{BUSQUEDA_SIN_EVIDENCIA['n_ensayos']} configuraciones" in salida  # presupuesto de la búsqueda
+
+
+def test_25b_cli_pd_con_set_fuera_de_la_busqueda(escenario, tmp_path, monkeypatch, capsys):
+    """run.py pd --set mlp.capas=[8] → config_de_busqueda false, aviso y sin presupuesto de búsqueda."""
+    assert _cli_pd(escenario, tmp_path, monkeypatch, n=1, extra=[f"mlp.capas={CAPAS_OTRAS}"]) == 0  # éxito
+    salida = capsys.readouterr().out  # consola
+    assert "Config de la búsqueda: no" in salida and "sin presupuesto de búsqueda" in salida  # procedencia
+    assert "difieren: capas" in salida  # aviso
+    assert load_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY)["mlp"]["config_de_busqueda"] is False  # escrito
+
+
+# %% [markdown]
+# ## 28–32. Decisiones de la ronda 2 (B-pd §3.5, "Bloques y pre-chequeo")
+#
+# - E1: sin `mlp_final.yaml` → `ValueError` ("corre pd-hpo") antes de leer datos.
+# - E2: `busqueda` = bloque de pd-hpo con `tipo: optuna` o exactamente `{tipo: sin_busqueda}`; con `sin_busqueda`,
+#   `config_de_busqueda` false, presupuesto null, aviso y sin comprobar la evidencia.
+# - E4: el pre-chequeo valida también el bloque `logistica` y las salidas previas, antes de la logística.
+
+# %%
+def test_28_sin_mlp_final(escenario, tmp_path):
+    """ruta_mlp_final inexistente → ValueError "corre pd-hpo" y cargar no se llamó."""
+    cargar = _CargarContador()  # cuenta las lecturas
+    with pytest.raises(ValueError, match="corre pd-hpo"):  # antes de leer datos
+        ex.correr_mlp(_cfg(escenario), _rutas(escenario, tmp_path), cargar=cargar,
+                      ruta_mlp_final=tmp_path / "no_existe.yaml")  # sin el archivo de pd-hpo
+    assert cargar.llamadas == 0  # no leyó datos
+
+
+def _escenario_sin_busqueda(escenario, tmp_path):
+    """(cfg, ruta de un mlp_final.yaml) con busqueda = {tipo: sin_busqueda} y el mismo bloque mlp."""
+    ruta = _escribir_mlp_final(tmp_path / "mlp_final.yaml", MLP_ESCENARIO, {"tipo": ex.TIPO_SIN_BUSQUEDA})  # a mano
+    cfg = _cfg(escenario)  # config del escenario
+    cfg["busqueda"] = {"tipo": ex.TIPO_SIN_BUSQUEDA}  # misma procedencia que el archivo
+    return cfg, ruta  # config y YAML
+
+
+def test_29_busquedas_validas():
+    """El bloque de pd-hpo y {tipo: sin_busqueda} se aceptan; la constante vale "sin_busqueda"."""
+    assert ex.TIPO_SIN_BUSQUEDA == "sin_busqueda"  # decisión de Andrés (E2)
+    assert ex._validar_busqueda({"tipo": "sin_busqueda"}) == {"tipo": "sin_busqueda"}  # config fijada a mano
+    bloque = {**BUSQUEDA_SIN_EVIDENCIA, "evidencia": {"sha256_particion": "a", "sha256_preprocesador": "b"}}  # pd-hpo
+    assert ex._validar_busqueda(bloque) == bloque  # se acepta
+    with pytest.raises(ValueError):  # optuna con solo el tipo
+        ex._validar_busqueda({"tipo": "optuna"})  # faltan claves
+
+
+def test_30_sin_busqueda_flujo(escenario, tmp_path, capsys):
+    """sin_busqueda con el mismo mlp → config_de_busqueda false, presupuesto y busqueda null, tiempo = Σ, aviso, y
+    sin comprobar la evidencia (ni en correr_mlp ni en comprobar_antes)."""
+    cfg, ruta = _escenario_sin_busqueda(escenario, tmp_path)  # procedencia a mano
+    assert ex.procedencia(validar_cfg_mlp(MLP_ESCENARIO), cfg["busqueda"], ruta)[0] is False  # aunque mlp coincida
+    modelo_cls, _ = _fabrica_falsa()  # modelo falso
+    entrada = ex.correr_mlp(cfg, _rutas(escenario, tmp_path), modelo_cls=modelo_cls, reloj=_reloj(),
+                            ruta_mlp_final=ruta)  # corrida
+    assert entrada["config_de_busqueda"] is False  # no viene de una búsqueda
+    assert (entrada["n_configuraciones_busqueda"], entrada["tiempo_busqueda_s"], entrada["busqueda"]) == (
+        None, None, None)  # null (núcleo §5.4 v0.16)
+    assert entrada["tiempo_total_s"] == N_SEMILLAS * PASO_RELOJ  # solo Σ
+    assert "sin_busqueda" in capsys.readouterr().out  # aviso
+
+    def otra_particion(parquet, pre):
+        return {**escenario["huellas"], "sha256_particion": "0" * 64}  # huella distinta
+
+    ex.comprobar_antes(cfg, _rutas(escenario, tmp_path), ruta_mlp_final=ruta,
+                       leer_particion=otra_particion)  # no lanza: sin_busqueda no compara evidencia
+
+
+def test_31_comprobar_antes_valida_la_logistica(escenario, tmp_path):
+    """Bloque logistica inválido → ValueError en el pre-chequeo, sin leer la partición."""
+    cfg = _cfg(escenario)  # config válida
+    cfg["logistica"]["rejilla_C"] = []  # rejilla vacía
+    llamadas = []  # lecturas de la partición
+
+    def leer(parquet, pre):
+        llamadas.append(parquet)  # registra
+        return escenario["huellas"]  # coherente
+
+    with pytest.raises(ValueError):  # logística inválida
+        ex.comprobar_antes(cfg, _rutas(escenario, tmp_path), ruta_mlp_final=escenario["ruta_final"],
+                           leer_particion=leer)  # pre-chequeo
+    assert llamadas == []  # antes de leer datos
+
+
+@pytest.mark.parametrize("previo", ["summary_lista", "pred_otros_ids"])
+def test_32_correr_pd_salidas_previas_antes_de_la_logistica(escenario, tmp_path, monkeypatch, previo):
+    """summary.json con raíz lista o pred_test con otros ids → ValueError en el pre-chequeo; la logística (doble) y
+    el MLP (doble) no se llaman."""
+    _apuntar_al_escenario(escenario, monkeypatch)  # datos y mlp_final.yaml del escenario
+    cfg = _cfg(escenario)  # config
+    cfg["salida"], cfg["modelos"] = (tmp_path / "res").as_posix(), (tmp_path / "m").as_posix()  # salidas
+    if previo == "summary_lista":  # raíz no dict
+        save_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY, [1, 2])  # summary ajeno
+    else:  # otros ids
+        (tmp_path / "res").mkdir()  # carpeta de resultados
+        pd.DataFrame({"id": ["otro"], "y": [0], "pred_logistica": [0.1]}).to_parquet(
+            tmp_path / "res" / ex.ARCHIVO_PRED_TEST, index=False)  # pred_test ajeno
+    llamadas = []  # dobles llamados
+
+    def log(c, rutas, seed):
+        llamadas.append("logistica")  # no debe ocurrir
+
+    def red(c, rutas):
+        llamadas.append("mlp")  # no debe ocurrir
+
+    with pytest.raises(ValueError):  # pre-chequeo
+        ex.correr_pd(cfg, correr_log=log, correr_red=red)  # comprobar por defecto
+    assert llamadas == []  # nada entrenó
+
+
+def test_33_leer_test_inyectable(escenario, tmp_path):
+    """comprobar_antes obtiene ids e y de test con ``leer_test`` (ruta del parquet); por defecto coinciden con los de
+    cargar_datos."""
+    rutas = _rutas(escenario, tmp_path)  # rutas temporales
+    _, datos = ex.cargar_datos(rutas)  # lectura completa
+    ids, y = ex.leer_test_rapido(rutas.parquet)  # solo id, split y target
+    assert list(ids) == list(datos["test"][2]) and np.array_equal(y, datos["test"][1])  # mismos ids e y
+    llamadas = []  # lecturas
+
+    def leer_test(parquet):
+        llamadas.append(parquet)  # registra
+        return ids, y  # los del parquet
+
+    ex.comprobar_antes(_cfg(escenario), rutas, ruta_mlp_final=escenario["ruta_final"], leer_test=leer_test)  # ok
+    assert llamadas == [rutas.parquet]  # una lectura
 
 
 # %% [markdown]

@@ -56,7 +56,8 @@ __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "validar_cfg_mlp_final", "claves_distintas", "leer_mlp_final", "procedencia", "presupuesto_busqueda",  # B5
     "borrar_semillas_mlp", "entrenar_semilla", "huella_particion_rapida", "calibracion_global",  # B5: piezas
     "registro_semilla_mlp", "semilla_mediana", "entrada_summary_mlp", "correr_mlp",  # B5: MLP
-    "rutas_de", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
+    "rutas_de", "leer_test_rapido", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
+    "TIPO_SIN_BUSQUEDA",  # B5 ronda 2: config fijada a mano
 ]
 
 COLUMNA_ID = "id"  # identificador del crédito (núcleo §5.1)
@@ -484,6 +485,7 @@ MODELO_MLP = "mlp"  # nombre del modelo en los resultados (núcleo §5.4)
 ARCHIVO_MODELO_MLP = "pd_mlp.pt"  # red de la semilla mediana (núcleo §5.4)
 RUTA_MLP_FINAL = Path("configs/pd/mlp_final.yaml")  # YAML que reescribe pd-hpo (relativo a la raíz)
 TIPO_OPTUNA = "optuna"  # = hpo.TIPO_BUSQUEDA (constante local: evita el import circular hpo → experimento)
+TIPO_SIN_BUSQUEDA = "sin_busqueda"  # busqueda: {tipo: sin_busqueda} = config fijada a mano (B-pd §3.5)
 CLAVES_BUSQUEDA = ("tipo", "ensayo", "n_ensayos", "tiempo_s", "evidencia", "fecha")  # las de hpo.armar_busqueda
 PATRON_SEMILLA_MLP = re.compile(r"mlp_seed\d+\.json", re.ASCII)  # mlp_seed<entero>.json (con fullmatch)
 CRITERIO_SEMILLA_MEDIANA = ("orden ascendente por (logloss_val, seed); posición (n - 1) // 2 "
@@ -497,7 +499,7 @@ CLAVES_CFG_MLP_FINAL = ("semillas", "base_seed", "mlp", "busqueda")  # bloques q
 # ## Validación: enteros de la config
 #
 # `seeds.validar_entero` (int de Python o de numpy, nunca bool) con su `TypeError` convertido en `ValueError`: toda
-# falla de la config es `ValueError`. `semillas.n` es un entero $\ge 1$ dentro del mapeo `semillas`.
+# falla de la config es `ValueError`. `semillas` es un mapeo con **exactamente** la clave `n`, entero $\ge 1$.
 #
 # TODO(refactor-post-B5): es otra copia del envoltorio TypeError → ValueError (`_semilla_valida` arriba, `_entero` de
 # `hpo.py` y `_entero_config` de `mlp.py` y `logistica.py`); se unifica en el refactor posterior a B5.
@@ -512,23 +514,32 @@ def _entero_cfg(valor, nombre: str, minimo: int) -> int:
 
 
 def _n_semillas(cfg: dict) -> int:
-    """``semillas.n`` como entero ≥ 1 (``semillas`` debe ser un mapeo con ``n``)."""
+    """``semillas.n`` como entero ≥ 1 (``semillas`` debe ser un mapeo con exactamente la clave ``n``)."""
     semillas = cfg["semillas"]  # bloque semillas
-    if not isinstance(semillas, dict) or "n" not in semillas:  # p. ej. semillas: 30
-        raise ValueError(f"semillas debe ser un mapeo con la clave n; se recibió {semillas!r}")  # forma
+    if not isinstance(semillas, dict) or set(semillas) != {"n"}:  # p. ej. semillas: 30 o una clave de más
+        raise ValueError(f"semillas debe ser un mapeo con exactamente la clave n; se recibió {semillas!r}")  # forma
     return _entero_cfg(semillas["n"], "semillas.n", minimo=1)  # al menos una semilla
 
 
 # %% [markdown]
 # ## Validación: bloque `busqueda`
 #
-# Mapeo con **exactamente** las claves que escribe `hpo.armar_busqueda` (`CLAVES_BUSQUEDA`); devuelve una copia.
+# Dos formas válidas (B-pd §3.5): el bloque de `pd-hpo`, con **exactamente** las claves de `hpo.armar_busqueda`
+# (`CLAVES_BUSQUEDA`) y `tipo: optuna`, o exactamente `{tipo: sin_busqueda}` (config fijada a mano). Cualquier otro
+# tipo o claves de más o de menos → `ValueError`. Devuelve una copia.
 
 # %%
 def _validar_busqueda(busqueda) -> dict:
-    """Copia de ``busqueda`` si es un mapeo con exactamente CLAVES_BUSQUEDA; si no, ValueError."""
+    """Copia de ``busqueda`` si es el bloque de pd-hpo (optuna) o {tipo: sin_busqueda}; si no, ValueError."""
     if not isinstance(busqueda, dict):  # p. ej. busqueda: optuna
         raise ValueError(f"El bloque busqueda debe ser un mapeo; se recibió {busqueda!r}")  # tipo
+    tipo = busqueda.get("tipo")  # procedencia declarada
+    if tipo == TIPO_SIN_BUSQUEDA:  # config fijada a mano
+        if set(busqueda) != {"tipo"}:  # sin_busqueda no lleva más claves
+            raise ValueError(f"busqueda con tipo {TIPO_SIN_BUSQUEDA!r} no admite otras claves: {busqueda!r}")  # extra
+        return copy.deepcopy(busqueda)  # copia
+    if tipo != TIPO_OPTUNA:  # tipo desconocido o ausente
+        raise ValueError(f"busqueda.tipo debe ser {TIPO_OPTUNA!r} o {TIPO_SIN_BUSQUEDA!r}; se recibió {tipo!r}")  # tipo
     faltan, sobran = set(CLAVES_BUSQUEDA) - set(busqueda), set(busqueda) - set(CLAVES_BUSQUEDA)  # diferencias
     if faltan or sobran:  # el bloque debe ser exacto
         raise ValueError(f"El bloque busqueda es inválido: faltan {sorted(faltan)}, sobran {sorted(sobran)}")  # cuáles
@@ -572,10 +583,13 @@ def claves_distintas(mlp: dict, mlp_busqueda: dict) -> list[str]:
 # ## Procedencia: `mlp_final.yaml`
 #
 # Relee el YAML que generó `run.py pd-hpo` con `load_config` y valida sus bloques `mlp` y `busqueda` (mismas reglas).
+# Si el archivo no existe → `ValueError` ("corre pd-hpo"), antes de leer datos.
 
 # %%
 def leer_mlp_final(ruta) -> tuple[dict, dict]:
     """(mlp validado, busqueda validada) de ``ruta`` (mlp_final.yaml generado por pd-hpo)."""
+    if not Path(ruta).is_file():  # pd-hpo nunca corrió (o se borró el archivo)
+        raise ValueError(f"No existe {Path(ruta).as_posix()}: corre pd-hpo (python run.py pd-hpo)")  # E1
     final = load_config(ruta)  # mismo cargador que el CLI
     faltan = [c for c in ("mlp", "busqueda") if c not in final]  # bloques que escribe pd-hpo
     if faltan:  # archivo ajeno o editado a mano
@@ -588,8 +602,9 @@ def leer_mlp_final(ruta) -> tuple[dict, dict]:
 # %% [markdown]
 # ## Procedencia: ¿es la config de la búsqueda?
 #
-# `config_de_busqueda` = (el `mlp` validado de la corrida es igual al de `mlp_final.yaml`) ∧ (el `busqueda` también).
-# Devuelve además las claves que difieren (con `"busqueda"` al final si difiere ese bloque) para el aviso.
+# `config_de_busqueda` = (el `mlp` validado de la corrida es igual al de `mlp_final.yaml`) ∧ (el `busqueda` también)
+# ∧ (`busqueda.tipo` es `optuna`): con `sin_busqueda` es false aunque todo coincida. Devuelve además las claves que
+# difieren (con `"busqueda"` al final si difiere ese bloque) para el aviso.
 
 # %%
 def procedencia(mlp: dict, busqueda: dict, ruta_mlp_final) -> tuple[bool, list[str]]:
@@ -598,7 +613,7 @@ def procedencia(mlp: dict, busqueda: dict, ruta_mlp_final) -> tuple[bool, list[s
     difieren = claves_distintas(mlp, mlp_final)  # claves del bloque mlp
     if busqueda != busqueda_final:  # otra procedencia
         difieren.append("busqueda")  # se nombra el bloque
-    return not difieren, difieren  # true solo si nada difiere
+    return not difieren and busqueda["tipo"] == TIPO_OPTUNA, difieren  # true solo si nada difiere y hubo búsqueda
 
 
 # %% [markdown]
@@ -615,7 +630,8 @@ def presupuesto_busqueda(busqueda: dict, de_busqueda: bool, huellas: dict) -> di
     if not de_busqueda:  # otra config: sin presupuesto de búsqueda
         return {"n_configuraciones_busqueda": None, "tiempo_busqueda_s": None, "busqueda": None}  # null
     if busqueda["tipo"] != TIPO_OPTUNA:  # procedencia desconocida
-        raise ValueError(f"busqueda.tipo debe ser {TIPO_OPTUNA!r}; se recibió {busqueda['tipo']!r}; repite pd-hpo")
+        raise ValueError(f"busqueda.tipo debe ser {TIPO_OPTUNA!r}; se recibió {busqueda['tipo']!r}; "
+                         "repite pd-hpo")  # procedencia desconocida (no ocurre tras validar: defensa)
     if busqueda["evidencia"] != huellas:  # otra partición u otro preprocesador
         raise ValueError("busqueda.evidencia no coincide con la de esta corrida: la búsqueda se hizo con otros "
                          "datos; repite pd-hpo")  # texto de B-pd §3.5
@@ -626,14 +642,17 @@ def presupuesto_busqueda(busqueda: dict, de_busqueda: bool, huellas: dict) -> di
 # %% [markdown]
 # ## Aviso de procedencia
 #
-# Si la config no es la de la búsqueda (p. ej. `--set mlp.capas=[8]`), la consola dice qué claves difieren.
+# Si la config no es la de la búsqueda, la consola dice por qué: las claves que difieren (p. ej.
+# `--set mlp.capas=[8]`) o que el bloque es `sin_busqueda` (config fijada a mano).
 
 # %%
-def _avisar_procedencia(de_busqueda: bool, difieren: list[str]) -> None:
-    """Imprime qué claves difieren si la config no es la de la búsqueda."""
-    if not de_busqueda:  # config cambiada
-        print(f"Aviso: la config del MLP no es la de la búsqueda (difieren: {', '.join(difieren)}); "
-              "n_configuraciones_busqueda, tiempo_busqueda_s y busqueda quedan en null")  # B-pd §3.5
+def _avisar_procedencia(de_busqueda: bool, difieren: list[str], tipo: str) -> None:
+    """Imprime por qué la config no es la de la búsqueda (claves que difieren o sin_busqueda)."""
+    if de_busqueda:  # config de la búsqueda
+        return  # nada que avisar
+    motivo = f"difieren: {', '.join(difieren)}" if difieren else f"busqueda.tipo: {tipo}"  # por qué
+    print(f"Aviso: la config del MLP no es la de la búsqueda ({motivo}); "
+          "n_configuraciones_busqueda, tiempo_busqueda_s y busqueda quedan en null")  # B-pd §3.5
 
 
 # %% [markdown]
@@ -859,20 +878,22 @@ def _escribir_mlp(rutas: RutasPD, entrada: dict, modelo, datos: dict) -> None:
 # ## Experimento del MLP
 #
 # Valida (antes de leer datos), carga una vez, compara con la búsqueda (antes de borrar y de entrenar), verifica las
-# salidas previas, borra las semillas viejas, entrena las $n$ semillas, elige la mediana y escribe. `cargar` se
-# resuelve **al llamar** (`cargar_datos`), como en `hpo.py`. Devuelve la entrada `mlp` del summary.
+# salidas previas, borra las semillas viejas, entrena las $n$ semillas, elige la mediana y escribe. `cargar` y
+# `ruta_mlp_final` se resuelven **al llamar** (`cargar_datos`, `RUTA_MLP_FINAL`), como en `hpo.py`. La lectura de
+# `mlp_final.yaml` va antes de leer datos (si falta → `ValueError`). Devuelve la entrada `mlp` del summary.
 
 # %%
 def correr_mlp(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=MLPPD, cargar=None, reloj=time.perf_counter,
-               ruta_mlp_final=RUTA_MLP_FINAL) -> dict:
+               ruta_mlp_final=None) -> dict:
     """30 semillas (semillas.n) del MLP final: semillas/, entrada mlp, pred_mlp y pd_mlp.pt."""
     n, base_seed, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # antes de leer datos
     cargar = cargar_datos if cargar is None else cargar  # al llamar
+    ruta_mlp_final = RUTA_MLP_FINAL if ruta_mlp_final is None else ruta_mlp_final  # al llamar
+    de_busqueda, difieren = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # antes de leer datos (E1)
     df, datos = cargar(rutas)  # una sola lectura
     huellas = evidencia(df, rutas.preprocesador)  # huellas del mismo df
-    de_busqueda, difieren = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda?
     presupuesto = presupuesto_busqueda(busqueda, de_busqueda, huellas)  # ValueError antes de borrar
-    _avisar_procedencia(de_busqueda, difieren)  # aviso si no es la de la búsqueda
+    _avisar_procedencia(de_busqueda, difieren, busqueda["tipo"])  # aviso si no es la de la búsqueda
     _verificar_salidas(rutas, datos["test"][2], datos["test"][1])  # antes del 1.er fit
     borrados = borrar_semillas_mlp(rutas.resultados / CARPETA_SEMILLAS)  # semillas viejas del MLP
     print(f"Semillas anteriores del MLP borradas: {borrados}")  # consola
@@ -902,19 +923,40 @@ def rutas_de(cfg: dict) -> RutasPD:
 
 
 # %% [markdown]
-# ## Pre-chequeo de `run.py pd`
+# ## Ids e $y$ de test sin preprocesar
 #
-# Antes de la logística: las mismas validaciones de `correr_mlp` y, si la config es la de la búsqueda, la evidencia
-# de la búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto
-# `huella_particion_rapida`). Así una búsqueda hecha con otros datos no cuesta la corrida de la logística.
+# Para el pre-chequeo de las salidas previas: del parquet se leen solo `id`, `split` y `target`; las filas de test
+# salen en el orden del parquet y con los mismos tipos que `cargar_datos` (ids `object`, $y$ `int64`).
 
 # %%
-def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=RUTA_MLP_FINAL, leer_particion=None) -> None:
-    """ValueError si la config es inválida o la búsqueda se hizo con otros datos (sin leer las matrices)."""
+def leer_test_rapido(ruta_parquet) -> tuple[np.ndarray, np.ndarray]:
+    """(ids, y) de test leyendo solo id, split y target."""
+    df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT, COLUMNA_OBJETIVO])  # tres columnas
+    parte = df[df[COLUMNA_SPLIT] == "test"]  # filas de test, en el orden del parquet
+    return parte[COLUMNA_ID].to_numpy(dtype=object), parte[COLUMNA_OBJETIVO].to_numpy(dtype=np.int64)  # como _matrices
+
+
+# %% [markdown]
+# ## Pre-chequeo de `run.py pd`
+#
+# Antes de la logística, sin preprocesar ni entrenar: las mismas validaciones de `correr_mlp`, el bloque `logistica`
+# (`bloque_logistica`), la existencia de `mlp_final.yaml`, las salidas previas (`_verificar_salidas` con los ids e $y$
+# de test de `leer_test`, por defecto `leer_test_rapido`) y, si la config es la de la búsqueda, la evidencia de la
+# búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto `huella_particion_rapida`).
+# Así una búsqueda hecha con otros datos o una salida ajena no cuestan la corrida de la logística.
+
+# %%
+def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=None, leer_particion=None, leer_test=None) -> None:
+    """ValueError si la config, mlp_final.yaml o las salidas previas no sirven, o si la búsqueda usó otros datos."""
     _, _, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # mismas reglas que correr_mlp
+    bloque_logistica(cfg)  # bloque logistica validado (E4)
+    ruta_mlp_final = RUTA_MLP_FINAL if ruta_mlp_final is None else ruta_mlp_final  # al llamar
     leer = huella_particion_rapida if leer_particion is None else leer_particion  # al llamar
+    leer_test = leer_test_rapido if leer_test is None else leer_test  # al llamar
+    de_busqueda, _ = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda? (E1 si falta)
+    ids_test, y_test = leer_test(rutas.parquet)  # solo id, split y target
+    _verificar_salidas(rutas, ids_test, y_test)  # summary y pred_test previos (E4)
     huellas = leer(rutas.parquet, rutas.preprocesador)  # solo id y split
-    de_busqueda, _ = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda?
     presupuesto_busqueda(busqueda, de_busqueda, huellas)  # ValueError si los datos no son los de la búsqueda
 
 
