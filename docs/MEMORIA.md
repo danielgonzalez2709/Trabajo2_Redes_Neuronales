@@ -24,7 +24,7 @@
 | B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés |
 | C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Juan José |
 | D — LGD | `docs/spec/partes/D-lgd.md` | Camila y José |
-| E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel y Camila (Camila: frontend de la app) |
+| E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel, Camila y José (José: app desde el 26-oct) |
 
 Ramas personales: `dev/daniel`, `dev/camila`, `dev/andres`, `dev/juanjose`, `dev/jose`.
 
