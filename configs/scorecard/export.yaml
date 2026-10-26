@@ -1,0 +1,30 @@
+# Exportación a la app (Parte C §3.5, tarea C2; núcleo §5.5): `python run.py export` (sin --config: lee este archivo).
+# Hereda el bloque `scorecard` de base.yaml (C1) y añade el bloque `export`. Escribe pd_model.json y casos_paridad.json
+# en `destino`. Rutas relativas al directorio de trabajo (run.py se corre desde la raíz del repositorio).
+hereda: base.yaml
+export:
+  modelo: logistica                     # logistica | mlp (el modelo que va a la app; C §3.2, pendiente con B)
+  rutas:
+    logistica: models/pd_logistica.joblib       # B3
+    mlp: models/pd_mlp.pt                       # B5 (aún no existe; solo se lee con modelo: mlp)
+    preprocesador: models/preprocesador_pd.json # A (ajustado solo con train)
+    datos: data/processed/loans_pd.parquet      # A: formulario con train; percentiles y métricas con test
+    features: configs/features.yaml             # variables con en_app: true, etiquetas y categorias_es
+  destino: app/public/model             # carpeta que lee la app (Parte E)
+  n_casos_paridad: 1000                 # filas de test de casos_paridad.json (núcleo §5.5)
+  n_forzados_por_grupo: 10              # vacíos, no vistas y fuera del recorte: hasta 10 filas por grupo
+  base_seed: 0                          # make_rng(base_seed, 0) elige los casos
+  # Paso del formulario por numérica en_app (aprobados por Juan José, 25-oct). min y max se redondean HACIA AFUERA a la
+  # rejilla del paso. loan_amnt 25: en train el 100 % de los montos son múltiplos de 25.
+  pasos:
+    loan_amnt: 25
+    annual_inc: 1000
+    dti: 0.1
+    delinq_2yrs: 1
+    antiguedad_credito_anios: 1
+    inq_last_6mths: 1
+    open_acc: 1
+    pub_rec: 1
+    revol_bal: 100
+    revol_util: 0.1
+    total_acc: 1

@@ -1,0 +1,8 @@
+# Configuración de la scorecard (Parte C §3.1; núcleo §4.1:
+# `python run.py scorecard --config configs/scorecard/base.yaml --set scorecard.pdo=40`).
+# C1 declara aquí solo el bloque `scorecard`; C3 añadirá las rutas de los modelos y de las salidas.
+# Valores por defecto: decisión de Juan José (25-oct) sobre C §3.1.
+scorecard:
+  base: 600       # puntaje de las odds de referencia
+  odds_base: 50   # odds de referencia 50:1 bueno:malo (p = 1/51) ⇒ 600 puntos
+  pdo: 20         # +20 puntos cada vez que se duplican las odds bueno:malo

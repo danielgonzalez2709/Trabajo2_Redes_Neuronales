@@ -1,6 +1,6 @@
-"""H-12: el caso de prueba dropout = 0.475 → "max" (f = 5 % de [0, 0.5]) es falso en coma flotante.
+"""H-17: el caso de prueba dropout = 0.475 → "max" (f = 5 % de [0, 0.5]) es falso en coma flotante.
 
-Uso: .venv/bin/python alucinaciones/evidencias/H-12_borde_coma_flotante.py > alucinaciones/evidencias/H-12_borde_coma_flotante.txt
+Uso: .venv/bin/python alucinaciones/evidencias/H-17_borde_coma_flotante.py > alucinaciones/evidencias/H-17_borde_coma_flotante.txt
 """
 ancho = 0.5 - 0.0  # rango de dropout en configs/pd/hpo.yaml
 tolerancia = 0.05 * ancho  # FRACCION_BORDE · ancho

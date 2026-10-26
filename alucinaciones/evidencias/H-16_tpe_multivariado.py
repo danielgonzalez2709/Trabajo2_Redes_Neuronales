@@ -1,6 +1,6 @@
-"""H-11: en Optuna 5.0.0, TPESampler() con los valores por defecto es multivariado en un objetivo.
+"""H-16: en Optuna 5.0.0, TPESampler() con los valores por defecto es multivariado en un objetivo.
 
-Uso: .venv/bin/python alucinaciones/evidencias/H-11_tpe_multivariado.py > alucinaciones/evidencias/H-11_tpe_multivariado.txt
+Uso: .venv/bin/python alucinaciones/evidencias/H-16_tpe_multivariado.py > alucinaciones/evidencias/H-16_tpe_multivariado.txt
 """
 import inspect  # firma y código fuente del muestreador
 

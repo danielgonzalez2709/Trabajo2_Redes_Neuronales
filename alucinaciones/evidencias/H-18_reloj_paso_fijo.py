@@ -1,4 +1,4 @@
-"""H-13: un reloj falso de paso fijo no detecta trabajo extra dentro de la zona cronometrada."""
+"""H-18: un reloj falso de paso fijo no detecta trabajo extra dentro de la zona cronometrada."""
 import itertools  # contador del reloj falso
 
 

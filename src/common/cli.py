@@ -99,13 +99,28 @@ def _el(cfg: dict | None) -> int:
 
 
 def _figures(cfg: dict | None) -> int:
-    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A y la Parte D (D6)."""
+    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A, la Parte D (D6) y la Parte E (E5)."""
     import time
 
-    from src.viz import figs_datos, figs_lgd
+    from src.viz import figs_datos, figs_el, figs_lgd
 
     inicio = time.perf_counter()
-    for ruta in [*figs_datos.generar(), *figs_lgd.generar()]:
+    for ruta in [*figs_datos.generar(), *figs_lgd.generar(), *figs_el.generar()]:
+        print(ruta.as_posix())
+    print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
+    return 0
+
+
+def _export(cfg: dict | None) -> int:
+    """Parte C (C2): pd_model.json y casos_paridad.json para la app. Lee `exportar_app.RUTA_CONFIG` al llamarse."""
+    import time
+
+    from src.export import exportar_app
+
+    inicio = time.perf_counter()
+    cfg = load_config(exportar_app.RUTA_CONFIG)
+    _imprimir_config(cfg)
+    for ruta in exportar_app.exportar(cfg):
         print(ruta.as_posix())
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0
@@ -127,7 +142,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),
     "el": Subcomando("Parte E: pérdida esperada", True, _el),
-    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _pendiente("export", "C2/C5")),
+    "export": Subcomando("Parte C: modelos → app/public/model/*.json", False, _export),
     "figures": Subcomando("Regenera todas las figuras desde results/", False, _figures),
     "notebooks": Subcomando("Convierte y ejecuta los notebooks en modo demo", False, _notebooks),
 }

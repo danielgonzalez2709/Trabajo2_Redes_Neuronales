@@ -1,0 +1,18 @@
+H-11 — evidencia (25-oct-2026). Referencia con mutantes del verificador-matematico (H-11_referencia_con_mutantes.py,
+activados con la variable de entorno MUT) contra tests/test_scorecard.py de la fase roja de C1 (199 pruebas) y contra
+las pruebas propuestas (H-11_pruebas_propuestas.py). Python 3.12.6, Windows.
+
+== MUT='' · pruebas de la fase roja
+199 passed in 0.60s
+== MUT='' · pruebas propuestas
+34 passed in 0.26s
+
+== MUT='recalcula_solo_pd' · pruebas de la fase roja
+199 passed in 0.61s
+== MUT='recalcula_solo_pd' · pruebas propuestas
+1 failed, 33 passed in 0.35s
+
+== MUT='bool_params' · pruebas de la fase roja
+199 passed in 0.59s
+== MUT='bool_params' · pruebas propuestas
+24 failed, 10 passed in 0.41s
