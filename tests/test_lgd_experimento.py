@@ -222,7 +222,7 @@ def test_entrenar_semillas_escribe_contratos(raiz: Path):
     assert ppd["id"].str.startswith("pd-").all()
 
     # semilla mediana leída de semillas/*.json; el modelo guardado es esa semilla y reproduce pred_test
-    corridas = sorted((load_json(p)["metricas"]["mae_test"], load_json(p)["seed"])
+    corridas = sorted((load_json(p)["metricas"]["mae_val"], load_json(p)["seed"])  # val decide (D10b)
                       for p in (salida / "semillas").glob("mlp_seed*.json"))
     esperada = corridas[(len(corridas) - 1) // 2][1]
     assert s["mlp"]["semilla_mediana"] == esperada
@@ -354,15 +354,31 @@ def test_evidencia_con_muestra_es_la_del_df_muestreado(raiz: Path):
     assert completo["evidencia"]["sha256_particion"] != d["evidencia"]["sha256_particion"]
 
 
+def _corrida(seed: int, mae_val: float, mae_test: float) -> dict:
+    return {"seed": seed, "metricas": {"mae_val": mae_val, "mae_test": mae_test}}
+
+
 def test_semilla_mediana_a_mano():
-    c = [{"seed": 10, "mae_test": 0.3}, {"seed": 11, "mae_test": 0.1}, {"seed": 12, "mae_test": 0.2}]
+    """D10b: decide el MAE de val (como B, B-pd §3.5), posición (n − 1) // 2 de (mae_val, seed)."""
+    c = [_corrida(10, 0.3, 0.3), _corrida(11, 0.1, 0.1), _corrida(12, 0.2, 0.2)]
     assert exp._semilla_mediana(c) == 12
     # n par → mediana inferior: orden 0.1 (11), 0.2 (12), 0.3 (10), 0.4 (13) → posición 1 → 12
-    assert exp._semilla_mediana(c + [{"seed": 13, "mae_test": 0.4}]) == 12
-    # empate → la semilla menor
-    assert exp._semilla_mediana([{"seed": 5, "mae_test": 0.2}, {"seed": 3, "mae_test": 0.2},
-                                 {"seed": 4, "mae_test": 0.2}]) == 4
-    assert exp._semilla_mediana([{"seed": 9, "mae_test": 0.2}, {"seed": 3, "mae_test": 0.2}]) == 3
+    assert exp._semilla_mediana(c + [_corrida(13, 0.4, 0.4)]) == 12
+
+
+def test_semilla_mediana_la_decide_val_no_test():
+    """Orden por MAE de val: 21 (0.10), 22 (0.20), 20 (0.30) → mediana 22. Por MAE de test sería 20
+    (orden 21 (0.05), 20 (0.15), 22 (0.25)): test no decide."""
+    c = [_corrida(20, 0.30, 0.15), _corrida(21, 0.10, 0.05), _corrida(22, 0.20, 0.25)]
+    assert exp._semilla_mediana(c) == 22
+    assert "mae_val" in exp.CRITERIO_MEDIANA and "mae_test" not in exp.CRITERIO_MEDIANA
+
+
+def test_semilla_mediana_empate_en_mae_val_desempata_por_seed():
+    """Empate en mae_val → la semilla menor, aunque el MAE de test difiera."""
+    c = [_corrida(5, 0.2, 0.01), _corrida(3, 0.2, 0.30), _corrida(4, 0.2, 0.90)]
+    assert exp._semilla_mediana(c) == 4  # orden 3, 4, 5 → posición 1
+    assert exp._semilla_mediana([_corrida(9, 0.2, 0.01), _corrida(3, 0.2, 0.99)]) == 3
 
 
 def test_base_seed_mas_k(raiz: Path):

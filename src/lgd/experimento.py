@@ -63,8 +63,9 @@ Semillas (``entrenar_semillas``):
   ``src/el/perdida_esperada.py`` rechaza LGD fuera de [0, 1]). ``fuera_de_rango`` cuenta cuántas veces en val, test
   (LGD) y ``pd_test`` (todo el test de ``loans_pd``).
 - ``pred_test.parquet`` (test de la LGD: ``id, y, pred_lineal, pred_mlp``) y ``pred_pd_test.parquet`` (todo el test de
-  ``loans_pd``: ``id, pred_lineal, pred_mlp``) con la semilla del MLP de **MAE de test mediano** (``_semilla_mediana``);
-  esa semilla se guarda en ``mlp.semilla_mediana``.
+  ``loans_pd``: ``id, pred_lineal, pred_mlp``) y ``lgd_mlp.pt`` con la semilla mediana del MLP por **MAE de val**
+  (``_semilla_mediana``; D10b, como B en B-pd §3.5: test nunca decide): orden ascendente por ``(mae_val, seed)`` y
+  posición ``(n − 1) // 2``; esa semilla se guarda en ``mlp.semilla_mediana``.
 - ``evidencia`` = ``{sha256_particion, sha256_preprocesador}`` (núcleo §5.4 y §6) en cada ``semillas/*.json``, en cada
   modelo de ``summary.json`` y en ``hpo_ensayos.json``: huella de las líneas ``"{id},{split}\\n"`` del mismo DataFrame
   de ``loans_lgd`` del que salen las matrices (tras ``datos.muestra``, en su orden) y de los bytes del archivo del
@@ -99,7 +100,8 @@ METRICAS = ("mae_val", "rmse_val", "mae_test", "rmse_test")
 ARCHIVO_HPO = "hpo_ensayos.json"
 CRITERIO_SELECCION = ("mínima pérdida de validación del propio MLP (media de mlp.perdida en val, mejor época); "
                       "MAE de val al lado [PROPUESTO por el orquestador]")
-CRITERIO_MEDIANA = "MAE de test mediano: posición (n−1)//2 al ordenar por (mae_test, seed)"
+CRITERIO_MEDIANA = ("orden ascendente por (mae_val, seed); posición (n - 1) // 2 "
+                    "(n par: mediana inferior; empate: semilla menor)")  # val decide, como B (B-pd §3.5)
 TIPOS_BUSQUEDA = ("sin_busqueda", "optuna")
 CABECERA_MLP_FINAL = """# Generado por `python run.py lgd-hpo` (src/lgd/experimento.py). No se edita a mano.
 # Configuración final del MLP de LGD (Parte D §3.3) y su procedencia; la hereda configs/lgd/base.yaml.
@@ -355,7 +357,7 @@ def _entrenar_mlp(cfg: dict, d: dict, semillas: list[int], carpeta: Path) -> lis
                         historial=_historial(m), hilos_torch=torch.get_num_threads(),
                         version_torch=str(torch.__version__))
         save_json(carpeta / f"mlp_seed{seed}.json", reg)
-        corridas.append({"seed": seed, "mae_test": reg["metricas"]["mae_test"], "modelo": m, "registro": reg})
+        corridas.append({"seed": seed, "metricas": reg["metricas"], "modelo": m, "registro": reg})
     return corridas
 
 
@@ -377,9 +379,9 @@ def _referencias_constantes(y_train, y_val, y_test) -> dict:
 
 
 def _semilla_mediana(corridas: list[dict]) -> int:
-    """Semilla de MAE de test mediano: posición (n−1)//2 al ordenar por (mae_test, seed) (mediana inferior si n es par;
-    empate → semilla menor)."""
-    orden = sorted(corridas, key=lambda c: (c["mae_test"], c["seed"]))
+    """Semilla mediana por MAE de **val**: posición (n − 1) // 2 al ordenar por (mae_val, seed) (mediana inferior si
+    n es par; empate → semilla menor). Test nunca decide (como B, B-pd §3.5)."""
+    orden = sorted(corridas, key=lambda c: (c["metricas"]["mae_val"], c["seed"]))
     return orden[(len(orden) - 1) // 2]["seed"]
 
 
