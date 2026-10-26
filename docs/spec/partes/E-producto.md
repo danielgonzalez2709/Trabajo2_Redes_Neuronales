@@ -50,16 +50,17 @@
 | ID | Requisito | Aceptación |
 |---|---|---|
 | R-APP-1 | Formulario | Entradas del contrato, etiquetas y ayudas en español, rangos válidos |
-| R-APP-2 | Puntaje y PD | Al instante; coinciden con Python (prueba de paridad) |
-| R-APP-3 | Ubicación en la población | Percentil + histograma de la población con su marca |
-| R-APP-4 | "¿Y si…?" | Deslizadores por variable con el puntaje nuevo en vivo + los 3 cambios que más suben el puntaje |
+| R-APP-2 | Puntaje y PD de **los dos modelos** (Spec v0.17) | Selector "Red neuronal (MLP)" / "Regresión logística" (por defecto el MLP); el modelo elegido muestra su puntaje y su PD, y al lado, el del otro modelo para las mismas entradas. Al instante; coinciden con Python (prueba de paridad de cada modelo) |
+| R-APP-3 | Ubicación en la población | Percentil + histograma de la población con su marca, con los `percentiles_score` del modelo elegido |
+| R-APP-4 | "¿Y si…?" | Deslizadores por variable con el puntaje nuevo en vivo (del modelo elegido) + los 3 cambios que más suben el puntaje |
 | R-APP-5 | Intuitiva | Probada con 2 personas ajenas al curso antes del lun 26 |
 | R-APP-6 | Enlaces | Al blog y al video, visibles |
 | R-APP-7 | Local con un comando | `npm --prefix app run dev` |
 | R-APP-8 | Publicada | URL de Vercel en el blog y el README |
 
 Arquitectura: Next.js + TypeScript con `output: "export"` (sitio estático); `app/lib/preprocesar.ts` y `app/lib/modelo.ts`
-(forward de ~15 líneas) leen el JSON del contrato. Vercel Hobby con *Root Directory* = `app/`; sin despliegue cuando un commit
+(forward de ~15 líneas) leen el JSON del contrato (los dos: `pd_model_logistica.json` y `pd_model_mlp.json`; el forward es
+el mismo, cambia el número de capas). Vercel Hobby con *Root Directory* = `app/`; sin despliegue cuando un commit
 no toca `app/` [VERIFICAR la opción en el panel]; vista previa por PR. Aviso visible: herramienta académica, no es una oferta
 de crédito. Diseño con la skill `apple-design`.
 
@@ -92,7 +93,7 @@ equipo → enlace. 2–3 min. YouTube no listado; enlace en la app y el blog.
 | E1 | Esqueleto de la app + Vercel enlazado | E0 | `npm --prefix app run dev` levanta; URL de vista previa | implementador-web | vie 23 | Camila |
 | E2 | App: formulario, PD, score, percentil (con el JSON de juguete) | C2 | R-APP-1 a R-APP-3 | implementador-web | sáb 24 | Camila |
 | E3 | App: "¿y si…?" + enlaces | E2 | R-APP-4, R-APP-6 | implementador-web | dom 25 | Camila |
-| E4 | Paridad en CI + modelo real | C5, E3 | 1 000/1 000 dentro de la tolerancia | revisor-spec | dom 25 | Camila |
+| E4 | Paridad en CI + modelos reales (los dos, v0.17) | C5, E3 | 1 000/1 000 dentro de la tolerancia en cada modelo | revisor-spec | dom 25 | Camila |
 | E5 | E[L] | B5, D4 | Por crédito y por banda; contraste con lo observado | verificador-matematico | dom 25 | Daniel |
 | E6 | Video: guion (vie 23), grabación (sáb 24), edición en Remotion (dom 25) | E2 | 2–3 min, aparecen los 5 | — | dom 25 | Daniel |
 | E7 | Blog 00, 09–13 + publicación en GitHub Pages | todas | `mkdocs build --strict`; enlaces a repo, app y video | redactor-tecnico + cazador | lun 26 | Daniel |
