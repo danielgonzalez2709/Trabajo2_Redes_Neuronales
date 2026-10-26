@@ -19,6 +19,7 @@ from src.common import cli
 
 RAIZ = Path(__file__).resolve().parents[1]
 FIGURAS_VERSIONADAS = RAIZ / "blog" / "docs" / "figures"
+MODELO_APP_VERSIONADO = RAIZ / "app" / "public" / "model"
 MODULOS_DE_RED = {"socket", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib"}
 
 
@@ -47,8 +48,8 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
 
 @pytest.mark.parametrize(
     "argv",
-    [["eda", "--config", "configs/datos.yaml"], ["figures"]],
-    ids=["eda", "figures"],
+    [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"]],
+    ids=["eda", "figures", "export"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -58,13 +59,26 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     se redirige el `SALIDA` de **todos** los módulos `src/viz/figs_*.py` (también los que se agreguen después) a una
     subcarpeta temporal por módulo. Después se comprueba que `blog/docs/figures/` quedó idéntico (SHA-256 antes y
     después: ningún archivo cambiado, nuevo ni borrado) y que cada módulo dejó al menos un .png en su subcarpeta.
+
+    `export` (Parte C, C2) no recibe `--config`: lee `src.export.exportar_app.RUTA_CONFIG`, que se apunta a un YAML
+    temporal que hereda `configs/scorecard/export.yaml` y solo cambia `export.destino` a `tmp_path/app`. Se comprueba
+    que escribió los dos JSON allí y que `app/public/model/` quedó idéntico (si no existe, huellas vacías).
     """
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
         argv = [*argv, "--set", f"eda.salida={tmp_path.as_posix()}"]
     destinos = _redirigir_figuras(monkeypatch, tmp_path) if argv[0] == "figures" else {}
+    destino_app = _redirigir_export(monkeypatch, tmp_path) if argv[0] == "export" else None
     antes = _huellas(FIGURAS_VERSIONADAS)
+    antes_app = _huellas(MODELO_APP_VERSIONADO)
     assert cli.main(argv) == 0
+    alterados_app = _diferencias(antes_app, _huellas(MODELO_APP_VERSIONADO))
+    assert not alterados_app, f"`run.py {argv[0]}` alteró app/public/model/: {alterados_app}"
+    if destino_app is not None:
+        from src.export.exportar_app import ARCHIVO_MODELO, ARCHIVO_PARIDAD
+
+        escritos = sorted(r.name for r in destino_app.glob("*.json"))
+        assert escritos == sorted([ARCHIVO_MODELO, ARCHIVO_PARIDAD]), escritos
     alterados = _diferencias(antes, _huellas(FIGURAS_VERSIONADAS))
     assert not alterados, (f"`run.py {argv[0]}` alteró figuras versionadas de blog/docs/figures/: {alterados}; "
                            "restaurar con `git checkout -- blog/docs/figures/`")
@@ -97,8 +111,26 @@ def _redirigir_figuras(monkeypatch, tmp_path: Path) -> dict[str, Path]:
     return destinos
 
 
+def _redirigir_export(monkeypatch, tmp_path: Path) -> Path:
+    """Apunta `RUTA_CONFIG` del exportador a un YAML temporal que hereda la config real (ruta absoluta; `load_config`
+    fusiona en profundidad) y cambia solo `export.destino`. Devuelve ese destino temporal.
+
+    El import va aquí y no arriba: así, mientras `src.export` no exista, solo falla el caso `export`.
+    """
+    import src.export.exportar_app as exportar_app
+
+    destino = tmp_path / "app"
+    yaml_tmp = tmp_path / "export_tmp.yaml"
+    base = (RAIZ / "configs" / "scorecard" / "export.yaml").as_posix()
+    yaml_tmp.write_text(f'hereda: "{base}"\nexport:\n  destino: "{destino.as_posix()}"\n', encoding="utf-8")
+    monkeypatch.setattr(exportar_app, "RUTA_CONFIG", yaml_tmp)
+    return destino
+
+
 def _huellas(carpeta: Path) -> dict[str, str]:
-    """SHA-256 de cada archivo de `carpeta` (recursivo), por ruta relativa."""
+    """SHA-256 de cada archivo de `carpeta` (recursivo), por ruta relativa; carpeta inexistente → {}."""
+    if not carpeta.exists():
+        return {}
     return {ruta.relative_to(carpeta).as_posix(): hashlib.sha256(ruta.read_bytes()).hexdigest()
             for ruta in sorted(carpeta.rglob("*")) if ruta.is_file()}
 
