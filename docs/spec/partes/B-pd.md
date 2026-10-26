@@ -92,6 +92,10 @@ corrida y se explica por qué su desviación entre semillas es 0.
 - MLP final: **30 semillas** (`base_seed + 0…29`), misma partición; `summary.json` con media, desviación, mejor y peor.
 - Se guardan `pd_logistica.joblib`, `pd_mlp.pt` (semilla con la métrica mediana) y `pred_test.parquet`.
 - Demo `configs/pd/demo.yaml`: muestra de datos, MLP pequeño, pocas épocas, 3 semillas, CPU, **< 2 min medido**.
+- Decisiones de B5 [DECIDIDO, Andrés, 26-oct; Spec v0.16]: `python run.py pd --config configs/pd/base.yaml` corre la logística (§3.1) y después el MLP con el bloque `mlp` resuelto (herencia de `mlp_final.yaml` y luego `--set`), con `semillas.n` semillas efectivas `base_seed + 0…n−1` (`seeds_for_runs`), un `MLPPD` nuevo por semilla y `tiempo_s` = solo el `fit`. `configs/pd/base.yaml` declara `semillas: {n: 30}`, `salida: results/data/pd` y `modelos: models` (carpetas; los nombres de archivo son los del núcleo §5.4). `semillas.n` entero ≥ 1, `base_seed` entero ≥ 0, el bloque `mlp` y el bloque `busqueda` se validan antes de leer datos y antes de correr la logística (`ValueError`).
+- **Semilla mediana:** las corridas se ordenan por (`logloss_val`, `seed`) de menor a mayor y se toma la posición ⌊(n − 1)/2⌋ (n par → mediana inferior; empate → semilla menor). Decide validación, como la búsqueda (§3.3); test nunca decide. Su red (la entrenada, sin reentrenar) va a `models/pd_mlp.pt` y sus PD de test a `pred_mlp`.
+- **Config de la búsqueda:** `config_de_busqueda` es true si el bloque `mlp` validado de la corrida es igual al de `configs/pd/mlp_final.yaml` releído y validado, y el bloque `busqueda` también coincide. Si es true, `busqueda.tipo` debe ser `optuna` y `busqueda.evidencia` igual a la de esta corrida (si no → `ValueError`: "la búsqueda se hizo con otros datos; repite pd-hpo"), y el presupuesto del MLP es `n_configuraciones_busqueda = busqueda.n_ensayos`, `tiempo_total_s = busqueda.tiempo_s + Σ tiempo_s`. Si es false (p. ej. `--set mlp.capas=[8]`), la consola avisa qué claves difieren y el presupuesto de la búsqueda queda en null.
+- Antes de entrenar se borran solo los archivos `mlp_seed<entero>.json` de `{salida}/semillas`; si un `fit` lanza `FloatingPointError`, el error sale con la semilla y avisa que `summary.json` conserva la entrada `mlp` anterior, que ya no corresponde a `semillas/` (hay que volver a correr); no se escriben `summary.json`, `pred_mlp` ni `pd_mlp.pt` (quedan las semillas terminadas). La huella del pre-chequeo (solo `id, split`) debe ser idéntica a la del DataFrame completo (lo comprueba una prueba). Campos extra de la semilla y del summary: núcleo §5.4 (v0.16).
 
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
@@ -110,7 +114,7 @@ corrida y se explica por qué su desviación entre semillas es 0.
 (E0 = esqueleto del puente, jue 22.)
 
 ## 5. Pruebas de la parte
-`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_demo_pd.py` (marcada lenta).
+`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta).
 
 ## 6. Puntos calientes de alucinación
 - L2 vs. `AdamW`; "dropout se aplica también al predecir"; `BCELoss` sobre logits sin sigmoide.
@@ -127,3 +131,5 @@ configuraciones probadas, tiempo y métricas con su variabilidad).
 ## 8. Definición de terminado
 `python run.py pd --config configs/pd/base.yaml` reproduce `summary.json`; la demo corre en < 2 min en CPU; C y E usan el modelo
 guardado sin reentrenar; ≥ 1 hallazgo o verificación documentada.
+
+Reproducción de `summary.json` [DECIDIDO, Andrés, 26-oct; v0.16]: en la misma máquina, con la misma CPU, los mismos `hilos_torch` y `version_torch`, todo `summary.json` se reproduce bit a bit salvo los campos de tiempo. En otra máquina, la media de cada métrica debe quedar a menos de 3·√2·EE de la de referencia, con EE = desv/√n del `summary.json` de referencia (3 = convención de tres sigmas; √2 porque se comparan dos medias independientes con la misma varianza).
