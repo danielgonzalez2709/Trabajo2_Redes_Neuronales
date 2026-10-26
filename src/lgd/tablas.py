@@ -12,12 +12,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.lgd.experimento import METRICAS, SPLITS
+from src.lgd.experimento import METRICAS, MODELOS, SIN_DATO, SPLITS
+from src.lgd.experimento import describir_mlp  # noqa: F401  (reexportada para el notebook 04; la usa run.py lgd)
 
-MODELOS = ("lineal", "mlp")
 NOMBRE_METRICA = {"mae_val": "MAE val", "rmse_val": "RMSE val", "mae_test": "MAE test", "rmse_test": "RMSE test"}
 DECIMALES = 4  # solo presentación de la tabla compacta
-SIN_DATO = "—"
 
 
 def redirigir_salidas(cfg: dict, carpeta: str | Path) -> dict:
@@ -34,11 +33,12 @@ def redirigir_salidas(cfg: dict, carpeta: str | Path) -> dict:
 
 # ----------------------------------------------------------------------------------------- resultados (summary.json)
 def tabla_metricas(resumen: dict) -> pd.DataFrame:
-    """Lineal, MLP y referencias constantes de ``summary.json``: MAE/RMSE (media y desv), semillas, parámetros,
-    configuraciones probadas y tiempo. Las constantes no tienen desv (0) ni tiempo (NaN)."""
+    """Lineal, MLP y referencias constantes de ``summary.json`` (por modelo, como el de B: ``resumen[modelo]``):
+    MAE/RMSE (media y desv), semillas, parámetros, configuraciones probadas y tiempo. Las constantes no tienen desv
+    (0) ni tiempo (NaN); ``configuraciones`` del MLP es null si su config no es la de la búsqueda (núcleo §5.4)."""
     filas = {}
     for nombre in MODELOS:
-        m = resumen["modelos"][nombre]
+        m = resumen[nombre]
         fila = {}
         for k in METRICAS:
             fila[NOMBRE_METRICA[k]] = m["metricas"][k]["media"]
@@ -66,8 +66,9 @@ def tabla_metricas_compacta(resumen: dict, decimales: int = DECIMALES) -> pd.Dat
         col = NOMBRE_METRICA[k]
         out[col] = [f"{m:.{decimales}f} ± {d:.{decimales}f}" if n > 1 else f"{m:.{decimales}f}"
                     for m, d, n in zip(t[col], t[f"{col} (desv)"], t["semillas"])]
-    for col in ("semillas", "parámetros", "configuraciones"):
+    for col in ("semillas", "parámetros"):
         out[col] = t[col]
+    out["configuraciones"] = [SIN_DATO if pd.isna(v) else int(v) for v in t["configuraciones"]]
     out["tiempo (s)"] = [SIN_DATO if pd.isna(v) else f"{v:.1f}" for v in t["tiempo (s)"]]
     return out
 
@@ -82,9 +83,9 @@ def comparacion(resumen: dict, metrica: str = "mae_test") -> dict:
     """``metrica`` (media) de cada modelo y referencia, diferencias MLP − otro (``mlp_menos``) y el de menor valor."""
     if metrica not in METRICAS:
         raise ValueError(f"métrica desconocida {metrica!r}; opciones: {', '.join(METRICAS)}")
-    valores = {n: resumen["modelos"][n]["metricas"][metrica]["media"] for n in MODELOS}
+    valores = {n: resumen[n]["metricas"][metrica]["media"] for n in MODELOS}
     valores.update({n: r["metricas"][metrica] for n, r in resumen["referencias"].items()})
-    return {"metrica": metrica, "valores": valores, "desv_mlp": resumen["modelos"]["mlp"]["metricas"][metrica]["desv"],
+    return {"metrica": metrica, "valores": valores, "desv_mlp": resumen["mlp"]["metricas"][metrica]["desv"],
             "mejor": min(valores, key=valores.get),
             "mlp_menos": {n: valores["mlp"] - v for n, v in valores.items() if n != "mlp"}}
 

@@ -7,21 +7,23 @@
   "metricas": {
     "mae_val": 0.07586765511393369,
     "rmse_val": 0.0927625978896879,
-    "mae_test": 0.0771234125677071,
-    "rmse_test": 0.0865914142786151
+    "mae_test": 0.07712341256770708,
+    "rmse_test": 0.08659141427861505
   },
   "n_parametros": 49,
-  "tiempo_s": 0.013536250044126064,
+  "tiempo_s": 0.027252500000031432,
   "device": "cpu",
   "epocas": null,
+  "evidencia": {
+    "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+    "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+  },
   "n": {
     "train": 14419,
     "val": 14836,
     "test": 13981
   },
   "muestra": null,
-  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
   "fuera_de_rango": {
     "val": {
       "debajo_de_0": 0,

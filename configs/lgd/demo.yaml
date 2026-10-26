@@ -30,8 +30,9 @@ busqueda:
   ensayo: null
   n_ensayos: null
   tiempo_s: null
-  hash_particion: null
-  hash_preprocesador: null
+  evidencia:               # bloque con nulos (no null): el cargador no reemplaza el bloque heredado de mlp_final.yaml
+    sha256_particion: null
+    sha256_preprocesador: null
   muestra: null
   fecha: null
 salida: results/data/lgd_demo

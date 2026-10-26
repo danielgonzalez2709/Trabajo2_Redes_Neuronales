@@ -17,7 +17,7 @@ from src.common.config import load_config
 from src.common.preprocesamiento import Preprocesador
 from src.common.results import load_json, save_json
 from src.lgd.descriptivo import CLAVES_CUADRE, descriptivo_observado, descriptivo_preprocesado, generar
-from src.lgd.procedencia import hash_particion, hash_preprocesador
+from src.pd.experimento import huella_archivo, huella_particion
 
 RAIZ = Path(__file__).resolve().parents[1]
 FEATURES = [{"nombre": "loan_amnt", "tipo": "num", "transformacion": "log1p"},
@@ -174,9 +174,11 @@ def test_generar_escribe_json_con_esquema(tmp_path, monkeypatch):
     monkeypatch.setattr(Preprocesador, "fit", lambda *a, **k: (_ for _ in ()).throw(AssertionError("reajuste")))
     out = generar(cfg, tmp_path)
     leido = load_json(tmp_path / "results/descriptivo.json")
-    assert set(leido) == {"observado", "preprocesado", "fuente"}
-    assert leido["fuente"]["hash_particion"] == hash_particion(df)
-    assert leido["fuente"]["hash_preprocesador"] == hash_preprocesador(pre.to_dict())
+    assert set(leido) == {"observado", "preprocesado", "fuente", "evidencia"}
+    assert leido["evidencia"] == {"sha256_particion": huella_particion(df["id"], df["split"]),
+                                  "sha256_preprocesador": huella_archivo(tmp_path / cfg["datos"]["salida"]
+                                                                         ["preprocesador"])}
+    assert not any(k.startswith("hash_") for k in leido["fuente"])
     assert leido["fuente"]["resumen_objetivo"] == "results/resumen.json"
     assert set(leido["observado"]) >= {"n", "histograma_lgd", "masa", "recortes", "por_split", "por_anio",
                                        "por_plazo", "fraccion_lgd_1_por_anio"}
