@@ -63,6 +63,13 @@ def _eda(cfg: dict | None) -> int:
     return manejador(cfg)
 
 
+def _pd_hpo(cfg: dict | None) -> int:
+    """Parte B (B4): búsqueda Optuna del MLP de PD."""
+    from src.pd.hpo import manejador_hpo
+
+    return manejador_hpo(cfg)
+
+
 def _lgd(cfg: dict | None) -> int:
     """Parte D (D4): lineal + MLP de LGD con semillas."""
     from src.lgd.experimento import manejador
@@ -108,7 +115,7 @@ def _notebooks(cfg: dict | None) -> int:
 SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
     "pd": Subcomando("Parte B: logística + MLP de PD", True, _pendiente("pd", "B3/B5")),
-    "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pendiente("pd-hpo", "B4")),
+    "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pd_hpo),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _pendiente("scorecard", "C1/C4")),

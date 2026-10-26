@@ -1,0 +1,20 @@
+# Generado por `python run.py pd-hpo` (src/pd/hpo.py). No se edita a mano.
+# Configuración final del MLP de PD (Parte B §3.2–§3.3) y su procedencia; la hereda configs/pd/base.yaml.
+# Versión inicial (antes de la primera búsqueda): bloque `busqueda` con tipo sin_busqueda.
+mlp:
+  capas:
+  - 64
+  - 32
+  activacion: relu
+  dropout: 0.1
+  l2: 1.0e-4
+  optimizador: adam
+  lr: 1.0e-3
+  momento: 0.9
+  batch: 512
+  max_epocas: 100
+  paciencia: 10
+  device: cpu
+  pos_weight: 1.0
+busqueda:
+  tipo: sin_busqueda

@@ -38,8 +38,9 @@ from src.common.results import load_json, save_json  # JSON sin NaN y escritura 
 from src.common.seeds import validar_entero  # semilla entera ≥ 0
 from src.pd.logistica import LogisticaPD, bloque_logistica, esta_en_borde, logloss  # modelo de referencia
 
-__all__ = [  # interfaz pública acordada (tarea B3); lo demás es interno
+__all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "RutasPD", "RUTAS_PD", "huella_particion", "huella_archivo", "cargar_matrices",  # datos y evidencia
+    "cargar_datos", "evidencia",  # públicas desde B4: la búsqueda Optuna (src/pd/hpo.py) las reutiliza
     "METRICAS", "SENTIDO", "evaluar", "medir", "resumir",  # métricas
     "actualizar_summary", "actualizar_pred_test", "escribir_semilla",  # archivos de resultados
     "correr_logistica",  # experimento de la logística
@@ -121,10 +122,10 @@ def huella_archivo(ruta) -> str:
 #
 # `{sha256_particion, sha256_preprocesador}`: va en la semilla, en la búsqueda y en la entrada del summary. La huella
 # de la partición se calcula sobre el **mismo** DataFrame del que salen las matrices (sin releer el parquet), así
-# que describe exactamente los datos con que se entrenó.
+# que describe exactamente los datos con que se entrenó. Es pública desde B4: la búsqueda Optuna la reutiliza.
 
 # %%
-def _evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
+def evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
     """Huellas de la partición de ``df`` y del archivo del preprocesador."""
     return {  # evidencia del núcleo §6
         "sha256_particion": huella_particion(df[COLUMNA_ID], df[COLUMNA_SPLIT]),  # orden del parquet
@@ -138,7 +139,7 @@ def _evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
 # $X_s = \text{pre.transform}(\text{filas de } s)$ con el preprocesador **guardado** (`from_dict`, sin `fit`): fue
 # ajustado solo con train por A. $y_s$ = `target` y los ids en el orden del parquet.
 #
-# `_cargar_datos` lee el parquet **una vez** y devuelve el DataFrame junto con las matrices: el experimento usa el
+# `cargar_datos` (pública desde B4, la reutiliza la búsqueda Optuna) lee el parquet **una vez** y devuelve el DataFrame junto con las matrices: el experimento usa el
 # DataFrame para la huella de la partición. `cargar_matrices` conserva su firma pública y solo devuelve las matrices.
 
 # %%
@@ -155,7 +156,7 @@ def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
     return matrices  # tres splits
 
 
-def _cargar_datos(rutas: RutasPD) -> tuple[pd.DataFrame, dict]:
+def cargar_datos(rutas: RutasPD) -> tuple[pd.DataFrame, dict]:
     """(DataFrame del parquet, matrices por split) con una sola lectura del parquet."""
     df = pd.read_parquet(rutas.parquet)  # datos de A
     pre = Preprocesador.from_dict(load_json(rutas.preprocesador))  # sin reajustar
@@ -164,7 +165,7 @@ def _cargar_datos(rutas: RutasPD) -> tuple[pd.DataFrame, dict]:
 
 def cargar_matrices(rutas: RutasPD) -> dict:
     """{split: (X float32, y, ids)} para train, val y test con el preprocesador guardado."""
-    return _cargar_datos(rutas)[1]  # solo las matrices
+    return cargar_datos(rutas)[1]  # solo las matrices
 
 
 # %% [markdown]
@@ -433,18 +434,18 @@ def correr_logistica(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=LogisticaP
     """Entrena y evalúa la logística, escribe sus resultados y devuelve su entrada de summary.json."""
     seed = _semilla_valida(seed)  # primero: una semilla inválida no debe costar un entrenamiento
     cfg_log = bloque_logistica(cfg)  # bloque validado (va a la semilla); ValueError si falta
-    df, datos = _cargar_datos(rutas)  # una sola lectura del parquet
-    evidencia = _evidencia(df, rutas.preprocesador)  # huellas del mismo df y del preprocesador
+    df, datos = cargar_datos(rutas)  # una sola lectura del parquet
+    huellas = evidencia(df, rutas.preprocesador)  # huellas del mismo df y del preprocesador
     X_tr, y_tr, _ = datos["train"]  # entrenamiento
     X_val, y_val, _ = datos["val"]  # validación (elige C)
     X_te, y_te, ids_te = datos["test"]  # prueba (se mide una vez)
     modelo = modelo_cls().fit(X_tr, y_tr, X_val, y_val, cfg, seed)  # búsqueda + modelo final
     metricas = medir(modelo, datos)  # val y test
-    registro = _semilla_logistica(modelo, cfg_log, metricas, seed, evidencia)  # archivo de la semilla
-    entrada = _summary_logistica(modelo, cfg_log, metricas, evidencia)  # entrada del summary
+    registro = _semilla_logistica(modelo, cfg_log, metricas, seed, huellas)  # archivo de la semilla
+    entrada = _summary_logistica(modelo, cfg_log, metricas, huellas)  # entrada del summary
     _escribir_resultados(rutas, MODELO_LOGISTICA, seed, registro, entrada, ids_te, y_te,
                          modelo.predict_proba(X_te))  # escrituras comunes (B5 las reutiliza)
-    save_json(rutas.resultados / ARCHIVO_BUSQUEDA_LOGISTICA, _busqueda_logistica(modelo, cfg_log, evidencia))  # tabla
+    save_json(rutas.resultados / ARCHIVO_BUSQUEDA_LOGISTICA, _busqueda_logistica(modelo, cfg_log, huellas))  # tabla
     rutas.modelos.mkdir(parents=True, exist_ok=True)  # carpeta de modelos
     modelo.guardar(rutas.modelos / ARCHIVO_MODELO_LOGISTICA)  # joblib
     return entrada  # entrada "logistica" del summary
