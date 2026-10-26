@@ -50,3 +50,9 @@ print("score monotone in pd?", np.corrcoef(el.score.rank(), el.pd.rank())[0,1])
 print("score range", el.score.min(), el.score.max())
 # resueltos estados in test
 print(res.estado.value_counts())
+# H-14: razón banda 1 / banda 10 de E[L], EAD (suma) y PD media; reparto en escala logarítmica
+b1, b10 = el[el.banda == 1], el[el.banda == 10]
+r = pd.Series({"ead": b1.ead.sum() / b10.ead.sum(), "pd": b1.pd.mean() / b10.pd.mean(), "el": b1.el.sum() / b10.el.sum()})
+print(r)
+print("share log PD", np.log(r["pd"]) / np.log(r["el"]), "share log EAD", np.log(r["ead"]) / np.log(r["el"]))
+print(0.925 * 0.970 * 1.179)  # producto de los factores redondeados que escribió el redactor
