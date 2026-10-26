@@ -54,6 +54,7 @@ SPLIT_CALIBRACION = "test"  # pred_test.parquet es la partición de prueba (núc
 MODELOS = ("logistica", "mlp")  # modelos de la PD, en el orden de las columnas pred_<modelo> (núcleo §5.4)
 COLUMNA_Y = "y"  # desenlace en pred_test.parquet (núcleo §5.4)
 METRICAS_SEMILLAS = ("auc_test", "ks_test", "brier_test")  # paneles de pd-semillas.png (B-pd §4, fila B7)
+TITULOS_METRICA = {"auc_test": "AUC", "ks_test": "KS", "brier_test": "Brier (menor es mejor)"}  # títulos en español
 ESTADO_COMPLETO = "COMPLETE"  # estado de Optuna de un ensayo terminado (hpo_ensayos.json, B4)
 CLAVES_DATOS = frozenset({"resumen", "pred", "semillas", "hpo", "busqueda"})  # insumos de generar(datos=)
 ARCHIVO_CALIBRACION = "pd-calibracion.json"  # puntos de la calibración para el video (escena 7)
@@ -68,6 +69,9 @@ COMO_GENERAR = {  # insumo → tarea y comando que lo genera (mensaje de FileNot
     "semillas": COMANDO_PD,  # mlp_seed*.json
     "hpo_ensayos.json": "B4: python run.py pd-hpo --config configs/pd/hpo.yaml",  # búsqueda Optuna (opcional)
 }
+# Solo visual: las dos ROC casi coinciden; la logística va gruesa debajo y el MLP fino con guiones encima.
+ESTILO_ROC = {"logistica": {"linewidth": 2.5 * p.ANCHO_LINEA, "zorder": 2},  # trazo ancho, debajo
+              "mlp": {"linewidth": 0.75 * p.ANCHO_LINEA, "linestyle": "--", "zorder": 3}}  # guiones, encima
 # Solo visuales (no afectan a ninguna métrica): media anchura de los desplazamientos horizontales fijos de los puntos
 # de pd-semillas.png y paso al que se redondea hacia arriba el límite de los ejes de la calibración.
 DESPLAZAMIENTO_PUNTOS = 0.18  # en unidades del eje x de la caja (ancho de la caja: 0,5)
@@ -102,7 +106,7 @@ def datos_ks(y, prob) -> dict:
     separacion = np.abs(np.asarray(c.f_malos) - np.asarray(c.f_buenos))  # |F₁(t) − F₀(t)|
     i = int(np.argmax(separacion))  # t* = argmax (primero si hay empate)
     return {"umbrales": c.umbrales, "f_malos": c.f_malos, "f_buenos": c.f_buenos,  # curvas
-            "ks": float(separacion[i]), "umbral_ks": float(c.umbrales[i])}  # máximo y su umbral
+            "ks": float(separacion[i]), "umbral_ks": float(c.umbrales[i]), "i_ks": i}  # máximo, t* y su índice
 
 
 # %% [markdown]
@@ -115,11 +119,17 @@ def datos_ks(y, prob) -> dict:
 # `pd-calibracion.json` se escriba sin tipos de numpy ni NaN.
 
 # %%
-def datos_calibracion(pred: pd.DataFrame, semilla_mediana: int, n_bins: int = N_BINS_CALIBRACION) -> dict:
-    """Puntos de calibración por bin y medias globales de los dos modelos en prueba (pd-calibracion.json)."""
+def _validar_pred(pred: pd.DataFrame) -> None:
+    """ValueError con el comando que genera pred_test si faltan `y` o alguna `pred_<modelo>`."""
     faltan = [c for c in (COLUMNA_Y, *(f"pred_{m}" for m in MODELOS)) if c not in pred.columns]  # columnas ausentes
     if faltan:  # sin alguna columna no hay curva de ese modelo
         raise ValueError(f"pred_test no tiene las columnas {faltan}; regenera con {COMANDO_PD}")  # error claro
+
+
+# %%
+def datos_calibracion(pred: pd.DataFrame, semilla_mediana: int, n_bins: int = N_BINS_CALIBRACION) -> dict:
+    """Puntos de calibración por bin y medias globales de los dos modelos en prueba (pd-calibracion.json)."""
+    _validar_pred(pred)  # columnas presentes
     y = pred[COLUMNA_Y].to_numpy()  # desenlace 0/1
     modelos = {}  # bloque por modelo
     for m in MODELOS:  # logística y MLP
@@ -151,7 +161,7 @@ def _registro_mediana(semillas: list[dict], resumen: dict) -> dict:
     for r in semillas:  # búsqueda lineal (30 registros)
         if r["seed"] == mediana:  # encontrada
             return r  # su registro
-    raise ValueError(f"La semilla mediana ({mediana}) de summary.json no está entre las semillas leídas {seeds}.")
+    raise ValueError(f"La semilla mediana ({mediana}) de summary.json no está entre las semillas leídas {seeds}.")  # B5
 
 
 # %% [markdown]
@@ -163,6 +173,9 @@ def _registro_mediana(semillas: list[dict], resumen: dict) -> dict:
 # %%
 def metricas_por_semilla(semillas: list[dict], resumen: dict, nombres=METRICAS_SEMILLAS) -> dict:
     """{métrica: {seeds, valores, mediana: (seed, valor), logistica}} ordenado por semilla."""
+    desconocidas = [n for n in nombres if n not in TITULOS_METRICA]  # sin título en español
+    if desconocidas:  # p. ej. un error de tipeo
+        raise ValueError(f"Métricas sin título en TITULOS_METRICA: {desconocidas}; válidas: {list(TITULOS_METRICA)}")
     mediana = _registro_mediana(semillas, resumen)  # valida mediana y duplicados
     ordenadas = sorted(semillas, key=lambda r: r["seed"])  # por semilla
     salida = {}  # resultado por métrica
@@ -179,17 +192,21 @@ def metricas_por_semilla(semillas: list[dict], resumen: dict, nombres=METRICAS_S
 #
 # Historial de la semilla mediana: BCE media de entrenamiento y de validación por época (desde 1), su
 # `mejor_epoca` (la de menor pérdida de validación, cuyos pesos se restauran) y la `paciencia` de su config: el
-# entrenamiento se detiene tras `paciencia` épocas sin mejora.
+# entrenamiento se detiene tras `paciencia` épocas sin mejora. La franja de la figura termina en
+# $\min(\text{mejor\_epoca} + \text{paciencia}, \text{última época})$: corta la paciencia o, si se acabaron las
+# `max_epocas` antes, la última época.
 
 # %%
 def datos_aprendizaje(semillas: list[dict], resumen: dict) -> dict:
     """Épocas, pérdidas de train y val, mejor época y paciencia de la semilla mediana."""
     r = _registro_mediana(semillas, resumen)  # registro de la mediana
     historial = r["historial"]  # una entrada por época
+    fin = min(r["mejor_epoca"] + r["config"]["paciencia"], historial[-1]["epoca"])  # fin de la franja de paciencia
     return {"seed": r["seed"], "epocas": [h["epoca"] for h in historial],  # semilla y épocas
             "perdida_train": [h["perdida_train"] for h in historial],  # BCE de entrenamiento
             "perdida_val": [h["perdida_val"] for h in historial],  # BCE de validación
-            "mejor_epoca": r["mejor_epoca"], "paciencia": r["config"]["paciencia"]}  # parada temprana
+            "mejor_epoca": r["mejor_epoca"], "paciencia": r["config"]["paciencia"],  # parada temprana
+            "fin_paciencia": fin}  # última época de la franja
 
 
 # %% [markdown]
@@ -210,7 +227,7 @@ def trayectoria_busqueda(hpo: dict) -> dict:
     por_numero = {e["numero"]: e["logloss_val"] for e in completos}  # para verificar el ganador
     mejor = hpo["mejor"]["numero"]  # ganador declarado
     if mejor not in por_numero or por_numero[mejor] != perdidas.min():  # no es completo o no es el mínimo
-        raise ValueError(f"El mejor ensayo declarado ({mejor}) no es un {ESTADO_COMPLETO} con la log-loss mínima")
+        raise ValueError(f"El mejor ensayo declarado ({mejor}) no es un {ESTADO_COMPLETO} con la log-loss mínima")  # B4
     return {"numeros": [e["numero"] for e in completos], "logloss_val": perdidas.tolist(),  # puntos
             "mejor_hasta_ahora": np.minimum.accumulate(perdidas).tolist(),  # m_j
             "mejor_numero": mejor, "n_startup": hpo["muestreador"]["n_startup_trials"]}  # ganador y fase aleatoria
@@ -235,6 +252,21 @@ def datos_busqueda_c(busqueda: dict) -> dict:
 
 
 # %% [markdown]
+# ## Límite de los ejes de la calibración
+#
+# $L = \lceil \max(v)/\text{paso} - 10^{-9} \rceil \cdot \text{paso}$, redondeado a 10 decimales: el máximo
+# redondeado hacia arriba al múltiplo de `paso` (0,1). El $-10^{-9}$ evita que el error de coma flotante suba un
+# paso de más ($3 \cdot 0{,}1 = 0{,}30000000000000004 \to 0{,}3$, no 0,4). Es la misma regla de
+# `video/src/escenas/Honesta.tsx`; la figura la aplica a los puntos de los dos modelos y el video solo a los del MLP
+# (con los datos actuales ambos dan 0,5).
+
+# %%
+def limite_ejes(valores, paso: float = PASO_EJE_CALIBRACION) -> float:
+    """Máximo de `valores` redondeado hacia arriba al múltiplo de `paso` (tolerancia 1e-9, como Honesta.tsx)."""
+    return round(float(np.ceil(max(valores) / paso - 1e-9)) * paso, 10)  # L, sin residuos de coma flotante
+
+
+# %% [markdown]
 # ## Figura: ROC
 #
 # Las dos curvas en un mismo eje con la diagonal del azar (AUC = 0,5); AUC y Gini en la leyenda.
@@ -245,7 +277,7 @@ def figura_roc(rocs: dict, destino: Path) -> Path:
     fig, ax = plt.subplots(figsize=(5.8, 5.4))  # un solo eje
     for m in MODELOS:  # color por entidad
         d = rocs[m]  # datos del modelo
-        ax.plot(d["fpr"], d["tpr"], color=p.COLOR_MODELO[m],  # curva
+        ax.plot(d["fpr"], d["tpr"], color=p.COLOR_MODELO[m], **ESTILO_ROC[m],  # curva (casi se superponen)
                 label=f"{p.NOMBRE_MODELO[m]}: AUC = {d['auc']:.3f}, Gini = {d['gini']:.3f}")  # resumen
     ax.plot([0, 1], [0, 1], color=p.TINTA_TENUE, linestyle="--", linewidth=1, label="Azar (AUC = 0.5)")  # diagonal
     ax.set_xlim(0, 1)  # FPR en [0, 1]
@@ -272,7 +304,7 @@ def figura_ks(kss: dict, destino: Path) -> Path:
         d = kss[m]  # datos del modelo
         ax.step(d["umbrales"], d["f_malos"], where="post", color=p.COLOR_TASA, label="Malos: F₁(t)")  # F₁
         ax.step(d["umbrales"], d["f_buenos"], where="post", color=p.TINTA_SECUNDARIA, label="Buenos: F₀(t)")  # F₀
-        i = int(np.flatnonzero(np.asarray(d["umbrales"]) == d["umbral_ks"])[0])  # índice de t*
+        i = d["i_ks"]  # índice de t* (de la pura)
         ax.vlines(d["umbral_ks"], d["f_malos"][i], d["f_buenos"][i], color=p.COLOR_MODELO[m], linewidth=3,  # KS
                   label=f"KS = {d['ks']:.3f} en PD = {d['umbral_ks']:.3f}")  # valor y umbral
         ax.set_title(p.NOMBRE_MODELO[m])  # entidad
@@ -294,8 +326,7 @@ def figura_ks(kss: dict, destino: Path) -> Path:
 def figura_calibracion(calib: dict, destino: Path) -> Path:
     """pd-calibracion.png: PD media frente a tasa observada por bin, con la diagonal."""
     bloques = calib["modelos"]  # puntos por modelo
-    maximo = max(max(b["pd_media"] + b["tasa_observada"]) for b in bloques.values())  # punto más alto
-    limite = np.ceil(maximo / PASO_EJE_CALIBRACION) * PASO_EJE_CALIBRACION  # redondeo hacia arriba (visual)
+    limite = limite_ejes([v for b in bloques.values() for v in b["pd_media"] + b["tasa_observada"]])  # L común
     fig, ax = plt.subplots(figsize=(5.8, 5.4))  # un solo eje
     for m, marcador in zip(MODELOS, ("o", "s")):  # color y marcador por entidad
         b = bloques[m]  # datos del modelo
@@ -322,9 +353,6 @@ def figura_calibracion(calib: dict, destino: Path) -> Path:
 # como línea horizontal.
 
 # %%
-_TITULOS_METRICA = {"auc_test": "AUC", "ks_test": "KS", "brier_test": "Brier (menor es mejor)"}  # paneles
-
-
 def figura_semillas(por_semilla: dict, destino: Path) -> Path:
     """pd-semillas.png: distribución entre semillas del MLP de cada métrica de prueba frente a la logística."""
     fig, ejes = plt.subplots(1, len(por_semilla), figsize=(12, 4.2))  # un panel por métrica
@@ -342,7 +370,7 @@ def figura_semillas(por_semilla: dict, destino: Path) -> Path:
         ax.axhline(d["logistica"], color=p.COLOR_MODELO["logistica"], linewidth=1.5,  # referencia
                    label=p.NOMBRE_MODELO["logistica"])  # entidad (su valor va en el título del panel)
         ax.set_xticks([])  # una sola caja: sin marcas en x
-        ax.set_title(f"{_TITULOS_METRICA.get(nombre, nombre)}\nlogística = {d['logistica']:.4f}")  # métrica y valor
+        ax.set_title(f"{TITULOS_METRICA[nombre]}\nlogística = {d['logistica']:.4f}")  # métrica y valor
     manijas, etiquetas = np.atleast_1d(ejes)[0].get_legend_handles_labels()  # iguales en todos los paneles
     fig.legend(manijas, etiquetas, loc="lower center", ncol=len(etiquetas), bbox_to_anchor=(0.5, -0.06))  # abajo
     fig.suptitle("Variabilidad entre semillas del MLP en Prueba")  # título general
@@ -364,8 +392,7 @@ def figura_aprendizaje(apr: dict, destino: Path) -> Path:
             label=p.NOMBRE_SPLIT["train"])  # entidad
     ax.plot(apr["epocas"], apr["perdida_val"], marker="o", markersize=4, color=p.COLOR_SPLIT["val"],  # val
             label=p.NOMBRE_SPLIT["val"])  # entidad
-    fin = min(apr["mejor_epoca"] + apr["paciencia"], apr["epocas"][-1])  # última época de la paciencia
-    ax.axvspan(apr["mejor_epoca"], fin, color=p.CUADRICULA, alpha=0.6,  # franja
+    ax.axvspan(apr["mejor_epoca"], apr["fin_paciencia"], color=p.CUADRICULA, alpha=0.6,  # franja
                label=f"Paciencia ({apr['paciencia']} épocas sin mejora)")  # regla de parada
     ax.axvline(apr["mejor_epoca"], color=p.TINTA, linestyle="--", linewidth=1.2,  # mejor época
                label=f"Mejor época ({apr['mejor_epoca']}): pesos restaurados")  # explicación
@@ -393,7 +420,8 @@ def figura_busqueda_mlp(tray: dict, logloss_logistica: float, destino: Path) -> 
             label="Mejor hasta ese ensayo")  # mínimo acumulado
     i = tray["numeros"].index(tray["mejor_numero"])  # posición del ganador
     ax.scatter([tray["mejor_numero"]], [tray["logloss_val"][i]], s=130, facecolors="none", edgecolors=p.TINTA,  # anillo
-               linewidths=1.5, zorder=4, label=f"Elegido: ensayo {tray['mejor_numero']} ({tray['logloss_val'][i]:.4f})")
+               linewidths=1.5, zorder=4,  # anillo encima de los puntos
+               label=f"Elegido: ensayo {tray['mejor_numero']} ({tray['logloss_val'][i]:.4f})")  # ganador y su valor
     ax.axvline(tray["n_startup"] - 0.5, color=p.TINTA_TENUE, linestyle=":", linewidth=1.5,  # fin de la fase aleatoria
                label=f"Fin de los {tray['n_startup']} ensayos aleatorios del TPE")  # n_startup_trials
     ax.axhline(logloss_logistica, color=p.COLOR_MODELO["logistica"], linewidth=1.5,  # referencia
@@ -465,8 +493,8 @@ def insumos_de_corrida(carpeta: Path) -> dict:
 # %% [markdown]
 # ## Escritura
 #
-# `_guardar` escribe y cierra una figura; `_escribir_json` usa `results.save_json` (UTF-8, sangría 2, sin NaN,
-# escritura atómica).
+# `_guardar` escribe y cierra una figura. El JSON se escribe con `results.save_json` directamente (UTF-8, sangría 2,
+# sin NaN, escritura atómica).
 
 # %%
 def _guardar(fig, ruta: Path) -> Path:
@@ -475,12 +503,6 @@ def _guardar(fig, ruta: Path) -> Path:
     fig.savefig(ruta)  # PNG con el estilo común
     plt.close(fig)  # libera memoria
     return ruta  # ruta escrita
-
-
-# %%
-def _escribir_json(datos: dict, ruta: Path) -> Path:
-    """Escribe `datos` como JSON con save_json (sin NaN; escritura atómica)."""
-    return save_json(ruta, datos)  # UTF-8, sangría 2
 
 
 # %% [markdown]
@@ -498,7 +520,7 @@ def _validar_datos(datos: dict) -> None:
         raise ValueError(f"`datos` debe tener las claves {sorted(CLAVES_DATOS)}; faltan {sorted(faltan)}, "
                          f"sobran {sorted(sobran)}")  # nombra ambas
     if not datos["semillas"]:  # sin mlp_seed*.json
-        raise ValueError(f"No hay semillas del MLP (mlp_seed*.json); genéralas con {COMO_GENERAR['semillas']}")
+        raise ValueError(f"No hay semillas del MLP (mlp_seed*.json); genéralas con {COMO_GENERAR['semillas']}")  # B5
 
 
 # %%
@@ -509,16 +531,17 @@ def generar(raiz: Path = Path("."), destino: Path | None = None, datos: dict | N
     datos = datos if datos is not None else insumos_de_corrida(Path(raiz) / ENTRADA)  # lectura o inyección
     _validar_datos(datos)  # claves exactas y semillas
     resumen, pred, semillas, hpo = datos["resumen"], datos["pred"], datos["semillas"], datos["hpo"]  # insumos
-    y = pred[COLUMNA_Y].to_numpy()  # desenlace de test
-    calib = datos_calibracion(pred, resumen["mlp"]["semilla_mediana"])  # valida columnas primero
+    _validar_pred(pred)  # columnas de pred_test antes de leer cualquiera
+    y = pred[COLUMNA_Y].to_numpy()  # desenlace de test (ya validado)
+    calib = datos_calibracion(pred, resumen["mlp"]["semilla_mediana"])  # puntos de la calibración
     rocs = {m: datos_roc(y, pred[f"pred_{m}"].to_numpy()) for m in MODELOS}  # ROC por modelo
     kss = {m: datos_ks(y, pred[f"pred_{m}"].to_numpy()) for m in MODELOS}  # KS por modelo
     por_semilla = metricas_por_semilla(semillas, resumen)  # valida mediana y duplicados
     apr = datos_aprendizaje(semillas, resumen)  # semilla mediana
     tray = trayectoria_busqueda(hpo) if hpo is not None else None  # opcional
     bc = datos_busqueda_c(datos["busqueda"])  # rejilla de C
-    rutas = [figura_roc(rocs, destino), figura_ks(kss, destino), figura_calibracion(calib, destino),  # discriminación
-             _escribir_json(calib, destino / ARCHIVO_CALIBRACION), figura_semillas(por_semilla, destino),  # JSON
+    rutas = [figura_roc(rocs, destino), figura_ks(kss, destino), figura_calibracion(calib, destino),  # curvas
+             save_json(destino / ARCHIVO_CALIBRACION, calib), figura_semillas(por_semilla, destino),  # JSON
              figura_aprendizaje(apr, destino)]  # aprendizaje
     if tray is not None:  # solo con hpo_ensayos.json
         logloss_log = resumen["logistica"]["metricas"]["logloss_val"]["media"]  # referencia de la logística

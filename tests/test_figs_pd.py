@@ -28,11 +28,12 @@ def _metricas_resumen(valor: float) -> dict:
 
 def _semilla(seed: int) -> dict:
     """mlp_seed<seed>.json con las claves que usan las figuras (y algunas de más, como el real)."""
-    historial = [{"epoca": e, "perdida_train": 0.5 - e / 100, "perdida_val": 0.52 + abs(e - 2) / 100}
-                 for e in range(1, 6)]  # 5 épocas; la mejor de val es la 2
+    historial = [{"epoca": e, "perdida_train": 0.5 - e / 100,  # train baja con la época
+                  "perdida_val": 0.52 + abs(e - 2) / 100}  # val con mínimo en la época 2
+                 for e in range(1, 6)]  # 5 épocas
     return {"modelo": "mlp", "seed": seed, "config": {"capas": [4], "paciencia": 3, "batch": 8},  # config parcial
-            "metricas": {"auc_test": 0.66 + seed / 100, "ks_test": 0.24 + seed / 100,
-                         "brier_test": 0.18 + seed / 1000, "logloss_val": 0.51 + seed / 1000},  # métricas
+            "metricas": {"auc_test": 0.66 + seed / 100, "ks_test": 0.24 + seed / 100,  # suben con la semilla
+                         "brier_test": 0.18 + seed / 1000, "logloss_val": 0.51 + seed / 1000},  # ídem: distintas
             "n_parametros": 25, "epocas": 5, "mejor_epoca": 2, "historial": historial,  # entrenamiento
             "clave_extra": "se ignora"}  # una clave de más no rompe nada
 
@@ -50,7 +51,8 @@ def _hpo() -> dict:
 
 def _busqueda() -> dict:
     """busqueda_logistica.json con las filas desordenadas a propósito."""
-    filas = [{"C": c, "logloss_val": 0.52 + abs(np.log10(c) + 2) / 100, "auc_val": 0.66 - abs(np.log10(c) + 2) / 100}
+    filas = [{"C": c, "logloss_val": 0.52 + abs(np.log10(c) + 2) / 100,  # mínima en C = 1e-2
+              "auc_val": 0.66 - abs(np.log10(c) + 2) / 100}  # máxima en C = 1e-2
              for c in (1.0, 1e-4, 1e-2)]  # desordenadas por C
     return {"criterio": "logloss_val", "filas": filas, "C_elegido": 1e-2, "en_borde": False}  # elegido interno
 
@@ -61,7 +63,8 @@ def _pred(n: int = 400, seed: int = 0) -> pd.DataFrame:
     p_log = rng.uniform(0.05, 0.6, n)  # PD de la logística
     p_mlp = np.clip(p_log + rng.normal(0, 0.05, n), 0.01, 0.99)  # PD del MLP, parecida
     y = (rng.uniform(size=n) < p_log).astype(np.int64)  # desenlace coherente con la PD
-    return pd.DataFrame({"id": [str(i) for i in range(n)], "y": y, "pred_logistica": p_log, "pred_mlp": p_mlp})
+    return pd.DataFrame({"id": [str(i) for i in range(n)], "y": y,  # columnas de pred_test (núcleo §5.4)
+                         "pred_logistica": p_log, "pred_mlp": p_mlp})  # una por modelo
 
 
 def _resumen() -> dict:
@@ -127,7 +130,8 @@ def test_2b_datos_ks_umbral_es_el_argmax_en_datos_aleatorios():
     """En datos sintéticos, |F₁ − F₀| en umbral_ks es el KS."""
     pred = _pred()  # 400 créditos
     d = figs_pd.datos_ks(pred["y"], pred["pred_mlp"])  # función pura
-    i = int(np.flatnonzero(np.asarray(d["umbrales"]) == d["umbral_ks"])[0])  # índice del umbral elegido
+    i = d["i_ks"]  # índice de t* que devuelve la pura
+    assert d["umbrales"][i] == d["umbral_ks"]  # el índice apunta al umbral del KS
     assert abs(d["f_malos"][i] - d["f_buenos"][i]) == pytest.approx(d["ks"])  # ahí está la separación máxima
 
 
@@ -216,6 +220,7 @@ def test_5_datos_aprendizaje_usa_la_semilla_mediana():
     assert d["perdida_val"][0] == 0.99  # es la historia de la mediana
     assert d["perdida_train"] == [h["perdida_train"] for h in _semilla(1)["historial"]]  # train
     assert (d["mejor_epoca"], d["paciencia"]) == (2, 3)  # de la semilla y de su config
+    assert d["fin_paciencia"] == 5  # 2 + 3 = 5, que también es la última época
 
 
 def test_5b_datos_aprendizaje_sin_la_mediana_da_error():
@@ -327,8 +332,9 @@ def test_9c_generar_con_datos_con_claves_de_mas_o_de_menos_da_error(tmp_path):
     assert not any(tmp_path.iterdir())  # no escribió nada
 
 
-@pytest.mark.parametrize("archivo,comando", [("summary.json", "run.py pd"), ("pred_test.parquet", "run.py pd"),
-                                             ("busqueda_logistica.json", "run.py pd")])
+@pytest.mark.parametrize("archivo,comando", [("summary.json", "run.py pd"),  # resumen (B5)
+                                             ("pred_test.parquet", "run.py pd"),  # PD de test (B5)
+                                             ("busqueda_logistica.json", "run.py pd")])  # rejilla de C (B3)
 def test_10_insumo_que_falta_nombra_el_comando(tmp_path, archivo, comando):
     """Un insumo obligatorio que falta → FileNotFoundError con el archivo y el comando que lo genera."""
     base = _escribir_insumos(tmp_path)  # insumos
@@ -345,6 +351,101 @@ def test_10b_sin_semillas_da_error(tmp_path):
     with pytest.raises(ValueError, match="semillas"):  # mensaje claro
         figs_pd.generar(raiz=tmp_path, destino=tmp_path / "figs")  # genera
     assert not (tmp_path / "figs").exists()  # no dejó figuras a medias
+
+
+# ---------------------------------------------------------------- ronda 2: lógica sacada de los dibujos y ramas
+
+def test_2c_datos_ks_devuelve_el_indice_de_t():
+    """Caso a mano de la prueba 2: t* = 0,2 está en la posición 1."""
+    d = figs_pd.datos_ks(np.array([0, 0, 1, 1]), np.array([0.1, 0.2, 0.3, 0.8]))  # separación perfecta
+    assert d["i_ks"] == 1 and type(d["i_ks"]) is int  # índice nativo de t*
+
+
+def test_3d_datos_calibracion_a_mano_con_dos_bins():
+    """4 créditos, n_bins = 2: bordes Q(0, ½, 1) = 0,1, 0,4, 0,8 (½ interpola 0,2 y 0,6).
+
+    Bin 0 (p ≤ 0,4): p = 0,1 y 0,2 con y = 0 y 1 → PD media 0,15, tasa 0,5, n 2.
+    Bin 1 (p > 0,4): p = 0,6 y 0,8 con y = 0 y 1 → PD media 0,7, tasa 0,5, n 2.
+    Globales: PD media (0,1 + 0,2 + 0,6 + 0,8)/4 = 0,425; tasa 2/4 = 0,5.
+    """
+    pred = pd.DataFrame({"y": [0, 1, 0, 1], "pred_logistica": [0.1, 0.2, 0.6, 0.8],  # caso a mano
+                         "pred_mlp": [0.1, 0.2, 0.6, 0.8]})  # mismo caso para el MLP
+    b = figs_pd.datos_calibracion(pred, semilla_mediana=0, n_bins=2)["modelos"]["mlp"]  # bloque del MLP
+    np.testing.assert_allclose(b["pd_media"], [0.15, 0.7])  # medias por bin
+    np.testing.assert_allclose(b["tasa_observada"], [0.5, 0.5])  # tasas por bin
+    assert b["n"] == [2, 2]  # créditos por bin
+    assert b["pd_media_global"] == pytest.approx(0.425) and b["tasa_global"] == pytest.approx(0.5)  # globales
+
+
+@pytest.mark.parametrize("maximo,esperado", [(3 * 0.1, 0.3),  # 0,30000000000000004: no sube a 0,4
+                                             (0.31, 0.4),  # sube al siguiente múltiplo
+                                             (0.6000000000000001, 0.6),  # error de coma flotante tolerado
+                                             (0.4776, 0.5)])  # máximo real de la calibración (tasa del MLP)
+def test_limite_ejes_redondea_hacia_arriba_al_paso(maximo, esperado):
+    """ceil(max/paso − 1e-9)·paso con paso 0,1, la misma regla que Honesta.tsx."""
+    assert figs_pd.limite_ejes([0.05, maximo]) == esperado  # igualdad exacta tras redondear a 10 decimales
+
+
+def _semilla_con_epocas(n_epocas: int, mejor: int, paciencia: int) -> dict:
+    """Registro de la semilla mediana con `n_epocas`, su mejor época y su paciencia."""
+    r = _semilla(SEMILLA_MEDIANA)  # base
+    r["historial"] = [{"epoca": e, "perdida_train": 0.5, "perdida_val": 0.5} for e in range(1, n_epocas + 1)]  # planas
+    r["mejor_epoca"], r["config"]["paciencia"] = mejor, paciencia  # parada temprana
+    return r  # registro
+
+
+def test_5c_fin_paciencia_corta_por_paciencia():
+    """Mejor 2, paciencia 3, 10 épocas → la franja termina en 2 + 3 = 5."""
+    d = figs_pd.datos_aprendizaje([_semilla_con_epocas(10, 2, 3)], _resumen())  # función pura
+    assert d["fin_paciencia"] == 5  # mejor + paciencia
+
+
+def test_5d_fin_paciencia_corta_por_la_ultima_epoca():
+    """Mejor 8, paciencia 5, 10 épocas → 8 + 5 = 13 pasa del final: termina en la época 10."""
+    d = figs_pd.datos_aprendizaje([_semilla_con_epocas(10, 8, 5)], _resumen())  # función pura
+    assert d["fin_paciencia"] == 10  # última época
+
+
+def test_4d_metricas_por_semilla_con_metrica_desconocida_da_error():
+    """Una métrica sin título en español → ValueError que la nombra."""
+    with pytest.raises(ValueError, match="auc_vall"):  # error de tipeo
+        figs_pd.metricas_por_semilla([_semilla(s) for s in range(N_SEMILLAS)], _resumen(), nombres=("auc_vall",))
+
+
+def test_7c_titulo_avisa_si_c_quedo_en_el_borde(tmp_path, monkeypatch):
+    """en_borde = True → el título general lo dice; False → no."""
+    titulos = []  # títulos capturados
+    espia = lambda fig, ruta: titulos.append(fig._suptitle.get_text()) or ruta  # noqa: E731  guarda el título
+    monkeypatch.setattr(figs_pd, "_guardar", espia)  # no escribe: solo captura
+    for borde in (True, False):  # las dos ramas
+        bc = {**figs_pd.datos_busqueda_c(_busqueda()), "en_borde": borde}  # datos con el borde pedido
+        figs_pd.figura_busqueda_logistica(bc, tmp_path)  # dibuja (sin escribir)
+    assert "en el borde" in titulos[0] and "en el borde" not in titulos[1]  # solo la rama True avisa
+
+
+def test_9d_insumos_de_corrida_sin_carpeta_semillas_da_lista_vacia(tmp_path):
+    """Sin semillas/ → semillas = [] (generar luego falla con su ValueError)."""
+    base = _escribir_insumos(tmp_path)  # insumos
+    for r in (base / "semillas").iterdir():  # vacía la carpeta
+        r.unlink()  # borra cada archivo
+    (base / "semillas").rmdir()  # y la quita
+    assert figs_pd.insumos_de_corrida(base)["semillas"] == []  # lista vacía
+
+
+def test_9e_generar_desde_archivos_sin_hpo_omite_la_busqueda_del_mlp(tmp_path):
+    """Carpeta tipo demo (sin hpo_ensayos.json) leída de disco → 6 PNG + JSON."""
+    _escribir_insumos(tmp_path / "repo", con_hpo=False)  # como la demo
+    rutas = figs_pd.generar(raiz=tmp_path / "repo", destino=tmp_path / "figs")  # lee archivos
+    assert sorted(r.name for r in rutas) == PNG_SIN_HPO  # sin pd-busqueda-mlp.png
+
+
+def test_9f_generar_sin_columna_y_da_error_sin_escribir(tmp_path):
+    """pred_test sin `y` → ValueError con el comando que lo genera, antes de escribir nada."""
+    datos = _datos_en_memoria()  # completos
+    datos["pred"] = datos["pred"].drop(columns="y")  # sin desenlace
+    with pytest.raises(ValueError, match=r"\['y'\].*run.py pd"):  # nombra la columna y el comando
+        figs_pd.generar(destino=tmp_path / "figs", datos=datos)  # genera
+    assert not (tmp_path / "figs").exists()  # no escribió nada
 
 
 # ---------------------------------------------------------------- 11. humo con los resultados reales
