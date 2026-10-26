@@ -78,15 +78,15 @@ mar 27 6 p. m. entrega.
    Para C/E: la PD de Python sale de X float32 → float64; vigilar la paridad < 1e-6 si la app preprocesa en float64.
 8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
    PR de `dev/camila`: declarar `src/common/cli.py` (`lgd`, `lgd-hpo`, `figures`) y `configs/sustentacion.yaml` (demo `lgd`).
-9. C: la suite sin lentas reescribe `blog/docs/figures/lgd-*.png` (¿prueba de figuras de D sin marca `lento`?): no subirlas en commits ajenos.
 
 ## 🎯 Cacería (resumen)
 Confirmados: 2 (H-03 y H-04, Código, Parte B) · Candidatos: 10 (H-01, H-05, H-06, H-07, H-09 Código; H-11 y H-12 Código, Parte C; H-02 Datos; H-08 y H-10 Matemáticas; H-10 = Parte D, antes H-05 en `dev/camila`) · Afirmaciones por verificar: V-01…V-11 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte.
 
 ## 📓 Bitácora
-- **2026-10-25** — C1 (Juan José): `src/scorecard/scorecard.py` (p/logit ↔ puntaje, factor = PDO/ln 2) + `configs/scorecard/base.yaml`
-  (600/50/20) + 289 pruebas. Verificador sobre las pruebas RECHAZÓ (H-11) y luego APROBÓ el código (error ≤ 3,4e-13);
-  revisor-spec APROBADO 2 rondas; revisor-calidad CAMBIOS (H-12: texto y bool aceptados) → APROBADO en la 2.ª.
+- **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige
+  `SALIDA` de todo `src/viz/figs_*.py` y compara SHA-256. Un `figs_*.py` nuevo necesita `SALIDA` y conectarse en `cli._figures`.
+- **2026-10-25** — C1 (Juan José): `src/scorecard/scorecard.py` (p/logit ↔ puntaje) + `configs/scorecard/base.yaml` (600/50/20) + 289 pruebas.
+  Verificador: pruebas RECHAZADAS (H-11), código APROBADO; revisor-spec APROBADO; revisor-calidad APROBADO en la 2.ª (H-12).
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
 - **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
 - **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos
