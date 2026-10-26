@@ -23,11 +23,11 @@ donde cada factor viene de una parte distinta del trabajo:
   de prueba 0,670 (Fuente: `results/data/pd/summary.json`, `logistica.metricas.auc_test`). La pérdida esperada con el MLP
   de PD se obtiene con `python run.py el --config configs/el/base.yaml --set pd.modelo=mlp` y se compara con esta en la
   sección 10.4.
-- **$\mathrm{LGD}_i$**: LGD predicha por el **MLP de la Parte D** (sección 8; semilla mediana 10, Fuente:
-  `results/data/lgd/summary.json`, `modelos.mlp.semilla_mediana`) para **todos** los créditos de prueba, no solo para los
+- **$\mathrm{LGD}_i$**: LGD predicha por el **MLP de la Parte D** (sección 8; semilla mediana 22, Fuente:
+  `results/data/lgd/summary.json`, `mlp.semilla_mediana`) para **todos** los créditos de prueba, no solo para los
   castigados: la fórmula necesita la LGD *condicional a incumplir* de cada crédito, aunque el crédito haya terminado pagándose.
-  Esas predicciones casi no varían entre créditos (desviación estándar 0,009; Fuente: `results/data/lgd/pred_pd_test.parquet`,
-  columna `pred_mlp`), por lo que en la práctica la LGD actúa como una constante cercana a 0,916 (la LGD media de la
+  Esas predicciones casi no varían entre créditos (desviación estándar 0,006; Fuente: `results/data/lgd/pred_pd_test.parquet`,
+  columna `pred_mlp`), por lo que en la práctica la LGD actúa como una constante cercana a 0,917 (la LGD media de la
   [[tab:el-totales]]).
 - **$\mathrm{EAD}_i$**: la exposición al incumplimiento, que definimos en la sección 9.2.
 
@@ -76,17 +76,17 @@ exposición).
 
 ### 9.3 Resultados
 
-Con la logística, el MLP de LGD y la EAD de originación, la **pérdida esperada de todo el conjunto de prueba es 196,71
-millones de USD**, sobre 1 061,57 millones desembolsados, es decir, el 18,5 % del monto ([[tab:el-totales]]).
+Con la logística, el MLP de LGD y la EAD de originación, la **pérdida esperada de todo el conjunto de prueba es 197,03
+millones de USD**, sobre 1 061,57 millones desembolsados, es decir, el 18,6 % del monto ([[tab:el-totales]]).
 
 ::: tabla el-totales
 Título: Pérdida esperada del conjunto de prueba y de sus dos grupos según el desenlace
 Fuente: Elaboración propia a partir de results/data/el/summary.json (bloques total, resueltos y en_mora; función tabla_totales de src/el/tablas.py). Montos en millones de USD. Resueltos = castigados y pagados; en mora = Late (31-120 days) y Default. La pérdida realizada solo está definida para los resueltos.
 | Grupo | Créditos | EAD | E[L] | Pérdida realizada | E[L] / realizada | Tasa de malos | PD media | LGD media |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Todo el conjunto de prueba | 74 154 | 1 061,57 | 196,71 | — | — | 0,262 | 0,187 | 0,916 |
-| Resueltos (contraste) | 68 694 | 977,74 | 177,85 | 168,20 | 1,057 | 0,204 | 0,183 | 0,916 |
-| En mora (cobranza abierta) | 5 460 | 83,83 | 18,86 | — | — | 1,000 | 0,230 | 0,917 |
+| Todo el conjunto de prueba | 74 154 | 1 061,57 | 197,03 | — | — | 0,262 | 0,187 | 0,917 |
+| Resueltos (contraste) | 68 694 | 977,74 | 178,16 | 168,20 | 1,059 | 0,204 | 0,183 | 0,917 |
+| En mora (cobranza abierta) | 5 460 | 83,83 | 18,88 | — | — | 1,000 | 0,230 | 0,917 |
 :::
 
 Para agregarla por nivel de riesgo, partimos el conjunto de prueba en **deciles del puntaje de la scorecard** de la Parte C
@@ -97,11 +97,11 @@ logística como $\text{puntaje}_i = \text{offset} - \text{factor} \cdot \operato
 son, por lo tanto, deciles de la PD de la logística, y que la PD media baje de la banda 1 a la 10 es una consecuencia de cómo
 se construyen.
 
-La [[tab:el-bandas]] muestra que la pérdida esperada se concentra en las bandas de menor puntaje: la banda 1 suma 51,69
-millones, 9,92 veces los 5,21 millones de la banda 10. La diferencia la produce sobre todo la PD: su media es 6,64 veces
+La [[tab:el-bandas]] muestra que la pérdida esperada se concentra en las bandas de menor puntaje: la banda 1 suma 51,76
+millones, 9,88 veces los 5,24 millones de la banda 10. La diferencia la produce sobre todo la PD: su media es 6,64 veces
 mayor en la banda 1 (0,416 frente a 0,063), en parte por construcción de las bandas. La banda 1 tiene además 1,49 veces más
-monto desembolsado (136,15 frente a 91,31 millones), mientras que la LGD media apenas se mueve entre bandas (de 0,910 a
-0,919; 1,01 veces entre las bandas 1 y 10). Lo que no es por construcción es el contraste con lo observado: la tasa de malos
+monto desembolsado (136,15 frente a 91,31 millones), mientras que la LGD media apenas se mueve entre bandas (de 0,914 a
+0,919; 1,00 veces entre las bandas 1 y 10). Lo que no es por construcción es el contraste con lo observado: la tasa de malos
 baja de forma monótona de la banda 1 a la 10 (de 0,476 a 0,087), así que el orden de la PD de la logística se sostiene en el
 conjunto de prueba.
 
@@ -110,17 +110,17 @@ Título: Pérdida esperada por banda de puntaje de la scorecard (todo el conjunt
 Fuente: Elaboración propia a partir de results/data/el/summary.json (por_banda, bloque total; función tabla_bandas de src/el/tablas.py). Montos en millones de USD. Bandas = deciles del puntaje; banda 1 = menor puntaje (más riesgo).
 | Banda | Puntaje | Créditos | EAD | E[L] | PD media | Tasa de malos | LGD media |
 |---:|---|---:|---:|---:|---:|---:|---:|
-| 1 | 457,6–505,3 | 7 416 | 136,15 | 51,69 | 0,416 | 0,476 | 0,917 |
-| 2 | 505,3–515,1 | 7 415 | 137,01 | 38,79 | 0,309 | 0,389 | 0,916 |
-| 3 | 515,1–523,6 | 7 415 | 120,15 | 27,12 | 0,246 | 0,336 | 0,917 |
-| 4 | 523,6–530,5 | 7 416 | 102,99 | 18,85 | 0,200 | 0,309 | 0,919 |
-| 5 | 530,5–535,9 | 7 415 | 96,93 | 14,94 | 0,168 | 0,276 | 0,919 |
+| 1 | 457,6–505,3 | 7 416 | 136,15 | 51,76 | 0,416 | 0,476 | 0,919 |
+| 2 | 505,3–515,1 | 7 415 | 137,01 | 38,88 | 0,309 | 0,389 | 0,917 |
+| 3 | 515,1–523,6 | 7 415 | 120,15 | 27,18 | 0,246 | 0,336 | 0,918 |
+| 4 | 523,6–530,5 | 7 416 | 102,99 | 18,87 | 0,200 | 0,309 | 0,919 |
+| 5 | 530,5–535,9 | 7 415 | 96,93 | 14,95 | 0,168 | 0,276 | 0,918 |
 | 6 | 535,9–540,8 | 7 415 | 92,76 | 12,31 | 0,145 | 0,240 | 0,918 |
-| 7 | 540,8–545,7 | 7 416 | 95,02 | 10,89 | 0,125 | 0,202 | 0,916 |
-| 8 | 545,7–551,1 | 7 415 | 94,47 | 9,25 | 0,107 | 0,172 | 0,915 |
-| 9 | 551,1–558,3 | 7 415 | 94,78 | 7,65 | 0,089 | 0,134 | 0,913 |
-| 10 | 558,3–608,4 | 7 416 | 91,31 | 5,21 | 0,063 | 0,087 | 0,910 |
-| **Total** | | **74 154** | **1 061,57** | **196,71** | 0,187 | 0,262 | 0,916 |
+| 7 | 540,8–545,7 | 7 416 | 95,02 | 10,90 | 0,125 | 0,202 | 0,917 |
+| 8 | 545,7–551,1 | 7 415 | 94,47 | 9,26 | 0,107 | 0,172 | 0,916 |
+| 9 | 551,1–558,3 | 7 415 | 94,78 | 7,67 | 0,089 | 0,134 | 0,915 |
+| 10 | 558,3–608,4 | 7 416 | 91,31 | 5,24 | 0,063 | 0,087 | 0,914 |
+| **Total** | | **74 154** | **1 061,57** | **197,03** | 0,187 | 0,262 | 0,917 |
 :::
 
 ### 9.4 Contraste con la pérdida realizada
@@ -149,10 +149,10 @@ en la PD, pero su cobranza no ha terminado y no hay pérdida realizada que medir
 *provisional* con la misma cuenta, 61,33 millones de USD (Fuente: `results/data/el/summary.json`,
 `en_mora.perdida_provisional`); como estos créditos no registran recuperaciones, esa cifra equivale a suponer LGD = 1 sobre su
 principal pendiente. No es una pérdida observada ni una cota inferior de la pérdida final, y por eso **no la comparamos** con su
-pérdida esperada (18,86 millones): ambas cifras miden cosas distintas.
+pérdida esperada (18,88 millones): ambas cifras miden cosas distintas.
 
-**Resultado.** En los resueltos, la pérdida esperada suma **177,85 millones de USD** y la realizada **168,20 millones**: la
-razón es **1,057** ([[tab:el-totales]]). Por banda, la razón va de 0,926 (banda 5) a 1,203 (banda 10) ([[tab:el-contraste]]
+**Resultado.** En los resueltos, la pérdida esperada suma **178,16 millones de USD** y la realizada **168,20 millones**: la
+razón es **1,059** ([[tab:el-totales]]). Por banda, la razón va de 0,927 (banda 5) a 1,209 (banda 10) ([[tab:el-contraste]]
 y [[fig:el-bandas]]): la pérdida esperada supera a la realizada en ocho de las diez bandas y queda por debajo en las bandas 5
 y 6.
 
@@ -161,17 +161,17 @@ Título: Pérdida esperada frente a pérdida realizada por banda de puntaje (cr�
 Fuente: Elaboración propia a partir de results/data/el/summary.json (por_banda, bloques resueltos y en_mora; función tabla_bandas de src/el/tablas.py). Montos en millones de USD. La última columna cuenta los créditos en mora de la banda, que no entran al contraste.
 | Banda | Resueltos | E[L] | Pérdida realizada | E[L] / realizada | PD media | Tasa de malos | En mora (excluidos) |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 6 464 | 44,96 | 39,72 | 1,132 | 0,415 | 0,399 | 952 |
-| 2 | 6 613 | 34,54 | 32,37 | 1,067 | 0,309 | 0,315 | 802 |
-| 3 | 6 712 | 24,55 | 22,73 | 1,080 | 0,246 | 0,266 | 703 |
-| 4 | 6 739 | 17,11 | 16,48 | 1,038 | 0,200 | 0,240 | 677 |
-| 5 | 6 846 | 13,75 | 14,84 | 0,926 | 0,168 | 0,216 | 569 |
+| 1 | 6 464 | 45,03 | 39,72 | 1,134 | 0,415 | 0,399 | 952 |
+| 2 | 6 613 | 34,62 | 32,37 | 1,069 | 0,309 | 0,315 | 802 |
+| 3 | 6 712 | 24,61 | 22,73 | 1,083 | 0,246 | 0,266 | 703 |
+| 4 | 6 739 | 17,13 | 16,48 | 1,040 | 0,200 | 0,240 | 677 |
+| 5 | 6 846 | 13,76 | 14,84 | 0,927 | 0,168 | 0,216 | 569 |
 | 6 | 6 925 | 11,52 | 12,27 | 0,939 | 0,145 | 0,187 | 490 |
-| 7 | 6 987 | 10,23 | 10,18 | 1,005 | 0,125 | 0,153 | 429 |
-| 8 | 7 043 | 8,77 | 8,76 | 1,002 | 0,107 | 0,128 | 372 |
-| 9 | 7 134 | 7,35 | 6,64 | 1,107 | 0,089 | 0,100 | 281 |
-| 10 | 7 231 | 5,07 | 4,22 | 1,203 | 0,062 | 0,064 | 185 |
-| **Total** | **68 694** | **177,85** | **168,20** | **1,057** | 0,183 | 0,204 | **5 460** |
+| 7 | 6 987 | 10,24 | 10,18 | 1,006 | 0,125 | 0,153 | 429 |
+| 8 | 7 043 | 8,78 | 8,76 | 1,003 | 0,107 | 0,128 | 372 |
+| 9 | 7 134 | 7,37 | 6,64 | 1,110 | 0,089 | 0,100 | 281 |
+| 10 | 7 231 | 5,10 | 4,22 | 1,209 | 0,062 | 0,064 | 185 |
+| **Total** | **68 694** | **178,16** | **168,20** | **1,059** | 0,183 | 0,204 | **5 460** |
 :::
 
 ::: figura el-bandas
@@ -193,7 +193,7 @@ sería menos del 1 % de la pérdida realizada de los resueltos.
 
 ### 9.5 Lectura: por qué la razón queda cerca de 1
 
-Que la razón total sea 1,057 no quiere decir que cada factor esté bien estimado. Los datos muestran tres efectos: dos a la
+Que la razón total sea 1,059 no quiere decir que cada factor esté bien estimado. Los datos muestran tres efectos: dos a la
 baja (la PD y la LGD se quedan cortas) y uno al alza (la EAD de originación sobreestima la exposición).
 
 **La PD queda por debajo de la tasa de malos.** La [[fig:el-pd-vs-tasa]] muestra que, en todo el conjunto de prueba, la PD
@@ -230,45 +230,45 @@ Es una identidad (los términos intermedios se cancelan), y cada factor vale 1 s
 fuera 1 en los castigados y 0 en los pagados; el factor LGD, si la LGD predicha coincidiera con la observada; y el factor EAD,
 si la exposición fuera el principal pendiente al castigo. No es la única descomposición posible (el orden de los pasos cambia
 los valores intermedios), pero sí la que separa las tres piezas de la fórmula. La lectura no depende del orden entre los pasos de
-LGD y de EAD: si primero se cambia la EAD (con la LGD predicha) y después la LGD, los factores del total son 1,176 y 0,972, en
-vez de 1,179 y 0,970. La [[tab:el-descomposicion]] aplica la descomposición a los resueltos de prueba.
+LGD y de EAD: si primero se cambia la EAD (con la LGD predicha) y después la LGD, los factores del total son 1,176 y 0,973, en
+vez de 1,179 y 0,971. La [[tab:el-descomposicion]] aplica la descomposición a los resueltos de prueba.
 
 ::: tabla el-descomposicion
 Título: Descomposición de la razón entre pérdida esperada y realizada en un factor de PD, uno de LGD y uno de EAD (créditos resueltos de prueba)
 Fuente: Elaboración propia a partir de results/data/el/el_test.parquet (columnas pd, lgd, ead, ead_incumplimiento, estado, perdida_observada, observacion_completa y banda), con las sumas de la ecuación anterior. El producto de los tres factores reproduce la razón de results/data/el/summary.json.
 | Banda | E[L] / realizada | Factor PD | Factor LGD | Factor EAD |
 |---:|---:|---:|---:|---:|
-| 1 | 1,132 | 1,051 | 0,977 | 1,103 |
-| 2 | 1,067 | 0,983 | 0,968 | 1,121 |
-| 3 | 1,080 | 0,959 | 0,972 | 1,159 |
-| 4 | 1,038 | 0,873 | 0,969 | 1,228 |
-| 5 | 0,926 | 0,769 | 0,968 | 1,244 |
+| 1 | 1,134 | 1,051 | 0,978 | 1,103 |
+| 2 | 1,069 | 0,983 | 0,970 | 1,121 |
+| 3 | 1,083 | 0,959 | 0,973 | 1,159 |
+| 4 | 1,040 | 0,874 | 0,969 | 1,228 |
+| 5 | 0,927 | 0,770 | 0,968 | 1,244 |
 | 6 | 0,939 | 0,775 | 0,966 | 1,254 |
-| 7 | 1,005 | 0,829 | 0,966 | 1,255 |
-| 8 | 1,002 | 0,818 | 0,961 | 1,274 |
-| 9 | 1,107 | 0,903 | 0,965 | 1,272 |
-| 10 | 1,203 | 0,981 | 0,962 | 1,275 |
-| **Total** | **1,057** | **0,925** | **0,970** | **1,179** |
+| 7 | 1,006 | 0,829 | 0,967 | 1,255 |
+| 8 | 1,003 | 0,818 | 0,962 | 1,274 |
+| 9 | 1,110 | 0,903 | 0,967 | 1,272 |
+| 10 | 1,209 | 0,981 | 0,967 | 1,275 |
+| **Total** | **1,059** | **0,926** | **0,971** | **1,179** |
 :::
 <!-- revisar: autor (la tabla el-descomposicion se calculó fuera de src/: conviene llevar la función a src/el/tablas.py con su
 prueba para que el notebook 05 la reproduzca; el cálculo está descrito en la Fuente) -->
 
-En el total, **la PD se queda corta en un 7,5 % y la LGD en un 3,0 %, y la EAD de originación agrega un 17,9 %**: con
-cuatro decimales, $0{,}9251 \times 0{,}9696 \times 1{,}1788 = 1{,}0574$. Por bandas se ve lo mismo con otros pesos:
+En el total, **la PD se queda corta en un 7,4 % y la LGD en un 2,9 %, y la EAD de originación agrega un 17,9 %**: con
+cuatro decimales, $0{,}9256 \times 0{,}9708 \times 1{,}1788 = 1{,}0592$. Por bandas se ve lo mismo con otros pesos:
 
-- El **factor LGD** es casi constante (de 0,961 a 0,977). Es coherente con la sección 8.5: la LGD predicha queda anclada en
+- El **factor LGD** es casi constante (de 0,962 a 0,978). Es coherente con la sección 8.5: la LGD predicha queda anclada en
   la media de entrenamiento (0,917), mientras la LGD observada de los castigados de prueba está desplazada hacia 1
   (consistente con censura, sección 8.2).
 - El **factor EAD** pasa de 1,103 en la banda 1 a 1,275 en la banda 10 (crece de una banda a la siguiente salvo de la 8 a
   la 9, donde baja de 1,274 a 1,272): los castigados de las bandas de mejor puntaje habían pagado, en promedio ponderado,
   una parte mayor de su principal antes del castigo, y la EAD de originación los sobreexpone más.
-- El **factor PD** está por debajo de 1 en las bandas 2 a 10 y es mínimo en las bandas 5 y 6 (0,769 y 0,775). Justamente esas
+- El **factor PD** está por debajo de 1 en las bandas 2 a 10 y es mínimo en las bandas 5 y 6 (0,770 y 0,775). Justamente esas
   son las dos bandas donde la razón queda por debajo de 1: ahí la sobreexposición de la EAD (1,244 y 1,254) no alcanza a
   compensar la subestimación de la PD y de la LGD (factor LGD 0,968 y 0,966). En la banda 1 el factor PD supera a 1 (1,051)
-  y en la 10 está cerca de 1 (0,981). La razón de la banda 10 (1,203, la más alta) combina un factor PD cercano a 1 con el
+  y en la 10 está cerca de 1 (0,981). La razón de la banda 10 (1,209, la más alta) combina un factor PD cercano a 1 con el
   factor EAD más alto (1,275): las bandas 8 y 9 tienen un factor EAD casi igual (1,274 y 1,272) pero un factor PD menor
-  (0,818 y 0,903) y razones de 1,002 y 1,107, y la banda 2, con un factor PD parecido (0,983) pero un factor EAD de 1,121,
-  queda en 1,067.
+  (0,818 y 0,903) y razones de 1,003 y 1,110, y la banda 2, con un factor PD parecido (0,983) pero un factor EAD de 1,121,
+  queda en 1,069.
 
 **Qué se puede concluir.** La razón cercana a 1 en los resueltos **no es evidencia de que la pérdida esperada esté bien
 calibrada**: resulta de que una PD y una LGD que se quedan cortas en un conjunto de prueba más riesgoso que el de

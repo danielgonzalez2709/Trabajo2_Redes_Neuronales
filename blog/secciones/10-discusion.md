@@ -95,14 +95,14 @@ Fuente: Elaboración propia a partir de results/data/pd/summary.json y results/d
 |---|---|---:|---:|---:|
 | PD | Regresión logística | 49 | 13 | 60,8 s |
 | PD | MLP (32-16-32, ReLU) | 2 673 | 40 | 940,4 s (702,4 + 238,0) |
-| LGD | Regresión lineal | 49 | 1 | 0,01 s |
-| LGD | MLP (128-64, tanh) | 14 593 | 30 | 45,6 s (32,5 + 13,1) |
+| LGD | Regresión lineal | 49 | 1 | 0,03 s |
+| LGD | MLP (32-64-64-32, leaky ReLU) | 9 953 | 30 | 165,3 s (126,1 + 39,2) |
 :::
 <!-- revisar: autor (los tiempos de PD y de LGD se midieron en máquinas posiblemente distintas; hilos_torch = 4 en la PD.
 Confirmar con Andrés y Camila antes de compararlos entre tareas) -->
 
 La [[tab:discusion-presupuesto]] resume el costo. En la PD la red tiene unas 55 veces los parámetros de la logística y su
-ciclo completo tardó unas 15 veces más (940,4 s frente a 60,8 s); en la LGD tiene unas 300 veces los parámetros de la
+ciclo completo tardó unas 15 veces más (940,4 s frente a 60,8 s); en la LGD tiene unas 200 veces los parámetros de la
 lineal. En términos absolutos ninguno de los costos es alto: el ciclo completo de cada red cabe en minutos en una CPU. El
 costo también se nota en la aplicación web, donde los dos modelos de PD se ejecutan en el navegador: el archivo del MLP pesa
 107 567 bytes y el de la logística 16 491 (Fuente: `app/public/model/pd_model_mlp.json` y `pd_model_logistica.json`).
@@ -110,19 +110,19 @@ costo también se nota en la aplicación web, donde los dos modelos de PD se eje
 ### 10.3 Pérdida dado el incumplimiento: la red no aportó
 
 La sección 8 ya hizo esta comparación ([[tab:lgd-resultados]] y [[fig:lgd-semillas]]); aquí la resumimos con los mismos
-criterios. En MAE de prueba la lineal obtiene 0,07712 y el MLP 0,07708 ± 0,00059: la diferencia (0,00004) es una pequeña
-fracción de la desviación entre semillas, y 18 de las 30 semillas mejoran a la lineal y 12 no; en MAE de validación el MLP
-es algo peor (0,0762 frente a 0,0759; unas 1,7 desviaciones; 3 de 30 semillas mejoran a la lineal). En RMSE la red sí queda
-de forma consistente por delante: en validación las 30 semillas mejoran a la lineal (0,09245 frente a 0,09276, unas 4,2
-desviaciones) y en prueba 25 de 30 (0,0857 frente a 0,0866, unas 1,2 desviaciones). Las diferencias absolutas son mínimas en
-todos los casos: a lo sumo 0,0009 en RMSE y 0,0003 en MAE (Fuente: `results/data/lgd/summary.json` y
+criterios. En MAE de prueba la lineal obtiene 0,07712 y el MLP 0,07686 ± 0,00037: la diferencia (0,00026) es menor que la
+desviación entre semillas (unas 0,7 desviaciones), y 23 de las 30 semillas mejoran a la lineal y 7 no; en MAE de validación
+el MLP es algo peor (0,0761 frente a 0,0759; unas 3,4 desviaciones; ninguna de las 30 semillas mejora a la lineal). En RMSE
+la red sí queda de forma consistente por delante: las 30 semillas mejoran a la lineal en validación (0,09244 frente a
+0,09276, unas 6,3 desviaciones) y en prueba (0,0855 frente a 0,0866, unas 2,7 desviaciones). Las diferencias absolutas son
+mínimas en todos los casos: a lo sumo 0,0011 en RMSE y 0,0003 en MAE (Fuente: `results/data/lgd/summary.json` y
 `results/data/lgd/semillas/`). Ninguno de los dos se separa de predecir una constante: la media de entrenamiento queda a menos
 de una milésima en ambas métricas de prueba, y la mediana de entrenamiento (0,943) obtiene el menor MAE y el menor RMSE de
 prueba de todos (0,0699 y 0,0811). La sección 8.5 explica esa ventaja con dos razones que se suman: la mediana es la
 constante que minimiza el error absoluto, mientras que los modelos apuntan a la media; y el conjunto de prueba está
 desplazado hacia LGD = 1, de modo que 0,943 queda más cerca de esa población que la media de entrenamiento. En validación la
 misma constante es la peor opción en MAE y en RMSE. Las predicciones de los dos modelos casi no varían entre créditos
-(sección 8.5), de modo que en la pérdida esperada la LGD actúa como una constante cercana a 0,916 (sección 9.1).
+(sección 8.5), de modo que en la pérdida esperada la LGD actúa como una constante cercana a 0,917 (sección 9.1).
 
 Lo que sí aportó el diseño de la red no es precisión sino forma: la salida sigmoide garantiza predicciones en $(0, 1)$ y la
 entropía cruzada fraccional apunta a la media condicional, que es lo que necesita la pérdida esperada (sección 8.3). En estos
@@ -138,32 +138,32 @@ que no son los mismos créditos en una banda dada.
 
 ::: tabla discusion-el
 Título: Pérdida esperada del conjunto de prueba con la PD de la logística y con la del MLP, y descomposición de la razón en los créditos resueltos
-Fuente: Elaboración propia. Logística: results/data/el/summary.json y results/data/el/el_test.parquet. MLP: salida de python run.py el --config configs/el/base.yaml --set pd.modelo=mlp --set salida=<carpeta temporal> (summary.json y el_test.parquet; no se guarda en results/). LGD: MLP de la Parte D (semilla 10); EAD: funded_amnt. Factores: la descomposición de la sección 9.5, calculada con el_test.parquet de cada corrida. Montos en millones de USD.
+Fuente: Elaboración propia. Logística: results/data/el/summary.json y results/data/el/el_test.parquet. MLP: salida de python run.py el --config configs/el/base.yaml --set pd.modelo=mlp --set salida=<carpeta temporal> (summary.json y el_test.parquet; no se guarda en results/). LGD: MLP de la Parte D (semilla 22); EAD: funded_amnt. Factores: la descomposición de la sección 9.5, calculada con el_test.parquet de cada corrida. Montos en millones de USD.
 | | PD de la logística | PD del MLP (semilla 20) |
 |---|---:|---:|
-| E[L], todo el conjunto de prueba (74 154 créditos) | 196,71 | 207,88 |
+| E[L], todo el conjunto de prueba (74 154 créditos) | 197,03 | 208,20 |
 | PD media / tasa de malos, todo el conjunto | 0,187 / 0,262 | 0,204 / 0,262 |
-| E[L], resueltos (68 694 créditos) | 177,85 | 188,50 |
+| E[L], resueltos (68 694 créditos) | 178,16 | 188,81 |
 | Pérdida realizada, resueltos | 168,20 | 168,20 |
-| **E[L] / realizada, resueltos** | **1,057** | **1,121** |
+| **E[L] / realizada, resueltos** | **1,059** | **1,123** |
 | PD media / tasa de malos, resueltos | 0,183 / 0,204 | 0,201 / 0,204 |
-| Factor PD | 0,925 | 0,981 |
-| Factor LGD | 0,970 | 0,970 |
+| Factor PD | 0,926 | 0,981 |
+| Factor LGD | 0,971 | 0,971 |
 | Factor EAD | 1,179 | 1,179 |
-| E[L] / realizada por banda (mínimo y máximo) | 0,926 (banda 5) – 1,203 (banda 10) | 1,030 (banda 1) – 1,353 (banda 10) |
+| E[L] / realizada por banda (mínimo y máximo) | 0,927 (banda 5) – 1,209 (banda 10) | 1,031 (banda 1) – 1,360 (banda 10) |
 :::
 <!-- revisar: autor (la E[L] con el MLP y su descomposición no están en results/: decidir si se guarda la corrida, p. ej. en
 results/data/el_mlp/, y llevar la descomposición a src/el/tablas.py, como pide la nota de la sección 9.5) -->
 
-Con el MLP, la pérdida esperada de todo el conjunto de prueba sube de 196,71 a 207,88 millones de USD, y la razón entre
-pérdida esperada y realizada en los resueltos pasa de 1,057 a 1,121. Por banda, con el MLP la razón supera a 1 en las diez
+Con el MLP, la pérdida esperada de todo el conjunto de prueba sube de 197,03 a 208,20 millones de USD, y la razón entre
+pérdida esperada y realizada en los resueltos pasa de 1,059 a 1,123. Por banda, con el MLP la razón supera a 1 en las diez
 bandas, mientras que con la logística quedaba por debajo de 1 en las bandas 5 y 6. La tasa de malos baja de forma monótona de
 la banda 1 a la 10 con los dos modelos (de 0,476 a 0,087 con la logística y de 0,478 a 0,088 con el MLP), así que los dos
 ordenan bien el riesgo por grupos.
 
 **Por qué una razón más lejana de 1 no quiere decir una PD peor.** La descomposición de la sección 9.5 lo explica. Los
-factores de LGD y de EAD no dependen del modelo de PD y son iguales en las dos columnas: la LGD se queda corta un 3,0 % y la
-EAD de originación agrega un 17,9 %. Lo único que cambia es el factor PD, que pasa de 0,925 a 0,981: la PD del MLP está más
+factores de LGD y de EAD no dependen del modelo de PD y son iguales en las dos columnas: la LGD se queda corta un 2,9 % y la
+EAD de originación agrega un 17,9 %. Lo único que cambia es el factor PD, que pasa de 0,926 a 0,981: la PD del MLP está más
 cerca del nivel de los resueltos (0,201 frente a una tasa de 0,204). Con la logística, la subestimación de la PD compensaba
 en parte la sobreestimación de la EAD y la razón quedaba cerca de 1; con el MLP esa compensación casi desaparece y queda a la
 vista el sesgo conservador de la EAD. Es decir, **la razón agregada no mide la calibración de la PD**: una PD más cercana a
@@ -222,9 +222,9 @@ selector entre la red y la logística, y los dos modelos ya están exportados en
   el diagnóstico de la sección 10.1 (con la semilla mediana), la mayor parte de esa mejora viene de que su PD media está más cerca de la tasa de malos
   de 2014. Cuesta unas 55 veces más parámetros, unas 15 veces más tiempo y, por ahora, no tiene explicación por variable.
 - **LGD.** El MLP no aportó en la práctica: empata con la lineal en MAE de prueba dentro de la variabilidad entre semillas, y su
-  ventaja en RMSE, consistente entre semillas, es de menos de una milésima. Tiene unas 300 veces más parámetros, y ninguno de
+  ventaja en RMSE, consistente entre semillas, es de alrededor de una milésima. Tiene unas 200 veces más parámetros, y ninguno de
   los dos supera con claridad a una constante.
-- **Pérdida esperada.** Cambiar de modelo de PD cambia el total en 11,17 millones de USD (de 196,71 a 207,88), pero la
+- **Pérdida esperada.** Cambiar de modelo de PD cambia el total en 11,17 millones de USD (de 197,03 a 208,20), pero la
   razón con la pérdida realizada no sirve para elegir entre ellos, porque depende sobre todo de cómo se compensan los sesgos
   de la PD y de la EAD.
 
@@ -260,7 +260,7 @@ si se prefiere, quitarla) -->
    desembolsado (Fuente: `results/data/el/summary.json`); usar el monto completo agrega un 17,9 % a la razón entre la
    pérdida esperada y la realizada de los resueltos (factor EAD 1,179), con cualquiera de los dos modelos de PD.
 6. **Una razón cercana a 1 puede salir de errores que se compensan.** Con la logística la razón entre pérdida esperada y
-   realizada fue 1,057 y con el MLP 1,121, aunque la PD del MLP está más cerca de la tasa observada (sección 10.4). Para
+   realizada fue 1,059 y con el MLP 1,123, aunque la PD del MLP está más cerca de la tasa observada (sección 10.4). Para
    validar la pérdida esperada hay que mirar cada factor por separado.
 7. **La pérdida "observada" se define por el estado del crédito.** Sumar como pérdida observada los créditos en mora (con
    LGD = 1 supuesta, porque no registran recuperaciones) y los pagados con principal sin registrar daba 231,2 millones de USD

@@ -26,10 +26,10 @@ con el selector, como en la sección 10.5) -->
 30 semillas el Brier y la log-loss, según un diagnóstico con la semilla mediana sobre todo porque su probabilidad media
 queda más cerca de la tasa de malos de 2014; a
 cambio tiene unas 55 veces más parámetros y no se descompone en puntos por variable (secciones 10.1 y 10.6). En la pérdida
-dado incumplimiento la red no aportó: empata con la regresión lineal en el error absoluto medio de prueba (0,07708 ± 0,00059
+dado incumplimiento la red no aportó: empata con la regresión lineal en el error absoluto medio de prueba (0,07686 ± 0,00037
 frente a 0,07712), y ninguno de los dos modelos supera con claridad a predecir una constante (sección 10.3). Con la
 logística, la red de LGD y el monto desembolsado como exposición, la pérdida esperada de los 74 154 créditos de prueba es
-196,71 millones de USD (el 18,5 % de lo desembolsado), y en los créditos ya resueltos es 1,057 veces la pérdida realizada,
+197,03 millones de USD (el 18,6 % de lo desembolsado), y en los créditos ya resueltos es 1,059 veces la pérdida realizada,
 una razón cercana a 1 que en parte sale de errores de la probabilidad y de la exposición que se compensan (secciones 9.3 y
 10.4).
 
