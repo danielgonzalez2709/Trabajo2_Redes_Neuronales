@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from _lgd_resultados_reales import MOTIVO_SALTO, summary_real_con_formato_d10
 
 from src.common.results import save_json
 from src.lgd.tablas import (comparacion, describir_mlp, redirigir_salidas, tabla_efecto_transformaciones,
@@ -95,7 +96,14 @@ def test_describir_mlp_con_y_sin_busqueda():
     assert "búsqueda 9.0 s" in texto and "semillas 3.0 s" in texto
     r["mlp"].update(tiempo_busqueda_s=None, busqueda=None, config_de_busqueda=False)
     texto = describir_mlp(r["mlp"])
-    assert "config_de_busqueda: false" in texto and "búsqueda —" in texto and "semillas 3.0 s" in texto
+    assert "configuración distinta de la de la búsqueda" in texto and "config_de_busqueda" not in texto
+    assert "lgd-hpo" not in texto and "búsqueda —" in texto and "semillas 3.0 s" in texto
+
+
+def test_describir_mlp_es_el_de_experimento():
+    """Una sola definición (la usan ``run.py lgd`` y el notebook); ``tablas`` la reexporta."""
+    from src.lgd import experimento
+    assert describir_mlp is experimento.describir_mlp
 
 
 def test_tabla_metricas_compacta():
@@ -247,17 +255,7 @@ def test_insumos_de_corrida_sin_summary_da_error(tmp_path):
         insumos_de_corrida(tmp_path, obs={})
 
 
-def _summary_real_con_formato_d10() -> bool:
-    """TODO(retirar-tras-D4b): hasta que D4b regenere los resultados, el summary.json versionado tiene el formato
-    anterior a D10 (raíz ``modelos``)."""
-    from src.common.results import load_json
-
-    ruta = RAIZ / "results/data/lgd/summary.json"
-    return ruta.is_file() and "modelos" not in load_json(ruta)
-
-
-@pytest.mark.skipif(not _summary_real_con_formato_d10(),
-                    reason="faltan los resultados de D4 o tienen el formato anterior a D10 (los regenera D4b)")
+@pytest.mark.skipif(not summary_real_con_formato_d10(), reason=MOTIVO_SALTO)
 def test_tablas_con_los_resultados_reales():
     from src.common.results import load_json
 

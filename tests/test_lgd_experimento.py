@@ -258,7 +258,7 @@ def test_summary_mlp_campos_de_b_sin_busqueda(raiz: Path):
     assert m["semillas"] == [cfg["base_seed"], cfg["base_seed"] + 1]
     assert m["tiempo_semillas_s"] == pytest.approx(sum(r["tiempo_s"] for r in regs))
     assert m["tiempo_total_s"] == m["tiempo_semillas_s"]
-    assert m["criterio_semilla_mediana"] == exp.CRITERIO_MEDIANA
+    assert "mae_val" in m["criterio_semilla_mediana"]  # val decide (D10b)
     assert m["config"] == regs[0]["config"]["mlp"]  # bloque mlp (como B), el que se entrenó
     assert m["hilos_torch"] == torch.get_num_threads() and m["version_torch"] == str(torch.__version__)
     assert m["base_seed"] == cfg["base_seed"] and m["muestra"] is None
@@ -371,7 +371,6 @@ def test_semilla_mediana_la_decide_val_no_test():
     (orden 21 (0.05), 20 (0.15), 22 (0.25)): test no decide."""
     c = [_corrida(20, 0.30, 0.15), _corrida(21, 0.10, 0.05), _corrida(22, 0.20, 0.25)]
     assert exp._semilla_mediana(c) == 22
-    assert "mae_val" in exp.CRITERIO_MEDIANA and "mae_test" not in exp.CRITERIO_MEDIANA
 
 
 def test_semilla_mediana_empate_en_mae_val_desempata_por_seed():
@@ -498,6 +497,18 @@ def test_busqueda_optuna_con_formato_viejo_es_error(raiz: Path):
         exp.entrenar_semillas(cfg, raiz)
 
 
+@pytest.mark.parametrize("clave", ["muestra", "n_ensayos", "tiempo_s"])
+def test_busqueda_optuna_sin_clave_requerida_es_error_guiado(raiz: Path, clave):
+    """Un bloque ``busqueda`` optuna al que le falta una clave que se lee → ``ValueError`` que guía a repetir
+    lgd-hpo (no ``KeyError``)."""
+    carpeta = _copiar_configs(raiz)
+    exp.buscar(_cfg("hpo.yaml", ["hpo.n_ensayos=1"], carpeta), raiz)
+    cfg = _cfg("base.yaml", ["semillas.n=1"], carpeta, rapido=["datos.muestra=null"])
+    del cfg["busqueda"][clave]
+    with pytest.raises(ValueError, match=f"(?s){clave}.*repite lgd-hpo"):
+        exp.entrenar_semillas(cfg, raiz)
+
+
 def test_demo_yaml_sin_busqueda_corre(raiz: Path):
     """La demo (``busqueda.tipo: sin_busqueda``, ``evidencia: null``) corre sin leer ``mlp_final.yaml`` y deja el
     presupuesto de la búsqueda en null."""
@@ -568,6 +579,8 @@ def test_cli_demo_con_set_semillas_no_toca_la_carpeta_real(raiz: Path, monkeypat
     assert cli.main(argv) == 0
     out = capsys.readouterr().out
     assert "Tiempo de ejecución" in out
+    # la demo es sin_busqueda: la consola no afirma busqueda.origen como procedencia (describir_mlp)
+    assert "Configuración del MLP: configuración distinta de la de la búsqueda" in out
     demo = load_config(RAIZ / "configs/lgd/demo.yaml")
     base = load_config(RAIZ / "configs/lgd/base.yaml")
     assert len(list((raiz / demo["salida"] / "semillas").glob("mlp_seed*.json"))) == 2

@@ -129,13 +129,13 @@ for clave, nota in pre["notas_objetivo_continuo"].items():
 
 # %%
 from src.lgd.experimento import entrenar_semillas
-from src.lgd.tablas import redirigir_salidas, tabla_metricas_compacta
+from src.lgd.tablas import describir_mlp, redirigir_salidas, tabla_metricas_compacta
 
 carpeta_demo = Path(tempfile.mkdtemp(prefix="demo_lgd_"))
 inicio = time.perf_counter()
 resumen_demo = entrenar_semillas(redirigir_salidas(cfg, carpeta_demo))
-print(f"Tiempo de la demo: {time.perf_counter() - inicio:.1f} s · créditos: {resumen_demo['mlp']['n']} · "
-      f"configuración del MLP: {cfg['busqueda']['origen']}")
+print(f"Tiempo de la demo: {time.perf_counter() - inicio:.1f} s · créditos: {resumen_demo['mlp']['n']}")
+print(describir_mlp(resumen_demo["mlp"]))
 tabla_metricas_compacta(resumen_demo)
 
 # %% [markdown]

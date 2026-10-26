@@ -95,6 +95,7 @@ from src.lgd.procedencia import evidencia
 
 SPLITS = ("train", "val", "test")
 MODELOS = ("lineal", "mlp")  # claves de summary.json además de "referencias" (núcleo §5.4, como B)
+SIN_DATO = "—"  # presentación: campo null (p. ej. tiempo_busqueda_s fuera de la búsqueda)
 NOTA_PRED_LINEAL = "pred_lineal no se recorta: puede salir de [0, 1] (ver lineal.fuera_de_rango)"
 METRICAS = ("mae_val", "rmse_val", "mae_test", "rmse_test")
 ARCHIVO_HPO = "hpo_ensayos.json"
@@ -103,6 +104,7 @@ CRITERIO_SELECCION = ("mínima pérdida de validación del propio MLP (media de 
 CRITERIO_MEDIANA = ("orden ascendente por (mae_val, seed); posición (n - 1) // 2 "
                     "(n par: mediana inferior; empate: semilla menor)")  # val decide, como B (B-pd §3.5)
 TIPOS_BUSQUEDA = ("sin_busqueda", "optuna")
+CLAVES_BUSQUEDA_OPTUNA = ("evidencia", "muestra", "n_ensayos", "tiempo_s")  # las que lee _leer_procedencia
 CABECERA_MLP_FINAL = """# Generado por `python run.py lgd-hpo` (src/lgd/experimento.py). No se edita a mano.
 # Configuración final del MLP de LGD (Parte D §3.3) y su procedencia; la hereda configs/lgd/base.yaml.
 """
@@ -198,8 +200,15 @@ def escribir_mlp_final(ruta: Path, mlp: dict, busqueda: dict) -> Path:
     return ruta
 
 
-def _validar_formato_evidencia(ev_busqueda, ev_actual: dict) -> None:
-    """``busqueda.evidencia`` debe ser un mapeo con las claves de la evidencia de esta corrida (formato de B)."""
+def _validar_formato_evidencia(b: dict, ev_actual: dict) -> None:
+    """Formato del bloque ``busqueda`` optuna: tiene las claves que se leen (``CLAVES_BUSQUEDA_OPTUNA``) y
+    ``evidencia`` es un mapeo con las claves de la evidencia de esta corrida (formato de B). Si no → ``ValueError``
+    que guía a repetir lgd-hpo (nunca ``KeyError``)."""
+    faltan = [k for k in CLAVES_BUSQUEDA_OPTUNA if k not in b]
+    if faltan:
+        raise ValueError(f"al bloque busqueda (tipo optuna) le faltan {faltan}: repite lgd-hpo para regenerar "
+                         "mlp_final.yaml")
+    ev_busqueda = b["evidencia"]
     if not isinstance(ev_busqueda, dict) or set(ev_busqueda) != set(ev_actual):
         raise ValueError(f"busqueda.evidencia debe ser {{{', '.join(ev_actual)}}} (formato de B; se recibió "
                          f"{ev_busqueda!r}): repite lgd-hpo para regenerar mlp_final.yaml")
@@ -208,7 +217,7 @@ def _validar_formato_evidencia(ev_busqueda, ev_actual: dict) -> None:
 def _validar_mismos_datos(b: dict, d: dict) -> None:
     """``ValueError`` si alguna huella de ``busqueda.evidencia`` o la ``muestra`` de la búsqueda no es la de esta
     corrida (lista plana ``(nombre, registrado, actual)``)."""
-    _validar_formato_evidencia(b.get("evidencia"), d["evidencia"])
+    _validar_formato_evidencia(b, d["evidencia"])
     comparaciones = [(f"evidencia.{k}", b["evidencia"][k], v) for k, v in d["evidencia"].items()]
     comparaciones.append(("muestra", b["muestra"], d["muestra"]))
     for nombre, registrado, actual in comparaciones:
@@ -393,31 +402,51 @@ def _entrada_lineal(d: dict, lineal: dict) -> dict:
             "fuera_de_rango": reg["fuera_de_rango"], "nota_pred": NOTA_PRED_LINEAL}
 
 
-def _entrada_mlp(cfg: dict, d: dict, corridas: list[dict], seed_mediana: int, procedencia: dict) -> dict:
-    """Entrada ``mlp`` de summary.json con los campos de la de B (núcleo §5.4, v0.16) + ``base_seed``, ``n`` y
-    ``muestra``. ``tiempo_total_s`` = búsqueda + semillas si ``config_de_busqueda``; si no, solo las semillas."""
+def _entrada_mlp(cfg: dict, d: dict, corridas: list[dict], mediana: dict, procedencia: dict) -> dict:
+    """Entrada ``mlp`` de summary.json: los campos de la de B (núcleo §5.4, v0.16) + los extras de D (``base_seed``,
+    ``n`` y ``muestra``). ``mediana`` es la corrida de la semilla mediana (``_semilla_mediana``)."""
     regs = [c["registro"] for c in corridas]
-    mediana = next(c["registro"] for c in corridas if c["seed"] == seed_mediana)
+    reg_mediana = mediana["registro"]
     t_semillas = sum((r["tiempo_s"] for r in regs), 0.0)
     t_busqueda = procedencia["tiempo_busqueda_s"]
-    return {"n_parametros": mediana["n_parametros"],
-            "n_configuraciones_busqueda": procedencia["n_configuraciones_busqueda"],
-            "tiempo_total_s": t_busqueda + t_semillas if procedencia["config_de_busqueda"] else t_semillas,
-            "tiempo_busqueda_s": t_busqueda, "tiempo_semillas_s": t_semillas,
-            "metricas": {k: _resumir([r["metricas"][k] for r in regs]) for k in METRICAS},
-            "evidencia": d["evidencia"], "semillas": [r["seed"] for r in regs], "semilla_mediana": seed_mediana,
-            "criterio_semilla_mediana": CRITERIO_MEDIANA, "config": copy.deepcopy(mediana["config"]["mlp"]),
-            "config_de_busqueda": procedencia["config_de_busqueda"], "busqueda": procedencia["busqueda"],
-            "hilos_torch": mediana["hilos_torch"], "version_torch": mediana["version_torch"],
-            "base_seed": cfg["base_seed"], "n": d["n"], "muestra": d["muestra"]}
+    # núcleo §5.4: búsqueda + semillas si la config es la de la búsqueda; si no, solo las semillas
+    tiempo_total_s = t_busqueda + t_semillas if procedencia["config_de_busqueda"] else t_semillas
+    campos_de_b = {
+        "n_parametros": reg_mediana["n_parametros"],
+        "n_configuraciones_busqueda": procedencia["n_configuraciones_busqueda"],
+        "tiempo_total_s": tiempo_total_s, "tiempo_busqueda_s": t_busqueda, "tiempo_semillas_s": t_semillas,
+        "metricas": {k: _resumir([r["metricas"][k] for r in regs]) for k in METRICAS},
+        "evidencia": d["evidencia"], "semillas": [r["seed"] for r in regs], "semilla_mediana": mediana["seed"],
+        "criterio_semilla_mediana": CRITERIO_MEDIANA, "config": copy.deepcopy(reg_mediana["config"]["mlp"]),
+        "config_de_busqueda": procedencia["config_de_busqueda"], "busqueda": procedencia["busqueda"],
+        "hilos_torch": reg_mediana["hilos_torch"], "version_torch": reg_mediana["version_torch"],
+    }
+    extras_de_d = {"base_seed": cfg["base_seed"], "n": d["n"], "muestra": d["muestra"]}
+    return {**campos_de_b, **extras_de_d}
 
 
-def _armar_resumen(cfg: dict, d: dict, lineal: dict, corridas: list[dict], seed_mediana: int,
+def _armar_resumen(cfg: dict, d: dict, lineal: dict, corridas: list[dict], mediana: dict,
                    procedencia: dict) -> dict:
     """summary.json por modelo (``lineal``, ``mlp``), como el de B, + ``referencias`` (D §3.4)."""
     return {"lineal": _entrada_lineal(d, lineal),
-            "mlp": _entrada_mlp(cfg, d, corridas, seed_mediana, procedencia),
+            "mlp": _entrada_mlp(cfg, d, corridas, mediana, procedencia),
             "referencias": _referencias_constantes(d["y"]["train"], d["y"]["val"], d["y"]["test"])}
+
+
+def describir_mlp(mlp: dict) -> str:
+    """Una línea con la procedencia, la arquitectura y el presupuesto de la entrada ``mlp`` de ``summary.json``
+    (la usan ``run.py lgd`` y el notebook 04 vía ``src.lgd.tablas``).
+
+    Procedencia: ``busqueda.origen`` solo si ``config_de_busqueda``; si no, no se afirma ningún origen.
+    """
+    if mlp["config_de_busqueda"]:
+        origen = mlp["busqueda"].get("origen", mlp["busqueda"]["tipo"])
+    else:
+        origen = "configuración distinta de la de la búsqueda"
+    t_busqueda = mlp["tiempo_busqueda_s"]
+    busqueda = SIN_DATO if t_busqueda is None else f"{t_busqueda:.1f} s"
+    return (f"Configuración del MLP: {origen} · capas {mlp['config']['capas']} · pérdida {mlp['config']['perdida']} · "
+            f"búsqueda {busqueda} · semillas {mlp['tiempo_semillas_s']:.1f} s")
 
 
 def _escribir_predicciones(d: dict, lineal, mlp, salida: Path) -> None:
@@ -439,12 +468,12 @@ def entrenar_semillas(cfg: dict, raiz: Path = Path(".")) -> dict:
     lineal = _entrenar_lineal(d, base_seed, salida / "semillas")
     corridas = _entrenar_mlp(cfg, d, semillas, salida / "semillas")
     seed_mediana = _semilla_mediana(corridas)
-    mlp_mediano = next(c["modelo"] for c in corridas if c["seed"] == seed_mediana)
-    resumen = _armar_resumen(cfg, d, lineal, corridas, seed_mediana, procedencia)
+    mediana = next(c for c in corridas if c["seed"] == seed_mediana)  # una sola búsqueda de la corrida mediana
+    resumen = _armar_resumen(cfg, d, lineal, corridas, mediana, procedencia)
     save_json(salida / "summary.json", resumen)
-    _escribir_predicciones(d, lineal["modelo"], mlp_mediano, salida)
+    _escribir_predicciones(d, lineal["modelo"], mediana["modelo"], salida)
     lineal["modelo"].guardar(raiz / cfg["modelos"]["lineal"])
-    mlp_mediano.guardar(raiz / cfg["modelos"]["mlp"])
+    mediana["modelo"].guardar(raiz / cfg["modelos"]["mlp"])
     return resumen
 
 
@@ -453,7 +482,7 @@ def manejador(cfg: dict | None) -> int:
     """``run.py lgd`` (la CLI ya imprimió la config resuelta, que es la que se entrena)."""
     inicio = time.perf_counter()
     r = entrenar_semillas(cfg)
-    print(f"Configuración del MLP: {cfg['busqueda']['origen']}")
+    print(describir_mlp(r["mlp"]))
     for nombre in MODELOS:
         m = r[nombre]
         met = m["metricas"]

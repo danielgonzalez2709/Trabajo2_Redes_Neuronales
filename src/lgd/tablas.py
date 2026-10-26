@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.lgd.experimento import METRICAS, MODELOS, SPLITS
+from src.lgd.experimento import METRICAS, MODELOS, SIN_DATO, SPLITS
+from src.lgd.experimento import describir_mlp  # noqa: F401  (reexportada para el notebook 04; la usa run.py lgd)
 
 NOMBRE_METRICA = {"mae_val": "MAE val", "rmse_val": "RMSE val", "mae_test": "MAE test", "rmse_test": "RMSE test"}
 DECIMALES = 4  # solo presentación de la tabla compacta
-SIN_DATO = "—"
 
 
 def redirigir_salidas(cfg: dict, carpeta: str | Path) -> dict:
@@ -88,21 +88,6 @@ def comparacion(resumen: dict, metrica: str = "mae_test") -> dict:
     return {"metrica": metrica, "valores": valores, "desv_mlp": resumen["mlp"]["metricas"][metrica]["desv"],
             "mejor": min(valores, key=valores.get),
             "mlp_menos": {n: valores["mlp"] - v for n, v in valores.items() if n != "mlp"}}
-
-
-def describir_mlp(mlp: dict) -> str:
-    """Una línea con la procedencia, la arquitectura y el presupuesto de la entrada ``mlp`` de ``summary.json``.
-
-    Procedencia: ``busqueda.origen`` si ``config_de_busqueda``; si no, lo dice (el bloque ``busqueda`` es null).
-    """
-    if mlp["config_de_busqueda"]:
-        origen = mlp["busqueda"].get("origen", mlp["busqueda"]["tipo"])
-    else:
-        origen = "fuera de la búsqueda (config_de_busqueda: false)"
-    t_busqueda = mlp["tiempo_busqueda_s"]
-    busqueda = SIN_DATO if t_busqueda is None else f"{t_busqueda:.1f} s"
-    return (f"Configuración del MLP: {origen} · capas {mlp['config']['capas']} · pérdida {mlp['config']['perdida']} · "
-            f"búsqueda {busqueda} · semillas {mlp['tiempo_semillas_s']:.1f} s")
 
 
 # ------------------------------------------------------------------------- LGD observada (descriptivo["observado"])

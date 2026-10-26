@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from _lgd_resultados_reales import MOTIVO_SALTO, summary_real_con_formato_d10
 
 from src.viz.figs_lgd import (BANDAS_LGD, _etiqueta_mae, cuantiles_qq, generar, mae_por_banda, mae_semilla_mediana,
                               tabla_error_por_banda)
@@ -170,15 +171,8 @@ def test_sin_semillas_da_error(tmp_path):
         generar(raiz=tmp_path, destino=tmp_path / "figs")
 
 
-def _summary_real_anterior_a_d10() -> bool:
-    """TODO(retirar-tras-D4b): el summary.json versionado tiene el formato anterior a D10 (raíz ``modelos``) hasta
-    que D4b regenere los resultados."""
-    ruta = RAIZ / "results/data/lgd/summary.json"
-    return ruta.is_file() and "modelos" in json.loads(ruta.read_text(encoding="utf-8"))
-
-
 @pytest.mark.lento
-@pytest.mark.skipif(_summary_real_anterior_a_d10(), reason="summary.json real anterior a D10; lo regenera D4b")
+@pytest.mark.skipif(not summary_real_con_formato_d10(), reason=MOTIVO_SALTO)
 def test_generar_con_resultados_reales(tmp_path):
     rutas = generar(raiz=RAIZ, destino=tmp_path)
     assert sorted(r.name for r in rutas) == NOMBRES
