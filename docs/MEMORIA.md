@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-26 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10, 26-oct 12:38 p. m.), Parte D: D1–D8 (PR #7), Parte C: C1 scorecard y C2 exportador con la logística real (PR #8) y Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9). Spec v0.16 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 (demo) y B7; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C5 con los dos modelos (Spec v0.17) y C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 con selector de modelo (R-APP-2, v0.17). Daniel: PR de Spec v0.17 (dos modelos en la app); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10, 26-oct 12:38 p. m.), Parte D: D1–D8 (PR #7), Parte C: C1 scorecard y C2 exportador con la logística real (PR #8) y Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9). Spec v0.17: los dos modelos de PD en la app (PR #11, 26-oct 1:12 p. m.) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 (demo) y B7; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C5 con los dos modelos (Spec v0.17) y C3 (scorecard de la logística) y PR de Spec con C §3.1 [DECIDIDO] y `export.yaml` en el núcleo §4. D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 con selector de modelo (R-APP-2, v0.17). Daniel: PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -88,7 +88,7 @@ mar 27 6 p. m. entrega.
 Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código.
 
 ## 📓 Bitácora
-- **2026-10-26** — Spec v0.17 (Daniel): los dos modelos de PD en la app; el exportador de C ya sirve para el MLP (paridad 6,7e-9).
+- **2026-10-26** — PR #11 fusionado (1:12 p. m.): Spec v0.17, los dos modelos de PD en la app; el exportador de C ya sirve para el MLP.
 - **2026-10-26** — PR #10 fusionado (12:38 p. m., CI en verde; revisado por Daniel): B4 y B5 en `main`. MLP de PD: AUC 0,6716 ±
   0,0031 frente a 0,6697 de la logística; Brier y log-loss mejores en 30/30 semillas. 2 pruebas de permisos fallan en Windows.
 - **2026-10-26** — PR #9 fusionado (10:26 a. m., CI en verde): E5, E11 y blog 09 en `main`. Daniel confirma los 15 hallazgos
