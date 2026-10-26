@@ -247,6 +247,51 @@ def test_comando_el_avisa_si_faltan_las_entregas(tmp_path, capsys, monkeypatch):
     assert not (tmp_path / "salida").exists()
 
 
+def _resumen_para_texto(razon):
+    base = {"n": 0, "el": 0.0, "ead": 0.0, "tasa_malos": None, "pd_media": None, "lgd_media": None}
+    return {"total": {**base, "n": 1234, "el": 5678.4, "ead": 98765.0},
+            "resueltos": {**base, "n": 1000, "el": 4000.0, "perdida_observada": 3200.0,
+                          "razon_el_sobre_perdida_observada": razon},
+            "en_mora": {**base, "n": 234, "el": 1678.4, "perdida_provisional": 9000.0},
+            "anomalia_pagados": {"descripcion": "", "n": 7, "principal_no_registrado": 1500.0}}
+
+
+def test_texto_resumen_totales_resueltos_mora_y_anomalia():
+    """Lo comparten `run.py el` y el notebook 05: una línea por bloque, montos en USD sin decimales."""
+    from src.el.experimento import texto_resumen
+
+    lineas = texto_resumen(_resumen_para_texto(1.25)).splitlines()
+    assert len(lineas) == 4
+    todo, resueltos, mora, anomalia = lineas
+    assert todo.startswith("Todo el test: 1,234 créditos")
+    assert "EAD 98,765 USD" in todo and "E[L] 5,678 USD" in todo
+    assert "(n = 1,000)" in resueltos and "E[L] 4,000 USD" in resueltos
+    assert "pérdida realizada 3,200 USD" in resueltos and resueltos.endswith("razón 1.250")
+    assert "(n = 234)" in mora and "E[L] 1,678 USD" in mora and "LGD = 1" in mora and "9,000 USD" in mora
+    assert "7 pagados" in anomalia and "1,500 USD" in anomalia and "no se suma a la pérdida" in anomalia
+
+
+def test_texto_resumen_sin_perdida_realizada_no_falla():
+    """Razón None (sin pérdida realizada): se muestra "—" en vez de fallar al formatear."""
+    from src.el.experimento import texto_resumen
+
+    assert texto_resumen(_resumen_para_texto(None)).splitlines()[1].endswith("razón —")
+
+
+def test_comando_el_imprime_el_texto_resumen(tmp_path, capsys, monkeypatch):
+    """`run.py el` imprime exactamente `texto_resumen` del resumen que escribe."""
+    import json
+
+    from src.el.experimento import manejador, texto_resumen
+
+    monkeypatch.chdir(tmp_path)
+    rutas, _ = _escribir_entradas(tmp_path)
+    cfg = _cfg(rutas, tmp_path)
+    assert manejador(cfg) == 0
+    resumen = json.loads((cfg["salida"] / "summary.json").read_text(encoding="utf-8"))
+    assert texto_resumen(resumen) in capsys.readouterr().out
+
+
 SCORECARD = {"base": 600, "odds_base": 50, "pdo": 20}
 
 

@@ -62,6 +62,23 @@ def _texto_razon(bloque: dict) -> str:
     return "—" if razon is None else f"{razon:.3f}"
 
 
+def texto_resumen(resumen: dict) -> str:
+    """Cuatro líneas del resumen de `correr_el` (lo imprimen `run.py el` y el notebook 05): todo el test, el contraste
+    de los resueltos (razón "—" si no hay pérdida realizada), los en mora con su pérdida provisional y la anomalía de
+    los pagados. Montos en USD sin decimales."""
+    total, resueltos = resumen["total"], resumen["resueltos"]
+    en_mora, anomalia = resumen["en_mora"], resumen["anomalia_pagados"]
+    return "\n".join([
+        f"Todo el test: {total['n']:,} créditos · EAD {total['ead']:,.0f} USD · E[L] {total['el']:,.0f} USD",
+        f"Contraste con los resueltos (n = {resueltos['n']:,}): E[L] {resueltos['el']:,.0f} USD · pérdida realizada "
+        f"{resueltos['perdida_observada']:,.0f} USD · razón {_texto_razon(resueltos)}",
+        f"En mora, cobranza abierta (n = {en_mora['n']:,}): E[L] {en_mora['el']:,.0f} USD · pérdida provisional "
+        f"(LGD = 1 sobre el pendiente) {en_mora['perdida_provisional']:,.0f} USD",
+        f"Anomalía: {anomalia['n']:,} pagados con {anomalia['principal_no_registrado']:,.0f} USD de principal no "
+        "registrado (no se suma a la pérdida)",
+    ])
+
+
 def manejador(cfg: dict | None) -> int:
     inicio = time.perf_counter()
     faltan = [(parte, cfg[clave]["predicciones"]) for parte, clave in (("B", "pd"), ("D", "lgd"))
@@ -71,14 +88,7 @@ def manejador(cfg: dict | None) -> int:
             print(f"Falta {ruta} (lo entrega la Parte {parte}; núcleo §5.4).")
         return 2
     r = correr_el(cfg)
-    t, res, mora, anom = r["total"], r["resueltos"], r["en_mora"], r["anomalia_pagados"]
-    print(f"Todo el test: {t['n']:,} créditos · EAD {t['ead']:,.0f} USD · E[L] {t['el']:,.0f} USD")
-    print(f"Contraste con los resueltos (n = {res['n']:,}): E[L] {res['el']:,.0f} USD · pérdida realizada "
-          f"{res['perdida_observada']:,.0f} USD · razón {_texto_razon(res)}")
-    print(f"En mora, cobranza abierta (n = {mora['n']:,}): E[L] {mora['el']:,.0f} USD · pérdida provisional "
-          f"(LGD = 1 sobre el pendiente) {mora['perdida_provisional']:,.0f} USD")
-    print(f"Anomalía: {anom['n']:,} pagados con {anom['principal_no_registrado']:,.0f} USD de principal no registrado "
-          "(no se suma a la pérdida)")
+    print(texto_resumen(r))
     print("Por banda, contraste de los resueltos:")
     print("Banda  puntaje          n resueltos  E[L] (USD)    realizada (USD)  razón  n mora  provisional (USD)")
     for b in r["por_banda"]:
