@@ -3,22 +3,80 @@ prompt literal, respuesta, sospecha, evidencia, corrección y lección. Fuente: 
 cifras que no estén ahí). Cada parte agrega aquí sus hallazgos cuando estén confirmados. Guía: blog/README.md -->
 ## 12. Cacería de la alucinación
 
-Registramos cada error de la IA en `alucinaciones/registro.md`, con el prompt literal, la evidencia reproducible (scripts en
-`alucinaciones/evidencias/`) y la corrección. La [[tab:caceria]] resume los hallazgos hasta ahora.
+Registramos cada error de la IA en `alucinaciones/registro.md`, con el prompt literal (en `alucinaciones/prompts/`), su
+evidencia (derivación, experimento o fuente; los scripts y salidas en `alucinaciones/evidencias/` cuando existen) y la
+corrección. Un hallazgo queda **confirmado** cuando un integrante lo revisa (el autor de la parte o Daniel, que coordina la
+cacería). Los veintiún hallazgos registrados están confirmados: la [[tab:caceria]] los resume y la [[tab:caceria-cobertura]]
+los cuenta por categoría.
 
 ::: tabla caceria
 Título: Hallazgos de la cacería de la alucinación
 Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinaciones/evidencias/.
-| Id | Categoría | Qué dijo o hizo la IA | Qué mostró la evidencia |
-|---|---|---|---|
-| H-01 | Código | Calculó el índice de estabilidad poblacional con cortes por cuantiles | En variables discretas los cortes colapsan y el índice da 0 aunque la población cambie |
-| H-02 | Datos del mundo real | "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora" | El diccionario no lo dice y el 0,46 % de esos vacíos sí tiene moras recientes |
+| Id | Categoría | Parte | Estado | Qué dijo o hizo la IA | Qué mostró la evidencia |
+|---|---|---|---|---|---|
+| H-01 | Código | A | Confirmado | Calculó el índice de estabilidad poblacional con cortes por cuantiles | En variables discretas los cortes colapsan y el índice da 0 aunque la población cambie |
+| H-02 | Datos del mundo real | A | Confirmado | Sobre `mths_since_last_delinq`: "un vacío significa «nunca ocurrió» y no un dato faltante" | El diccionario no lo dice y el 0,46 % de esos vacíos sí tiene moras recientes |
+| H-03 | Código | B | Confirmado | Afirmó que `calibration_curve` manda al intervalo superior el dato que cae en un borde | El código de scikit-learn lo manda al inferior; la prueba no lo notaba porque sus datos no tenían empates |
+| H-04 | Código | B | Confirmado | Validó las entradas de la AUC rechazando solo los NaN | Con puntajes ±inf la AUC da 0,444 en lugar de 5/9 = 0,556, sin error |
+| H-05 | Código | B | Confirmado | Propuso una prueba de L2 "con lr y gradiente de la pérdida en 0" | Con lr = 0 los pesos no cambian para ningún λ: la prueba no puede fallar |
+| H-06 | Código | B | Confirmado | Quitó las pruebas de los minilotes y de `evaluar_perdida` porque, según el plan, las pruebas 14 y 15 ya las cubrían | Tres mutantes de esos fallos pasan las 71 pruebas |
+| H-07 | Código | B | Confirmado | Comentó un `@dataclass(frozen=True)`: "inmutable: quien lo reciba (B4, B5, D) no puede alterar el historial" | `r.historial.append(1)` funciona: la congelación es superficial |
+| H-08 | Matemáticas | B | Confirmado | La especificación pedía L2 con el "término λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente" | Lo equivalente a `weight_decay` es (λ/2)‖W‖²; con λ‖W‖² los pesos difieren |
+| H-09 | Código | B | Confirmado | Presentó como la prueba que detecta un filtro global de avisos una que compara `warnings.filters` antes y después de `fit` | El mutante sobrevivía: el módulo de pruebas ya tenía ese filtro |
+| H-10 | Matemáticas | D | Confirmado | "el estimador es consistente para la media condicional", dicho del MLP de la LGD | La consistencia es del QMLE paramétrico; al MLP solo le aplica el minimizador poblacional |
+| H-11 | Código | C | Confirmado | "Las funciones usan factor y offset tal como vienen", en una prueba que llama a dos de las cuatro | Dos mutantes pasan las 199 pruebas |
+| H-12 | Código | C | Confirmado | "texto u objetos no numéricos fallan aquí", sobre `np.asarray(x, dtype=np.float64)` | `"1.5"` y `True` se convierten sin error |
+| H-13 | Datos del mundo real | E | Confirmado | La pérdida observada "es la misma construcción de la LGD de la Parte D" y, en los créditos en mora, "su pérdida observada es parcial" | 61,3 de los 231,2 M USD eran créditos en mora con recuperaciones 0 (LGD = 1 supuesta) y 1,67 M eran créditos pagados |
+| H-14 | Matemáticas | E | Confirmado | "con montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia la produce la PD" | Difieren en un 49 %; la EAD aporta un factor 1,49 y la PD uno de 6,64 |
+| H-15 | Matemáticas | E | Confirmado | "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos" | La banda 8 tiene casi el mismo factor EAD y razón 1,002; lo que separa a la 10 es su factor PD |
+| H-16 | Conceptos | B | Confirmado | "Optuna TPE", justificado solo con @bergstra2011 | Optuna 5.0.0 usa por defecto el TPE multivariado en estudios de un objetivo |
+| H-17 | Código | B | Confirmado | Propuso el caso de prueba `dropout = 0.475 → "max"` (borde máximo) | En coma flotante la distancia (0,025000000000000022) supera la tolerancia (0,025) |
+| H-18 | Código | B | Confirmado | En el plan, la prueba 12 (reloj de paso fijo) atrapa el riesgo "Tiempo incluye carga/medición" | Con ese reloj, cronometrar solo el ajuste o el ajuste con trabajo extra da lo mismo |
+| H-19 | Código | B | Confirmado | Dio por comprobado con las pruebas 17–18 que se guarda la red de la semilla mediana | En su escenario la mediana era la primera semilla y el mutante que guarda la primera sobrevivía |
+| H-20 | Código | C | Confirmado | Presentó como la prueba del rango de puntos una con `percentiles_rango` igual a los extremos de la tabla | El mutante que usa los extremos de la tabla pasa las 74 pruebas |
+| H-21 | Conceptos | E | Confirmado | La PD media de prueba queda baja porque "los dos aprendieron la tasa de las cosechas hasta 2012" | En entrenamiento la logística reproduce la tasa (0,1630) y el MLP queda por encima (0,1884) |
 :::
-<!-- Partes B, C, D y E: agregar sus hallazgos a la tabla y una subsección por hallazgo. -->
+
+### Cobertura
+
+Los veintiún hallazgos están confirmados. La [[tab:caceria-cobertura]] los reparte por categoría. Por parte, son dos de la
+A (H-01, H-02), once de la B (H-03 a H-09 y H-16 a H-19), tres de la C (H-11, H-12, H-20), uno de la D (H-10) y cuatro de
+la E (H-13 a H-15 y H-21). Se cumple la meta del enunciado (≥ 5 hallazgos en ≥ 3 categorías; aquí, 21 en cuatro de las
+cinco) y la nuestra de al menos uno por parte (núcleo §9). No encontramos errores de bibliografía: las referencias que
+propuso la IA resultaron correctas (ver "Verificaciones que salieron correctas" al final).
+
+::: tabla caceria-cobertura
+Título: Hallazgos confirmados por categoría
+Fuente: Elaboración propia a partir de alucinaciones/registro.md (sección "Cobertura actual").
+| Categoría | Hallazgos | Total |
+|---|---|---|
+| Matemáticas | H-08, H-10, H-14, H-15 | 4 |
+| Código | H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20 | 13 |
+| Datos del mundo real | H-02, H-13 | 2 |
+| Bibliografía | — | 0 |
+| Conceptos | H-16, H-21 | 2 |
+| **Total** | | **21** |
+:::
+
+Dos patrones se repiten. El primero: nueve de los trece errores de código no están en el código sino en **las pruebas** o
+en afirmaciones sobre ellas ("esta prueba cubre X"): H-03, H-05, H-06, H-09, H-11, H-17, H-18, H-19 y H-20. Siete de ellos
+se cazaron con mutantes, es decir, versiones del código con el error a propósito que la prueba debería rechazar (H-03, H-06,
+H-09, H-11, H-18, H-19 y H-20).
+
+El segundo: los errores vienen de todos los papeles, no solo de quien implementa. Según la herramienta que el registro anota
+en cada hallazgo, ocho los cometió una sesión principal, la que dirige cada integrante o la que planeó el trabajo y escribió
+la especificación (H-01, H-02, H-05, H-06, H-08, H-13, H-16 y H-18); ocho, el subagente implementador (H-03, H-04, H-07,
+H-09, H-10, H-11, H-12 y H-20); dos, el redactor técnico (H-14 y H-21); uno, el cazador de alucinaciones, que verifica
+(H-15); y dos, una sesión principal junto con otro subagente (H-17, con el revisor de calidad, y H-19, con el
+implementador). Solo tres (H-01, H-09 y H-15) los cazó el mismo agente que cometió el error; los demás los encontró otro
+agente (un subagente u otra sesión) o un integrante.
 
 ### H-01 — Un índice que da 0 en silencio (Código)
 
-- **Prompt:** el prompt I de la Parte A (sección 11.2), con la especificación que pide el PSI por variable.
+*Parte A · confirmado (Daniel, 26-oct) · lo cazó la misma sesión de Claude al revisar los resultados, antes del commit.*
+
+- **Prompt:** `prompts/asesoria_puente_claude.md`, prompt I (ver la sección 11.2), con la spec A §3.8, punto 3 ("índice de
+  estabilidad poblacional (PSI) por variable").
 - **Respuesta de la IA:** una función que define los intervalos con los cuantiles de entrenamiento.
 - **Cómo sospechamos:** el PSI de los registros públicos negativos era exactamente 0,0000 en validación y en prueba, mientras
   las demás variables daban entre 0,003 y 0,27. Un cero exacto en datos reales no es creíble.
@@ -32,7 +90,10 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinacione
 
 ### H-02 — El significado de un vacío (Datos del mundo real)
 
-- **Prompt:** el mismo prompt I, con la regla de la especificación de citar el significado de las variables del diccionario.
+*Parte A · confirmado (Daniel, 26-oct) · lo cazó el subagente revisor-spec en la primera ronda de la Parte A.*
+
+- **Prompt:** `prompts/asesoria_puente_claude.md`, prompt I (ver la sección 11.2), con la spec A §3.4 y la regla del núcleo
+  §0.5 ("el significado de cada variable se cita del diccionario de Kaggle, nunca de una IA").
 - **Respuesta de la IA:** en el borrador de la sección 2, "variables con más de la mitad de valores vacíos, como
   `mths_since_last_delinq`, donde un vacío significa «nunca ocurrió» y no un dato faltante".
 - **Cómo sospechamos:** el subagente revisor contrastó cada afirmación sobre variables con el diccionario y esta no estaba.
@@ -42,9 +103,342 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinacione
 - **Corrección:** la sección 2.3 dice ahora que el diccionario no explica el vacío y que por eso no imputamos la variable.
 - **Lección:** una explicación "de sentido común" sobre los datos es una afirmación que se cita o se comprueba.
 
+### H-03 — El borde de la curva de calibración (Código)
+
+*Parte B · confirmado (Andrés, 24-oct) · lo cazó el subagente verificador-matematico antes de implementar.*
+
+- **Prompt:** `prompts/B1.md`, sección "1. implementador — fase roja".
+- **Respuesta de la IA:** "el contraste con sklearn fija su convención: `searchsorted(bordes[1:-1], p, side="right")`", es
+  decir, que el dato que cae en un borde va al intervalo superior.
+- **Cómo sospechamos:** una implementación con `side="right"` pasaba las 52 pruebas, porque el contraste con scikit-learn
+  solo usaba datos sin empates, donde ningún dato cae en un borde.
+- **Evidencia:** en el código fuente de scikit-learn 1.9.1 (`sklearn/calibration.py:1332`) la búsqueda usa el lado por
+  defecto, `"left"`: el dato del borde va al intervalo **inferior**. Con probabilidades redondeadas a dos decimales, 8 de
+  los 9 bordes internos coinciden con datos y solo `side="left"` reproduce `calibration_curve`
+  (`evidencias/H-03_calibracion_borde.py`).
+- **Corrección:** la implementación usa `side="left"` y el contraste se corre también con datos con empates.
+- **Lección:** "la referencia hace X" se comprueba en el código de la referencia, y una prueba de contraste solo fija una
+  convención si sus datos ejercitan el caso.
+
+### H-04 — Una AUC errónea con puntajes infinitos (Código)
+
+*Parte B · confirmado (Andrés, 24-oct) · lo cazó el subagente revisor-calidad.*
+
+- **Prompt:** `prompts/B1.md`, sección "3. implementador — fase verde".
+- **Respuesta de la IA:** `src/common/metricas.py` declara que el puntaje es un número real, pero la validación de entradas
+  solo rechaza NaN (`np.isnan`), no ±inf.
+- **Cómo sospechamos:** el logit de una PD saturada en 0 o en 1 es ±inf, y la prueba de invariancia recortaba las
+  probabilidades a [1e-6, 1 − 1e-6] justo para evitar ese caso.
+- **Evidencia:** con y = [0, 1, 0, 1, 0, 1] y puntajes [−inf, −inf, 0,2, 0,5, inf, inf], la función devuelve 0,444; contando
+  pares (Mann-Whitney, empates ½) la AUC es 5/9 = 0,556. Las diferencias entre infinitos iguales dan NaN, así que esos
+  empates no se agrupan (`evidencias/H-04_auc_infinitos.py`).
+- **Corrección:** la validación exige valores finitos (`np.isfinite`), con una prueba que usa `inf`.
+- **Lección:** "sin NaN" no es "número real"; las pruebas de propiedades no deben recortar las entradas justo donde la
+  función puede fallar.
+
+### H-05 — Una prueba de L2 que no puede fallar (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó Andrés al revisar el plan de B2.*
+
+- **Prompt:** `prompts/B2.md`, sección "Prompt de Andrés a la sesión principal".
+- **Respuesta de la IA:** en el plan, "Paso a mano de L2: con lr y gradiente de la pérdida en 0 (pérdida constante), un paso
+  de SGD sin momento deja `W ← W(1 − lr·l2)` y el sesgo intacto".
+- **Cómo sospechamos:** Andrés preguntó si, con lr en 0, los pesos no se moverían de todos modos.
+- **Evidencia:** la actualización de SGD con `weight_decay` es $\theta \leftarrow \theta - \eta(\nabla L(\theta) + \lambda\theta)$.
+  Con $\eta = 0$ queda $\theta \leftarrow \theta$ para cualquier $\lambda$, así que la aserción no distingue un L2 correcto de
+  uno ausente o aplicado a los sesgos. Lo que se quería era $\eta > 0$ con $\nabla L = 0$. La evidencia es esta derivación;
+  no hay script en `evidencias/`.
+- **Corrección:** la prueba se eliminó (además probaba PyTorch y no nuestro código); el L2 lo cubren la prueba de los grupos
+  de parámetros (pesos con `weight_decay`, sesgos sin él) y la de que l2 > 0 da pesos de menor norma.
+- **Lección:** toda prueba debe poder fallar: antes de aceptarla, preguntarse qué implementación incorrecta la rompería.
+
+### H-06 — "Esa prueba ya lo cubre" (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el subagente implementador con pruebas de mutantes.*
+
+- **Prompt:** `prompts/B2.md`, "Corrección de Andrés al primer plan" (quitar pruebas redundantes) y "2. implementador — fase
+  verde".
+- **Respuesta de la IA:** el plan corregido quitó las pruebas de los minilotes y de `evaluar_perdida` en modo de evaluación
+  porque "lo cubre 15" y "lo cubre 14".
+- **Cómo sospechamos:** al repetir los mutantes sobre el código real, tres sobrevivieron.
+- **Evidencia:** pasan las 71 pruebas (a) un recorrido que descarta el último lote incompleto (88 de 600 filas por época con
+  lotes de 512), (b) minilotes sin barajar, que la prueba 15 no ve porque otra semilla cambia igual la inicialización, y
+  (c) `evaluar_perdida` sin `eval()`, que la 14 no ve porque `predict_proba` llama a `eval()` por su cuenta: la pérdida de
+  validación se habría medido con *dropout* activo. La evidencia es la corrida de mutantes del implementador en la fase
+  verde de B2, descrita en el registro; no quedó un script en `evidencias/`.
+- **Corrección:** Andrés repuso tres pruebas (lote incompleto, orden barajado y reproducible, y `evaluar_perdida` con
+  *dropout* 0,5 da dos medidas iguales).
+- **Lección:** "la prueba X cubre el fallo Y" se comprueba con un mutante de Y.
+
+### H-07 — Un historial "inmutable" que se puede modificar (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el subagente revisor-calidad en la tercera revisión de B2.*
+
+- **Prompt:** `prompts/B2.md`, sección "8. implementador — ronda 4".
+- **Respuesta de la IA:** comentarios del commit af1456a en `src/pd/entrenar.py` y `src/pd/mlp.py`: "inmutable: quien lo
+  reciba (B4, B5, D) no puede alterar el historial".
+- **Cómo sospechamos:** `frozen=True` solo prohíbe reasignar atributos, y el historial es una lista.
+- **Evidencia:** `r.historial.append(1)` sobre un resultado de entrenamiento funcionó sin error; es el comportamiento
+  documentado de `dataclasses` (la congelación es superficial). Se reproduce con `evidencias/H-07_frozen_superficial.py`:
+  la lista se modifica con `append`, y solo reasignar el campo da `FrozenInstanceError`.
+- **Corrección:** comentarios reescritos: "frozen: no se reasignan los campos; la lista del historial sí es mutable".
+- **Lección:** un comentario también es una afirmación que se verifica.
+
+### H-08 — El factor ½ del L2 (Matemáticas)
+
+*Parte B · confirmado (Daniel, 25-oct) · lo cazó el subagente verificador-matematico en B2; el error venía de la
+especificación que escribió la IA en la sesión del puente.*
+
+- **Prompt:** "Dame el spec yo lo reviso" (`prompts/asesoria_puente_claude.md`), el pedido que produjo la especificación por
+  partes; la verificación está en `prompts/B2.md`, sección "9. verificador-matematico".
+- **Respuesta de la IA:** la especificación de la Parte B decía "el código debe hacer L2 (término λ‖W‖² en la pérdida, o
+  `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente)".
+- **Cómo sospechamos:** al verificar el código de entrenamiento, que usa $(\lambda/2)\lVert W\rVert^2$.
+- **Evidencia:** $\nabla(\lambda\lVert W\rVert^2) = 2\lambda W$, mientras que `weight_decay = λ` suma $\lambda W$ al
+  gradiente: lo equivalente es $(\lambda/2)\lVert W\rVert^2$. En un experimento de 5 pasos, `weight_decay = λ` y
+  $(\lambda/2)\lVert W\rVert^2$ dan los mismos pesos (diferencia máxima 2,8e-17 con SGD y 5,6e-17 con Adam), y con
+  $\lambda\lVert W\rVert^2$ difieren (6,1e-3 y 5,5e-2). Esos scripts quedaron en el área temporal de la sesión, no en
+  `evidencias/`; la derivación basta para reproducirlo.
+- **Corrección:** especificación v0.13: $(\lambda/2)\lVert W\rVert^2 \equiv$ `weight_decay = λ`, sin L2 en los sesgos. El
+  código ya seguía esta convención.
+- **Lección:** una "equivalencia" con un hiperparámetro de la librería se verifica derivando el gradiente; el factor ½
+  cambia la escala de λ.
+
+### H-09 — Una prueba de efectos secundarios que parte del estado equivocado (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el propio implementador con un mutante en la fase verde de B3.*
+
+- **Prompt:** `prompts/B3.md`, sección "1. implementador — fase roja" (prueba 11: "warnings.filters es igual antes y
+  después de fit").
+- **Respuesta de la IA:** `test_11_fit_no_altera_los_filtros_globales` (commit 7d72a68), presentada como la prueba que atrapa
+  un filtro global de avisos en lugar de uno local.
+- **Cómo sospechamos:** el mutante que quita el `catch_warnings` local sobrevivía.
+- **Evidencia:** el módulo de pruebas ya instalaba los filtros `error::ConvergenceWarning` y `error::FutureWarning`; el filtro
+  global del mutante coincidía con uno presente y la lista de filtros no cambiaba. No hay script en `evidencias/`: la
+  evidencia es la prueba reforzada del commit dc4cc9d, con la que el mutante muere.
+- **Corrección:** la prueba parte de un entorno con `simplefilter("ignore")` y el mutante muere (commit dc4cc9d).
+- **Lección:** una prueba de "no efectos secundarios" debe partir de un estado distinto del que el efecto produciría.
+
+### H-10 — Consistencia atribuida a un MLP (Matemáticas)
+
+*Parte D · confirmado (Daniel, 26-oct) · lo cazó el subagente verificador-matematico en D3.*
+
+- **Prompt:** `prompts/D3.md`, ronda 1 ("por qué se minimiza en pᵢ = yᵢ también para yᵢ fraccional").
+- **Respuesta de la IA:** el docstring de `src/lgd/perdidas.py`, en el módulo del MLP, concluía: "Por eso el estimador es
+  consistente para la media condicional con objetivos fraccionales".
+- **Cómo sospechamos:** el argumento ($E[\mu - y \mid x] = 0$ cuando $\mu = E[y \mid x]$) prueba que $E[y \mid x]$ minimiza
+  la pérdida esperada; la consistencia de @papke1996 es un resultado para un modelo paramétrico con la media bien
+  especificada, que no se traslada sin más a un MLP no identificable entrenado con L2 y parada temprana.
+- **Evidencia:** `evidencias/H-10_consistencia_qmle.py`: para $y$ fija, el mínimo de la entropía cruzada está en $\mu = y$; y
+  con $y$ con distribución Beta y $E[y \mid x] = \sigma(-0{,}5 + 1{,}2x)$, $n = 200\,000$, el estimador **paramétrico** da
+  $(-0{,}4997;\ 1{,}2023)$: la consistencia vale para ese modelo. El enunciado del resultado se tomó de una fuente secundaria
+  anotada en el registro, porque el PDF original disponible es un escaneo sin texto.
+- **Corrección:** el docstring separa el minimizador poblacional (lo que aplica al MLP) de la consistencia del estimador
+  paramétrico.
+- **Lección:** un resultado asintótico tiene hipótesis; antes de escribir "es consistente", se contrastan con el modelo.
+
+### H-11 — "Las funciones" eran dos de cuatro (Código)
+
+*Parte C · confirmado (Daniel, 26-oct) · lo cazó el subagente verificador-matematico con mutantes sobre la fase roja de C1.*
+
+- **Prompt:** `prompts/C1.md`, sección "1. implementador — fase roja" ("factor real finito > 0 y offset real finito").
+- **Respuesta de la IA:** `test_03e_usa_factor_y_offset_recibidos`, con el docstring "Las funciones usan factor y offset tal
+  como vienen", pero solo llamaba a dos de las cuatro transformaciones; y ningún caso inválido usaba un bool, aunque la
+  validación de la config sí los rechaza.
+- **Cómo sospechamos:** el docstring habla de todas las funciones y la prueba cubría dos.
+- **Evidencia:** un mutante que recalcula factor y offset dentro de las dos funciones de PD y otro que acepta `True` como
+  factor (`float(True) = 1.0`) pasan las 199 pruebas; con las pruebas propuestas mueren
+  (`evidencias/H-11_mutantes_sobreviven.txt`).
+- **Corrección:** antes de la fase verde se añadieron `test_03f` (σ(2) → 80 con factor 10 y offset 100) y `test_09o` (bool
+  en factor u offset → error en las cuatro funciones).
+- **Lección:** si la prueba dice "las funciones…", se parametriza por función.
+
+### H-12 — Una conversión que no rechaza lo que decía rechazar (Código)
+
+*Parte C · confirmado (Daniel, 26-oct) · lo cazó el subagente revisor-calidad en la revisión de C1.*
+
+- **Prompt:** `prompts/C1.md`, sección "3. implementador — fase verde" (entrada convertida con
+  `np.asarray(..., dtype=np.float64)`, rechazando bool y texto).
+- **Respuesta de la IA:** en `src/scorecard/scorecard.py`, `try:  # texto u objetos no numéricos fallan aquí` sobre
+  `np.asarray(x, dtype=np.float64)`.
+- **Cómo sospechamos:** el mismo módulo rechaza bool y texto en la config porque `float(True) = 1.0` "se colaría"; el revisor
+  probó esas entradas en las transformaciones.
+- **Evidencia:** `score_desde_logit("1.5")` = 443,84, `score_desde_pd("0.3")` = 511,57 y `score_desde_logit(True)` = 458,27,
+  sin error; solo falla `"abc"` (`evidencias/H-12_entrada_texto_bool.txt`).
+- **Corrección:** se rechaza todo tipo que no sea entero o real (`dtype.kind not in "iuf"`) antes de convertir, con pruebas
+  sobre las cuatro funciones.
+- **Lección:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X.
+
+### H-13 — Una pérdida "observada" que no lo era (Datos del mundo real)
+
+*Parte E · confirmado (Daniel, 26-oct) · lo cazó el subagente verificador-matematico en la revisión de E5; la primera versión
+la escribió la sesión principal de Daniel sin subagente.*
+
+- **Prompt:** "Vamos haciendo lo de la parte E" (Daniel, 24-oct; `prompts/asesoria_puente_claude.md`, prompt L); la
+  verificación está en `prompts/E5.md`, sección 3.
+- **Respuesta de la IA:** el docstring de `src/el/perdida_esperada.py` decía que la pérdida observada
+  `max(0, (funded_amnt − total_rec_prncp) − (recoveries − collection_recovery_fee))` "es la misma construcción de la LGD de
+  la Parte D" y que en los créditos en mora "su pérdida observada es parcial", y la aplicaba a todos los estados de prueba.
+- **Cómo sospechamos:** el verificador recalculó la pérdida por estado y la contrastó con la población de la LGD de la
+  Parte D, que solo incluye créditos castigados.
+- **Evidencia:** de los 231,2 M USD "observados", 168,2 M son pérdida realizada de castigados; 1 284 créditos pagados suman
+  1,67 M porque su principal recibido no llega al desembolsado; y los 5 460 en mora suman 61,3 M (26,5 %) con recuperaciones
+  0 en todos: no es una cota inferior sino una LGD = 1 supuesta (`evidencias/H-13_perdida_observada.py`). Con esa pérdida,
+  la razón entre la E[L] y la pérdida observada daba 0,85 ("el modelo subestima"), según el registro; en los créditos
+  resueltos es 1,06 (`results/data/el/summary.json`).
+- **Corrección:** pérdida realizada solo en castigados, 0 en pagados (la diferencia se reporta como anomalía de los datos),
+  pérdida provisional aparte para la mora y contraste solo con los créditos resueltos (sección 9).
+- **Lección:** una pérdida observada se define por estado del crédito y con la misma población que la LGD.
+
+### H-14 — Dos montos "parecidos" que difieren en un 49 % (Matemáticas)
+
+*Parte E · confirmado (Daniel, 26-oct) · lo cazaron los subagentes cazador-alucinaciones y verificador-matematico en la
+revisión del borrador de la sección 9.*
+
+- **Prompt:** `prompts/E7.md`, sección 1 ("explica con cuidado […] SIN afirmar más de lo que muestran los datos").
+- **Respuesta de la IA:** la E[L] de la banda 1 es casi diez veces la de la banda 10 "con montos desembolsados parecidos
+  (136,15 y 91,31 millones). La diferencia la produce la PD (de 0,416 a 0,063)".
+- **Cómo sospechamos:** la frase llama "parecidos" a dos montos que ella misma cita.
+- **Evidencia:** la razón 9,92 entre las E[L] de las bandas 1 y 10 se reparte en PD × 6,64, EAD × 1,49 y LGD × 1,01; en
+  escala logarítmica la PD explica el 82,5 % y la EAD el 17,4 %. Además, las bandas son deciles de un puntaje que es una
+  transformación monótona de la misma PD (correlación de rangos −1), así que parte de la conclusión es por construcción
+  (`evidencias/H-14_bandas_1_y_10.py`).
+- **Corrección:** la sección 9 dice "sobre todo la PD", con el factor de la EAD, y aclara que las bandas ordenan por la PD
+  de la regresión logística.
+- **Lección:** un adjetivo cualitativo junto a cifras se comprueba con esas cifras; una descomposición multiplicativa dice
+  cuánto aporta cada factor.
+
+### H-15 — Una causa única donde había dos (Matemáticas)
+
+*Parte E · confirmado (Daniel, 26-oct) · lo cazó el subagente cazador-alucinaciones sobre su propio informe anterior.*
+
+- **Prompt:** `prompts/E7.md`, sección 2 (verificación de la sección 9); la frase pasó al encargo de la segunda ronda de
+  redacción (sección 3, punto 5).
+- **Respuesta de la IA:** "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos (1,275)".
+- **Cómo sospechamos:** en la segunda ronda, el cazador comparó los factores de las bandas 8 a 10 y los del orden
+  alternativo de la descomposición.
+- **Evidencia:** la banda 8 tiene casi el mismo factor EAD (1,2742 frente a 1,2747) y razón 1,002, y la 9, 1,2718 y razón
+  1,107. Lo que separa a la banda 10 es su factor PD (0,981 frente a 0,818 y 0,903). Con el orden alternativo, el factor
+  EAD máximo es el de la banda 8 (`evidencias/H-15_factor_ead_banda_10.py`).
+- **Corrección:** la sección 9 dice que la razón de la banda 10 combina un factor PD cercano a 1 con el factor EAD más alto,
+  y la compara con las bandas 2, 8 y 9.
+- **Lección:** antes de explicar un extremo por un factor, se mira si otra banda con ese factor igual tiene el mismo
+  resultado. También el verificador se equivoca.
+
+### H-16 — El TPE que usa Optuna 5 (Conceptos)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó la sesión principal de Andrés al planear B4, leyendo el código de Optuna
+instalado.*
+
+- **Prompt:** `prompts/asesoria_puente_claude.md` (prompt A); de la respuesta solo se guardó un resumen ("Optuna TPE"), así
+  que el texto que se usó es el que pasó a la especificación.
+- **Respuesta de la IA:** la especificación de la Parte B (hasta v0.14): "Optuna TPE, 40 ensayos … Justificación citada: TPE
+  (Bergstra et al., 2011) y Optuna (Akiba et al., 2019)".
+- **Cómo sospechamos:** `TPESampler` tiene `multivariate=None` en la firma, no `False`.
+- **Evidencia:** en Optuna 5.0.0, la versión fijada, `_is_multivariate` devuelve `True` en estudios de un objetivo ("By
+  default, the multivariate TPE is used for single-objective optimization"), mientras que el TPE de @bergstra2011 modela
+  cada hiperparámetro por separado (`evidencias/H-16_tpe_multivariado.py`).
+- **Corrección:** especificación v0.15: se mantienen los valores por defecto, `hpo_ensayos.json` registra
+  `multivariate: true` y la cita del TPE multivariado queda pendiente de verificación.
+  <!-- TODO(cita): Falkner et al. (2018) está marcado [VERIFICAR] en el registro; no está en references.bib. -->
+- **Lección:** los valores por defecto cambian entre versiones mayores; se lee el código de la versión fijada.
+
+### H-17 — Un caso de borde falso en coma flotante (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el subagente implementador al escribir la prueba (ronda 2 de B4).*
+
+- **Prompt:** `prompts/B4.md`, sección 5, recomendado 1: "test_04: caso dropout = 0.475 → "max" y otro justo fuera".
+- **Respuesta de la IA:** el revisor-calidad propuso el caso y la sesión principal lo pasó sin verificarlo.
+- **Cómo sospechamos:** la prueba falló contra el código correcto.
+- **Evidencia:** 0,5 − 0,475 = 0,025000000000000022 > 0,05 · 0,5 = 0,025, así que la regla `distancia ≤ tolerancia` da
+  falso; con valores exactos en binario da verdadero (`evidencias/H-17_borde_coma_flotante.py`).
+- **Corrección:** la prueba usa una fracción de 0,25 y valores representables exactamente (0,125, 0,375 y sus vecinos).
+- **Lección:** una prueba de límite con `≤` necesita valores exactos en binario; la distancia se calcula antes en el
+  intérprete.
+
+### H-18 — Un reloj que cuenta lecturas, no trabajo (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el subagente implementador con un mutante (ronda 1 de B5).*
+
+- **Prompt:** `prompts/B5.md`, prompt de Andrés ("(d) riesgos y qué prueba los atrapa").
+- **Respuesta de la IA:** en la tabla de riesgos del plan, "Tiempo incluye carga/medición | 12", con la prueba 12 = "reloj
+  inyectado: `tiempo_s` = 1.0 en cada semilla".
+- **Cómo sospechamos:** el implementador metió la medición dentro de la zona cronometrada y la prueba siguió en verde.
+- **Evidencia:** con un reloj que avanza un paso por lectura, cronometrar solo el ajuste o el ajuste más trabajo extra da lo
+  mismo (1,0 y 1,0) (`evidencias/H-18_reloj_paso_fijo.py`).
+- **Corrección:** la prueba 12b usa un reloj espía que registra los eventos y comprueba que entre los dos tics de cada
+  semilla hay exactamente un ajuste y ninguna predicción.
+- **Lección:** antes de afirmar "esta prueba atrapa X", se escribe el mutante X y se ve fallar.
+
+### H-19 — La semilla mediana que era la primera (Código)
+
+*Parte B · confirmado (Daniel, 26-oct) · lo cazó el subagente revisor-calidad con mutantes (ronda 2 de B5).*
+
+- **Prompt:** `prompts/B5.md`, prompt de Andrés (prueba 5: "es la red de summary.semilla_mediana") y sección 5.
+- **Respuesta de la IA:** el plan (pruebas 17–18) y el implementador dieron por cubierta la regla "se guarda la red de la
+  semilla mediana" con un escenario de 3 semillas.
+- **Cómo sospechamos:** el mutante "guardar la red de la primera semilla" sobrevivió (el de "la última" sí moría).
+- **Evidencia:** en ese escenario la semilla mediana coincidía con la primera, así que el mutante y el código correcto
+  escribían el mismo archivo. El script de mutantes del revisor quedó en el área temporal de la sesión; la prueba que lo
+  reemplaza es reproducible.
+- **Corrección:** `test_36_red_guardada_es_la_mediana_del_medio` usa un modelo falso con log-loss de validación monótona en la
+  semilla: con {7, 8, 9} la mediana es 8 y el mutante muere.
+- **Lección:** una prueba de "elige el elemento k" necesita un caso donde k no sea el primero ni el último.
+
+### H-20 — Dos parámetros que coincidían por casualidad (Código)
+
+*Parte C · confirmado (Daniel, 26-oct) · lo cazó el subagente verificador-matematico con mutantes sobre C3.*
+
+- **Prompt:** `prompts/C3.md`, sección "1. implementador — fase roja" ("rango_puntos = |puntos(p_b) − puntos(p_a)| con
+  percentiles_rango").
+- **Respuesta de la IA:** en `tests/test_puntos.py`, el modelo de juguete usa `percentiles_tabla = [25, 50, 75]` y
+  `percentiles_rango = [25, 75]`, justo los extremos de la tabla, y se presentaba como la prueba del rango.
+- **Cómo sospechamos:** el verificador aplicó el mutante "el rango usa los extremos de la tabla".
+- **Evidencia:** con el mutante pasan las 74 pruebas, igual que con el original, y con datos reales el rango de `pub_rec`
+  pasaría de 0 (p5–p95) a 9,889 (p1–p99) (`evidencias/H-20_rango_percentiles_mutante.txt`). Según el registro, eso
+  cambiaría también el top 5 de variables que se muestra en la sustentación.
+- **Corrección:** el juguete usa un `percentiles_rango` distinto de los extremos de la tabla, con pruebas adicionales para el
+  umbral exacto de `fraccion_min_categoria` y para el error de aditividad rota.
+- **Lección:** en un caso de prueba, los parámetros que deben distinguirse no pueden coincidir.
+
+### H-21 — Dos modelos que no aprendieron la misma tasa (Conceptos)
+
+*Parte E · confirmado (Daniel, 26-oct) · lo cazaron los subagentes verificador-matematico y cazador-alucinaciones en la
+revisión del borrador de la sección 10.*
+
+- **Prompt:** `prompts/E7.md`, sección 4 (redacción de la sección 10); la verificación, en la sección 7.
+- **Respuesta de la IA:** el borrador de `blog/secciones/10-discusion.md` explicaba que la PD media de prueba queda por debajo
+  de la tasa observada porque "los dos aprendieron la tasa de las cosechas hasta 2012".
+- **Cómo sospechamos:** la PD media del MLP en prueba (0,204) era distinta de la de la logística (0,187); si los dos hubieran
+  aprendido la misma tasa de entrenamiento, deberían coincidir en nivel.
+- **Evidencia:** con los modelos guardados, la PD media en entrenamiento es 0,1630 en la logística, igual a la tasa, como
+  corresponde a la máxima verosimilitud con intercepto, y 0,1884 en el MLP, por encima de la tasa; en prueba, 0,1868 y
+  0,2041 frente a una tasa de 0,2622. Además, la PD del MLP está más comprimida: en su decil de mayor riesgo predice 0,382
+  frente a una tasa de 0,478 (la logística, 0,416 frente a 0,476) (`evidencias/H-21_pd_media_por_conjunto.py`).
+- **Corrección:** la sección 10 da las PD medias por conjunto de cada modelo, sin afirmar la causa del nivel del MLP.
+- **Lección:** "los dos modelos hacen X" se comprueba con cada modelo por separado; una red con parada temprana en otra
+  cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
+
 ### Verificaciones que salieron correctas
 
-No todo lo que dijo la IA estaba mal, y el enunciado pide documentar también lo verificado. Las 14 referencias que propuso
-para el trabajo existen y sus DOI o direcciones oficiales llevan al trabajo esperado (`evidencias/A8_verificacion_bib.*`),
-con dos matices de año que dejamos anotados en `blog/references.bib`. Su advertencia de que los créditos recientes ya
-resueltos sobrerrepresentan los incumplimientos tempranos se confirmó en los datos (sección 2.4).
+No todo lo que dijo la IA estaba mal. El enunciado contempla documentar las verificaciones hechas y sus resultados, y aquí
+lo hacemos aunque los hallazgos superen la meta. De las afirmaciones que hizo la IA al planear el trabajo, cinco ya están
+verificadas y resultaron correctas:
+
+- **Referencias.** Las 14 que propuso existen y sus DOI o direcciones oficiales llevan al trabajo esperado
+  (`evidencias/A8_verificacion_bib.*`). Los matices de año (la versión de arXiv frente a la del congreso en Kingma y Ba y en
+  Loshchilov y Hutter, y la 2.ª edición de Siddiqi, que Crossref registra como edición 1) son de los registros y no de la IA,
+  y quedaron anotados en `blog/references.bib`.
+- **Sesgo de los créditos recientes.** Su advertencia de que los créditos recientes ya resueltos sobrerrepresentan los
+  incumplimientos tempranos es consistente con los datos (sección 2.4).
+- **Cobertura temporal.** El conjunto cubre créditos originados de junio de 2007 a diciembre de 2015, como suponía la
+  partición propuesta.
+- **Definición de la LGD.** La EAD al castigo como `funded_amnt − total_rec_prncp` y la LGD como
+  `1 − (recoveries − collection_recovery_fee) / EAD`: los cinco campos se citan literalmente del diccionario y los datos son
+  coherentes (ninguna EAD ≤ 0, ninguna LGD > 1 y 32 LGD < 0, por intereses fuera de la EAD). Queda un supuesto que no se
+  puede verificar sin fechas: que lo cobrado tras el castigo no entra en `total_rec_prncp` (`evidencias/D1_verificacion_lgd.*`).
+- **Licencia de Remotion.** La licencia oficial es gratis para individuos, organizaciones con fines de lucro de hasta tres
+  empleados y organizaciones sin ánimo de lucro; un video de curso hecho por estudiantes queda cubierto.
+
+Las otras seis afirmaciones de la planeación (límites y planes de Vercel, Neon y Render, el *weight decay* desacoplado de
+`AdamW` y el mantenimiento de Material for MkDocs) siguen sin verificar en el registro.

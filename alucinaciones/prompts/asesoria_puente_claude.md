@@ -96,3 +96,10 @@ afirmación por verificar: fórmula y umbrales del PSI).
 
 **Respuesta:** regla de push en el núcleo §7.2 (Spec v0.6); A6 y A6b (EDA, hipótesis, descriptivo posterior al
 preprocesamiento) con commits locales; hallazgo H-01 (PSI).
+
+## Prompt L (literal, 24-oct-2026)
+
+> Vamos haciendo lo de la parte E
+
+**Respuesta:** E5 (`src/el/` y `run.py el`, primera versión escrita por la sesión del puente sin subagente; la pérdida
+"observada" de esa versión es el hallazgo H-13), blog 00 y 11–13, notebook 00 y el proyecto del video (E6).

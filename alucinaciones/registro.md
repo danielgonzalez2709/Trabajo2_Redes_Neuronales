@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 3 (H-08, H-10, H-14) | 3 (H-08, H-10, H-14) |
-| Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
+| Matemáticas | 4 (H-08, H-10, H-14, H-15) | 4 (H-08, H-10, H-14, H-15) |
+| Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
 | Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 3 (H-15, H-16, H-21) | 1 (H-15) |
+| Conceptos | 2 (H-16, H-21) | 2 (H-16, H-21) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -26,7 +26,7 @@ falsas se registran como candidatos.
 | V-06 | Los créditos recientes ya resueltos sesgan la tasa de malos hacia arriba | Experimento A4 (tasa de malos y fracción de NA por año) | ✅ 23-oct: consistente con los datos. Sin desenlace: 7 % (2012), 46 % (2013), 69 % (2014), 93 % (2015); tasa de malos de los resueltos: 16,7 % → 23,0 % → 26,2 % → 25,5 % (`resumen_datos.json`). Además, al incumplir seguía pendiente el 80 % del monto en test frente al 64 % en train (incumplimientos más tempranos) |
 | V-07 | `AdamW` aplica weight decay desacoplado, que no equivale a L2 con Adam | Loshchilov & Hutter + documentación de PyTorch | ⬜ |
 | V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ✅ 23-oct: `issue_d` de 2007-06 a 2015-12 |
-| V-09 | La EAD al castigo = `funded_amnt` − `total_rec_prncp`, y LGD = 1 − (`recoveries` − `collection_recovery_fee`)/EAD | Diccionario de Kaggle + casos reales (D1) || ✅ 25-oct: los 5 campos citados literalmente de `diccionario_loanstats.csv` en `src/lgd/objetivo.py` (prueba en `tests/test_lgd.py`); `recoveries` = "post charge off gross recovery" justifica restar la tarifa. Datos coherentes: 0 EAD ≤ 0, 0 LGD > 1, 32 LGD < 0 (intereses fuera de la EAD). Supuesto no verificable sin fechas: lo cobrado tras el castigo no entra en `total_rec_prncp`. Evidencia: `evidencias/D1_verificacion_lgd.*` |
+| V-09 | La EAD al castigo = `funded_amnt` − `total_rec_prncp`, y LGD = 1 − (`recoveries` − `collection_recovery_fee`)/EAD | Diccionario de Kaggle + casos reales (D1) | ✅ 25-oct: los 5 campos citados literalmente de `diccionario_loanstats.csv` en `src/lgd/objetivo.py` (prueba en `tests/test_lgd.py`); `recoveries` = "post charge off gross recovery" justifica restar la tarifa. Datos coherentes: 0 EAD ≤ 0, 0 LGD > 1, 32 LGD < 0 (intereses fuera de la EAD). Supuesto no verificable sin fechas: lo cobrado tras el castigo no entra en `total_rec_prncp`. Evidencia: `evidencias/D1_verificacion_lgd.*` |
 | V-10 | Material for MkDocs está en mantenimiento con correcciones hasta el 5-nov-2026 (dato del Trabajo 1) | Anuncio oficial del proyecto | ⬜ |
 | V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ✅ 23-oct: las 14 candidatas (estas + Rumelhart, Kingma & Ba, Srivastava, Brier, Hanley & McNeil, Ferrari & Cribari-Neto, Yurdakul & Naranjo) existen y sus DOI/URL resuelven al trabajo esperado (`evidencias/A8_verificacion_bib.*`). Matices, no alucinaciones: Kingma & Ba y Loshchilov & Hutter tienen DOI de arXiv con año 2014 y 2017 (los años 2015 y 2019 son de ICLR, sin DOI); Siddiqi: Crossref 2016 en línea, 2017 impreso. Autores de Bergstra y Srivastava confirmados en las páginas oficiales. 25-oct: Siddiqi es la 2.ª edición (enero de 2017) según la página de Wiley; Crossref la registra como edición 1, error de metadatos de Crossref y no de la IA |
 
@@ -193,7 +193,8 @@ falsas se registran como candidatos.
    `entrenar.py:34` "resultado inmutable del entrenamiento".
 3. **Cómo sospechamos:** `frozen=True` solo prohíbe reasignar atributos (`r.historial = ...`), y `historial` es una `list`.
 4. **Evidencia:** el revisor ejecutó `r.historial.append(1)` sobre un `ResultadoEntrenamiento` y funcionó sin error: la lista
-   se puede modificar. Es el comportamiento documentado de `dataclasses` (la congelación es superficial).
+   se puede modificar. Es el comportamiento documentado de `dataclasses` (la congelación es superficial). Se reproduce
+   con `evidencias/H-07_frozen_superficial.py` y `.txt` (26-oct, a partir de la reproducción del cazador-alucinaciones).
 5. **Corrección:** comentarios reescritos (commit siguiente a af1456a): "frozen: no se reasignan los campos; la lista del
    historial sí es mutable". Alternativa no aplicada: guardar `tuple(historial)`.
 6. **Lección aprendida:** "inmutable" de un contenedor congelado no se extiende a sus campos mutables; un comentario
@@ -319,7 +320,7 @@ falsas se registran como candidatos.
 - **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, la sesión orquestadora de Daniel, que escribió
   la 1.ª versión de `src/el/` sin subagente · **Fecha:** 24-oct-2026 · **Quién lo cazó:** el subagente
   `verificador-matematico` en la revisión de E5 (26-oct); el revisor-spec, en paralelo, señaló el contraste por banda
-1. **Prompt (literal):** "Vamos haciendo lo de la parte E" (Daniel, 24-oct, en la sesión del puente); la verificación está en
+1. **Prompt (literal):** "Vamos haciendo lo de la parte E" (Daniel, 24-oct; `prompts/asesoria_puente_claude.md`, prompt L); la verificación está en
    `prompts/E5.md`, sección 3.
 2. **Respuesta relevante de la IA:** docstring de `src/el/perdida_esperada.py` (commit de E5 del 24-oct): la pérdida
    observada `max(0, (funded_amnt − total_rec_prncp) − (recoveries − collection_recovery_fee))` "es la misma construcción de
@@ -360,7 +361,7 @@ falsas se registran como candidatos.
 
 ### H-15 — "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos"
 - **Estado:** confirmado (Daniel, 26-oct-2026)
-- **Categoría:** Conceptos
+- **Categoría:** Matemáticas (reclasificado por Daniel el 26-oct: atribuye un factor de una descomposición multiplicativa, no habla de redes neuronales)
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code, subagente `cazador-alucinaciones` (Claude Opus 5.5), en su propia ronda 1 de
   verificación del blog 09 · **Fecha:** 26-oct-2026 · **Quién lo cazó:** el mismo subagente, en la ronda 2 (lo reportó
@@ -380,7 +381,7 @@ falsas se registran como candidatos.
    explicar un extremo por un factor, se mira si otra banda con ese factor igual tiene el mismo resultado.
 
 ### H-16 — "Optuna TPE" justificado solo con Bergstra et al. (2011), cuando Optuna 5 usa TPE multivariado por defecto
-- **Estado:** candidato (falta el texto literal de la respuesta: la asesoría inicial solo guardó un resumen)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Conceptos
 - **Parte:** B
 - **Nota de numeración:** registrado como H-11 en `dev/andres`; renumerado a H-16 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
@@ -401,7 +402,7 @@ falsas se registran como candidatos.
    biblioteca, leer la firma y el código de la versión fijada en `requirements.txt`, no la documentación de memoria.
 
 ### H-17 — Caso de prueba "dropout = 0.475 → borde máximo" falso en coma flotante
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Nota de numeración:** registrado como H-12 en `dev/andres`; renumerado a H-17 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
@@ -419,7 +420,7 @@ falsas se registran como candidatos.
    proponer un caso, calcular la distancia en el intérprete.
 
 ### H-18 — "La prueba 12 (reloj de paso fijo) atrapa que el tiempo incluya la carga o la medición"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Nota de numeración:** registrado como H-13 en `dev/andres`; renumerado a H-18 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
@@ -436,7 +437,7 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** antes de afirmar "esta prueba atrapa X", escribir el mutante X y verlo fallar.
 
 ### H-19 — "Las pruebas 17–18 comprueban que `pd_mlp.pt` y `pred_mlp` son los de la semilla mediana"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Nota de numeración:** registrado como H-14 en `dev/andres`; renumerado a H-19 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
@@ -456,7 +457,7 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** una prueba de "elige el elemento k" necesita un caso donde k no sea el primero ni el último.
 
 ### H-20 — Prueba del rango de puntos que no distingue `percentiles_rango` de los extremos de `percentiles_tabla`
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
@@ -479,7 +480,7 @@ falsas se registran como candidatos.
    (aquí, rango = extremos de la tabla); verificar cada prueba con el mutante que debería matar.
 
 ### H-21 — "Los dos modelos aprendieron la tasa de malos de las cosechas hasta 2012"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Conceptos
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
