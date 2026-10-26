@@ -1,0 +1,5 @@
+créditos de test: 74,154
+pérdida 'observada' v1 total: 231,200,583.74 USD
+  castigados (pérdida realizada): 168,195,585.76 USD
+  Fully Paid con pérdida > 0: 1,284 créditos, 1,670,028.92 USD (197 con más de 1 USD)
+  en mora: 5,460 créditos, 61,334,969.06 USD = 26.5% del total; recoveries > 0 en mora: 0

@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 2 (H-08, H-10) | 0 |
-| Código | 10 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-20) | 2 (H-03, H-04) |
-| Datos del mundo real | 1 (H-02) | 0 |
+| Matemáticas | 3 (H-08, H-10, H-14) | 3 (H-08, H-10, H-14) |
+| Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 9 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12) |
+| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 0 | 0 |
+| Conceptos | 2 (H-15, H-16) | 1 (H-15) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -52,7 +52,7 @@ falsas se registran como candidatos.
 ## Candidatos
 
 ### H-01 — PSI que da 0 en silencio para variables discretas
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** la misma sesión de
@@ -74,7 +74,7 @@ falsas se registran como candidatos.
    resultados exactamente 0 o 1 en datos reales. Una prueba con solo datos continuos no habría fallado.
 
 ### H-02 — "En `mths_since_last_delinq`, un vacío significa que nunca hubo mora"
-- **Estado:** candidato (falta que Daniel lo confirme)
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Datos del mundo real (significado de una variable)
 - **Parte:** A
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 23-oct-2026 · **Quién lo cazó:** el subagente
@@ -138,7 +138,7 @@ falsas se registran como candidatos.
    umbrales. Las pruebas de propiedades no deben recortar las entradas justo donde la función puede fallar.
 
 ### H-05 — Prueba de L2 "con lr y gradiente de la pérdida en 0", que no verifica nada
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) en modo plan · **Fecha:**
@@ -160,7 +160,7 @@ falsas se registran como candidatos.
    haría fallar; si ninguna, la prueba no verifica nada.
 
 ### H-06 — "La prueba de determinismo y la de dropout al predecir ya cubren los minilotes y `evaluar_perdida`"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 24/25-oct-2026 ·
@@ -182,7 +182,7 @@ falsas se registran como candidatos.
    Una prueba de integración no cubre un fallo si otra vía (otra semilla, otra llamada a `eval()`) lo enmascara.
 
 ### H-07 — "`@dataclass(frozen=True)` hace inmutable el historial de entrenamiento"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -200,13 +200,14 @@ falsas se registran como candidatos.
    también es una afirmación que se verifica.
 
 ### H-08 — "Penalizar λ‖W‖² en la pérdida equivale al `weight_decay` de Adam/SGD"
-- **Estado:** candidato (origen por confirmar con Daniel)
+- **Estado:** confirmado (Daniel, 25-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** B
-- **Herramienta y modelo:** por confirmar. El Spec v0.1 lo generó el puente con Claude (MEMORIA, 19-oct); la línea entra
-  al historial en la v0.4 (commit b562895, 22-oct) · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
+- **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, en la sesión del puente (Daniel) que escribió el
+  Spec; la línea entra al historial en la v0.4 (commit b562895, 22-oct). Daniel confirma el origen el 25-oct · **Fecha de detección:** 25-oct-2026 · **Quién lo cazó:** el subagente
   `verificador-matematico` (B2)
-1. **Prompt (literal):** por confirmar (el que produjo la v0.1–v0.4 del Spec). Verificación: `prompts/B2.md`, sección
+1. **Prompt (literal):** "Dame el spec yo lo reviso" (`prompts/asesoria_puente_claude.md`), el pedido que produjo la spec por partes
+   (v0.2), donde se creó `B-pd.md`. La versión exacta en que entró la línea no quedó registrada: el primer commit es la v0.4. Verificación: `prompts/B2.md`, sección
    "9. verificador-matematico".
 2. **Respuesta relevante de la IA:** `docs/spec/partes/B-pd.md` §3.2 (hasta v0.9): "el código debe hacer L2 (término
    λ‖W‖² en la pérdida, o `weight_decay` de `Adam`/`SGD`, que lo suma al gradiente)".
@@ -220,7 +221,7 @@ falsas se registran como candidatos.
    gradiente y con un experimento de pocos pasos; el factor ½ cambia la escala de λ.
 
 ### H-09 — "La prueba compara `warnings.filters` antes y después de `fit`, así que detecta un filtro global"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -238,7 +239,7 @@ falsas se registran como candidatos.
    produciría; verificarla con un mutante, no por lectura.
 
 ### H-10 — "El estimador es consistente para la media condicional", dicho del MLP de LGD
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Matemáticas
 - **Parte:** D
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 24-oct-2026 · **Quién lo
@@ -266,7 +267,7 @@ falsas se registran como candidatos.
    con las hipótesis del teorema citado.
 
 ### H-11 — "Las funciones usan factor y offset tal como vienen", probado solo en dos de las cuatro funciones
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -291,7 +292,7 @@ falsas se registran como candidatos.
    por función); y una regla de validación (rechazar bool) se prueba en cada lugar donde se aplica, no solo en el primero.
 
 ### H-12 — "Texto u objetos no numéricos fallan aquí", dicho de `np.asarray(x, dtype=np.float64)`
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 26-oct-2026)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 · **Quién lo
@@ -310,6 +311,149 @@ falsas se registran como candidatos.
    texto, objeto, complejo) antes de convertir, con pruebas parametrizadas sobre las cuatro funciones.
 6. **Lección aprendida:** "esto falla con X" sobre una conversión de NumPy se comprueba ejecutándola con X; una regla de
    validación del módulo (no bool, no texto) debe aplicarse y probarse en todas sus entradas, no solo en la config.
+
+### H-13 — "La pérdida observada es la misma construcción de la LGD de D" y "en mora es parcial"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Datos del mundo real
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code (app de escritorio), Claude Opus 5.5, la sesión orquestadora de Daniel, que escribió
+  la 1.ª versión de `src/el/` sin subagente · **Fecha:** 24-oct-2026 · **Quién lo cazó:** el subagente
+  `verificador-matematico` en la revisión de E5 (26-oct); el revisor-spec, en paralelo, señaló el contraste por banda
+1. **Prompt (literal):** "Vamos haciendo lo de la parte E" (Daniel, 24-oct, en la sesión del puente); la verificación está en
+   `prompts/E5.md`, sección 3.
+2. **Respuesta relevante de la IA:** docstring de `src/el/perdida_esperada.py` (commit de E5 del 24-oct): la pérdida
+   observada `max(0, (funded_amnt − total_rec_prncp) − (recoveries − collection_recovery_fee))` "es la misma construcción de
+   la LGD de la Parte D (D §3.2) multiplicada por la EAD al incumplimiento. En los créditos en mora […] su pérdida observada
+   es parcial y se marca", aplicada a todos los estados de test.
+3. **Cómo sospechamos:** el verificador recalculó la pérdida por estado y la contrastó con la población de la LGD de D
+   (solo castigados).
+4. **Evidencia:** `evidencias/H-13_perdida_observada.py` y `.txt`: de los 231,2 M USD "observados", 168,2 M son pérdida
+   realizada de castigados; 1 284 créditos `Fully Paid` suman 1,67 M (197 con más de 1 USD) porque su principal recibido
+   no llega al desembolsado; y los 5 460 en mora suman 61,3 M (26,5 %) con `recoveries` = 0 en todos: no es una pérdida
+   "parcial" (cota inferior) sino LGD = 1 supuesta, una cifra provisional y pesimista. Con eso, la razón E[L]/observada
+   salía 0,85 ("el modelo subestima") cuando en los créditos resueltos es 1,06.
+5. **Corrección:** ronda 2 de E5 (26-oct): pérdida realizada solo en castigados, 0 en pagados (la diferencia se reporta
+   como anomalía de los datos), pérdida provisional aparte en mora y contraste solo con los resueltos, total y por banda.
+6. **Lección aprendida:** una pérdida "observada" se define por estado del crédito y con la misma población que la LGD; antes
+   de llamar "parcial" a una cifra, se mira si de verdad es una cota (aquí las recuperaciones en mora eran 0).
+
+### H-14 — "Montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia la produce la PD"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Matemáticas
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `redactor-tecnico` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién
+  lo cazó:** el subagente `cazador-alucinaciones` y, en paralelo, el `verificador-matematico`, en la revisión del blog 09
+1. **Prompt (literal):** `prompts/E7.md`, sección 1 (punto 5: "explica con cuidado […] SIN afirmar más de lo que muestran
+   los datos"); la verificación, en la sección 2.
+2. **Respuesta relevante de la IA:** `blog/secciones/09-perdida-esperada.md` (borrador sin commit, línea 95): la E[L] de la
+   banda 1 es casi diez veces la de la banda 10 "con montos desembolsados parecidos (136,15 y 91,31 millones). La diferencia
+   la produce la PD (de 0,416 a 0,063)".
+3. **Cómo sospechamos:** la frase llama "parecidos" a dos montos que ella misma cita y que difieren en un 49 %.
+4. **Evidencia:** `evidencias/H-14_bandas_1_y_10.py` y `.txt`: la razón 9,92 entre las E[L] de las bandas 1 y 10 se
+   reparte en PD × 6,64, EAD × 1,49 y LGD × 1,01; en escala logarítmica la PD explica el 82,5 % y la EAD el 17,4 %. La PD
+   pesa más, pero no es "la" diferencia. Además, las bandas son deciles del puntaje, que es una transformación monótona de
+   la misma PD (correlación de rangos −1): parte de la conclusión es por construcción.
+5. **Corrección:** ronda 2 del blog 09: "sobre todo la PD", con el factor de la EAD, y aclaración de que las bandas
+   ordenan por la PD de la logística.
+6. **Lección aprendida:** un adjetivo cualitativo ("parecidos", "la causa") junto a cifras se comprueba con las cifras
+   mismas; una descomposición multiplicativa dice cuánto aporta cada factor.
+
+### H-15 — "Lo que hace alta la razón de la banda 10 es el factor EAD, el mayor de todos"
+- **Estado:** confirmado (Daniel, 26-oct-2026)
+- **Categoría:** Conceptos
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, subagente `cazador-alucinaciones` (Claude Opus 5.5), en su propia ronda 1 de
+  verificación del blog 09 · **Fecha:** 26-oct-2026 · **Quién lo cazó:** el mismo subagente, en la ronda 2 (lo reportó
+  como error propio)
+1. **Prompt (literal):** `prompts/E7.md`, sección 2 (verificación del blog 09); la frase pasó al encargo de la ronda 2 del
+   redactor (sección 3, punto 5), que la copió en el texto.
+2. **Respuesta relevante de la IA:** informe de la ronda 1 del cazador: "Lo que hace alta la razón de la banda 10 es el
+   factor EAD, el mayor de todos (1,275)".
+3. **Cómo sospechamos:** en la ronda 2, el cazador comparó los factores de las bandas 8 a 10 y los del orden alternativo de
+   la descomposición.
+4. **Evidencia:** `evidencias/H-15_factor_ead_banda_10.py` y `.txt`: la banda 8 tiene casi el mismo factor EAD (1,2742
+   frente a 1,2747) y razón 1,002; la 9, 1,2718 y razón 1,107. Lo que separa a la banda 10 es su factor PD (0,981 frente a
+   0,818 y 0,903). Con el orden alternativo, el factor EAD máximo es el de la banda 8 (1,2706 frente a 1,2696).
+5. **Corrección:** el orquestador aplicó al blog 09 la redacción que propuso el cazador: la razón de la banda 10 combina un
+   factor PD cercano a 1 con el factor EAD más alto, comparada con las bandas 2, 8 y 9.
+6. **Lección aprendida:** un verificador también puede atribuir una causa única donde hay dos que se combinan; antes de
+   explicar un extremo por un factor, se mira si otra banda con ese factor igual tiene el mismo resultado.
+
+### H-16 — "Optuna TPE" justificado solo con Bergstra et al. (2011), cuando Optuna 5 usa TPE multivariado por defecto
+- **Estado:** candidato (falta el texto literal de la respuesta: la asesoría inicial solo guardó un resumen)
+- **Categoría:** Conceptos
+- **Parte:** B
+- **Nota de numeración:** registrado como H-11 en `dev/andres`; renumerado a H-16 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
+- **Herramienta y modelo:** Claude (asesoría inicial del puente y Spec v0.1) · **Fecha:** 25-oct-2026 · **Quién lo cazó:**
+  la sesión orquestadora de Andrés (Claude Opus 5.5), al planear B4, leyendo el código fuente de Optuna instalado
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md` (prompt A); la respuesta guardada es un resumen ("Optuna TPE").
+   El texto que se usó está en la Spec: B-pd §3.3 hasta v0.14, "Justificación citada: TPE (Bergstra et al., 2011)".
+2. **Respuesta relevante de la IA:** B-pd §3.3 (v0.14): "Optuna TPE, 40 ensayos … Justificación citada: TPE (Bergstra et
+   al., 2011) y Optuna (Akiba et al., 2019)".
+3. **Cómo sospechamos:** `TPESampler` tiene `multivariate=None` en la firma, no `False`; había que saber qué hace `None`.
+4. **Evidencia:** `evidencias/H-16_tpe_multivariado.py` y `.txt`: con Optuna 5.0.0 (versión fijada), `_is_multivariate`
+   devuelve True en estudios de un objetivo ("By default, the multivariate TPE is used for single-objective optimization").
+   El TPE de Bergstra et al. (2011) modela cada hiperparámetro por separado.
+5. **Corrección:** Spec v0.15 (B-pd §3.3): se mantienen los valores por defecto (decisión de Andrés), `hpo_ensayos.json`
+   registra `multivariate: true` y el blog cita además el TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
+   Aviso a D, que también usa los valores por defecto.
+6. **Lección aprendida:** los valores por defecto cambian entre versiones mayores; antes de citar el método de una
+   biblioteca, leer la firma y el código de la versión fijada en `requirements.txt`, no la documentación de memoria.
+
+### H-17 — Caso de prueba "dropout = 0.475 → borde máximo" falso en coma flotante
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Nota de numeración:** registrado como H-12 en `dev/andres`; renumerado a H-17 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
+- **Herramienta y modelo:** Claude Code, subagente `revisor-calidad` y sesión orquestadora (Claude Opus 5.5) · **Fecha:**
+  25-oct-2026 · **Quién lo cazó:** el subagente `implementador` al escribir la prueba (ronda 2 de B4)
+1. **Prompt (literal):** `prompts/B4.md`, sección 5 (ronda 2), recomendado 1: "test_04: caso dropout = 0.475 → "max" y otro
+   justo fuera (simétricos a dropout_justo/dropout_fuera)".
+2. **Respuesta relevante de la IA:** el revisor-calidad propuso el caso y el orquestador lo pasó sin verificarlo.
+3. **Cómo sospechamos:** la prueba falló contra el código correcto.
+4. **Evidencia:** `evidencias/H-17_borde_coma_flotante.py` y `.txt`: 0.5 − 0.475 = 0.025000000000000022 > 0.05 · 0.5 =
+   0.025, así que la regla `distancia ≤ tolerancia` da False; con valores exactos en binario (f = 0.25, 0.375) da True.
+5. **Corrección:** `test_04_en_borde_limites_exactos_simetricos` usa `fraccion = 0.25` y valores representables exactamente
+   (0.125, 0.375 y sus vecinos).
+6. **Lección aprendida:** una prueba de límite con `≤` necesita valores exactos en binario (potencias de 2); antes de
+   proponer un caso, calcular la distancia en el intérprete.
+
+### H-18 — "La prueba 12 (reloj de paso fijo) atrapa que el tiempo incluya la carga o la medición"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Nota de numeración:** registrado como H-13 en `dev/andres`; renumerado a H-18 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
+- **Herramienta y modelo:** Claude Code, sesión orquestadora (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `implementador` (ronda 1 de B5), con un mutante
+1. **Prompt (literal):** `prompts/B5.md`, prompt de Andrés ("Quiero el plan con: … (d) riesgos y qué prueba los atrapa").
+2. **Respuesta relevante de la IA:** tabla de riesgos del plan de B5: "Tiempo incluye carga/medición | 12", con la prueba 12
+   = "reloj inyectado: `tiempo_s` = 1.0 en cada semilla (solo el fit)".
+3. **Cómo sospechamos:** el implementador metió la medición dentro de la zona cronometrada y la prueba 12 siguió en verde.
+4. **Evidencia:** `evidencias/H-18_reloj_paso_fijo.py` y `.txt`: con un reloj que avanza un paso por lectura, cronometrar
+   solo el fit o el fit más trabajo extra da lo mismo (1.0 y 1.0): el reloj cuenta lecturas, no trabajo.
+5. **Corrección:** prueba 12b (`tests/test_experimento_pd.py`): un reloj espía registra los eventos y comprueba que entre
+   los dos tics de cada semilla hay exactamente un `fit` y ninguna predicción.
+6. **Lección aprendida:** antes de afirmar "esta prueba atrapa X", escribir el mutante X y verlo fallar.
+
+### H-19 — "Las pruebas 17–18 comprueban que `pd_mlp.pt` y `pred_mlp` son los de la semilla mediana"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Nota de numeración:** registrado como H-14 en `dev/andres`; renumerado a H-19 al integrar `main` (26-oct, después del PR #9), porque H-11…H-15 ya eran de las Partes C y E.
+- **Herramienta y modelo:** Claude Code, sesión orquestadora y subagente `implementador` (Claude Opus 5.5) · **Fecha:**
+  26-oct-2026 · **Quién lo cazó:** el subagente `revisor-calidad` (ronda 2 de B5), con mutantes
+1. **Prompt (literal):** `prompts/B5.md`, prompt de Andrés (prueba 5: "MLPPD.cargar(...).predict_proba(X_test) ==
+   pred_mlp, y es la red de summary.semilla_mediana") y sección 5 (revisor-calidad).
+2. **Respuesta relevante de la IA:** el plan (pruebas 17–18) y el implementador dieron por cubierta la regla "se guarda la
+   red de la semilla mediana" con un escenario de 3 semillas reales.
+3. **Cómo sospechamos:** el revisor-calidad aplicó el mutante "guardar la red de la primera semilla" y sobrevivió (el de
+   "la última" sí moría).
+4. **Evidencia:** en ese escenario la semilla mediana coincidía con la primera, así que el mutante y el código correcto
+   escribían el mismo archivo; el script de mutantes (`mutar.py` del revisor, en el scratchpad de la sesión) lo reportó
+   como "sobrevive". En la ronda 3, `test_36` usa un modelo falso con log-loss de val monótona en la semilla: con {7, 8, 9} la
+   mediana es 8 y el mutante muere.
+5. **Corrección:** `test_36_red_guardada_es_la_mediana_del_medio` (`tests/test_experimento_pd.py`).
+6. **Lección aprendida:** una prueba de "elige el elemento k" necesita un caso donde k no sea el primero ni el último.
 
 ### H-20 — Prueba del rango de puntos que no distingue `percentiles_rango` de los extremos de `percentiles_tabla`
 - **Estado:** candidato

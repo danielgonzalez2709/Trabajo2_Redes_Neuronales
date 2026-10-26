@@ -58,6 +58,8 @@ Fuente: Elaboración propia a partir de data/processed/resumen_datos.json.
 | `lgd-qq` | `lgd-qq.png` | Q-Q de la LGD predicha frente a la observada en test | D |
 | `lgd-error-por-banda` | `lgd-error-por-banda.png` | MAE por banda de LGD observada en test (lineal, MLP, constante mediana) | D |
 | `lgd-semillas` | `lgd-semillas.png` | MAE de test de las 30 semillas del MLP frente a la lineal y las constantes | D |
+| `el-bandas` | `el-bandas.png` | E[L] frente a pérdida realizada por banda de puntaje (solo créditos resueltos de test) | E |
+| `el-pd-vs-tasa` | `el-pd-vs-tasa.png` | PD media predicha frente a tasa de malos observada por banda de puntaje (todo el test) | E |
 
 ## Bibliografía
 Toda entrada de `references.bib` se copia del BibTeX oficial del DOI (`https://doi.org/<doi>` con

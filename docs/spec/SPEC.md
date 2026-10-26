@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Curso | Redes neuronales y algoritmos bioinspirados — UNAL, Facultad de Minas, 2026-02 |
-| Versión | **0.14** — 2026-10-25 (B3: §5.4 añade `busqueda_logistica.json` y el campo `evidencia` en los JSON de resultados; §6 define las dos huellas SHA-256 de la columna "Evidencia"; B-pd §3.1 fija rejilla, criterio, desempate, sin refit y desviación muestral; para que B5 reutilice el mismo esquema y la comparación sea verificable; afecta a D (campo `evidencia` en los JSON de la LGD); Andrés; numerada 0.11 en `dev/andres`, se renumera al integrar `main`) · 0.13 — 2026-10-25 (B-pd §3.2: L2 = (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en sesgos; corrige λ‖W‖², hallazgo H-08; Andrés; numerada 0.10 en `dev/andres`) · 0.12 — 2026-10-25 (`categorias_es` en `features.yaml` (§5.1) y `etiquetas_categorias` en las entradas del JSON de la app (§5.5): la app mostraba los códigos en inglés; afecta a C (exportador) y E (app); Siddiqi 2.ª ed. 2017 verificada; Daniel) · 0.11 — 2026-10-25 (`data/processed/diccionario_loanstats.csv` en §5.1: copia literal versionada del diccionario para citar variables sin el crudo; la pidió Camila para D1; Daniel) · 0.10 — 2026-10-24 (contratos para la E[L]: `montos.parquet` en §5.1; columnas `pred_<modelo>` de `pred_test.parquet` y LGD predicha para todo el test en §5.4; afecta a B y D; Daniel; se numera 0.10 porque el reparto B+C de Andrés ya era la 0.9) · 0.9 — 2026-10-24 (reparto de la pareja B+C: Andrés la Parte B, Juan José la Parte C, §1.1 y §13; Andrés) · 0.8 — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
+| Versión | **0.17** — 2026-10-26 (los dos modelos de PD van a la app: §5.5 pasa a `pd_model_{modelo}.json` y `casos_paridad_{modelo}.json` para `logistica` y `mlp`, paridad para cada uno; §13 pendiente 5 decidido; afecta a C (C5: exportar los dos) y E (app con selector, R-APP-2 a R-APP-4); Daniel) · 0.16 — 2026-10-26 (B5: §5.4 fija los campos extra de `semillas/mlp_seed{k}.json` y de la entrada `mlp` de `results/data/pd/summary.json` (presupuesto de la búsqueda, semilla mediana por log-loss de val, `config_de_busqueda`); B-pd §3.5 pasa a [DECIDIDO] con la regla de la semilla mediana y las claves `semillas`, `salida` y `modelos` de `configs/pd/base.yaml`; B-pd §8 fija la tolerancia de reproducción; para que C y E consuman `pd_mlp.pt` y `pred_mlp` sabiendo de qué semilla salen; afecta a C y E (`n_configuraciones_busqueda` puede ser null si la config no es la de la búsqueda); Andrés) · 0.15 — 2026-10-25 (B4: §4 añade `configs/pd/mlp_final.yaml` (lo genera `run.py pd-hpo`; lo hereda `configs/pd/base.yaml`, que declara `base_seed`); §5.4 fija los campos de `results/data/pd/hpo_ensayos.json`; B-pd §3.3 pasa a [DECIDIDO]: TPE de Optuna 5 con valores por defecto (multivariado), NopPruner, criterio, desempate, presupuesto, fallos y regla de `en_borde`; para que B5 herede la configuración ganadora y el presupuesto sea verificable; avisa a D (Optuna 5 usa TPE multivariado por defecto; `FloatingPointError` no es `RuntimeError`); Andrés) · 0.14 — 2026-10-25 (B3: §5.4 añade `busqueda_logistica.json` y el campo `evidencia` en los JSON de resultados; §6 define las dos huellas SHA-256 de la columna "Evidencia"; B-pd §3.1 fija rejilla, criterio, desempate, sin refit y desviación muestral; para que B5 reutilice el mismo esquema y la comparación sea verificable; afecta a D (campo `evidencia` en los JSON de la LGD); Andrés; numerada 0.11 en `dev/andres`, se renumera al integrar `main`) · 0.13 — 2026-10-25 (B-pd §3.2: L2 = (λ/2)‖W‖² ≡ `weight_decay = λ`, sin L2 en sesgos; corrige λ‖W‖², hallazgo H-08; Andrés; numerada 0.10 en `dev/andres`) · 0.12 — 2026-10-25 (`categorias_es` en `features.yaml` (§5.1) y `etiquetas_categorias` en las entradas del JSON de la app (§5.5): la app mostraba los códigos en inglés; afecta a C (exportador) y E (app); Siddiqi 2.ª ed. 2017 verificada; Daniel) · 0.11 — 2026-10-25 (`data/processed/diccionario_loanstats.csv` en §5.1: copia literal versionada del diccionario para citar variables sin el crudo; la pidió Camila para D1; Daniel) · 0.10 — 2026-10-24 (contratos para la E[L]: `montos.parquet` en §5.1; columnas `pred_<modelo>` de `pred_test.parquet` y LGD predicha para todo el test en §5.4; afecta a B y D; Daniel; se numera 0.10 porque el reparto B+C de Andrés ya era la 0.9) · 0.9 — 2026-10-24 (reparto de la pareja B+C: Andrés la Parte B, Juan José la Parte C, §1.1 y §13; Andrés) · 0.8 — 2026-10-23 (Daniel decide: partición ≤ 2012 / 2013 / 2014 y las 15 variables; `grade` e `int_rate` como análisis de sensibilidad aparte, archivo `sensibilidad_lc.parquet` en §5.1 y tarea B10) · 0.7 — 2026-10-23 (correcciones de revisor-spec a la Parte A: `run.py eda` en §4.1, limpieza de categóricas declarada en §5.2, campos adicionales del resumen en §5.1; Daniel) · 0.6 — 2026-10-23 (regla de push en §7.2: a main solo por PR; push libre a la rama personal; Daniel) · 0.5 — 2026-10-23 (Parte A entrega datos reales a las 9 a. m.: §5.6 deja de ser necesario; partición propuesta ≤ 2012 / 2013 / 2014 en A §3.5; Daniel) · 0.4 — 2026-10-22 (notebooks de demostración como capa delgada sobre `src/`, §5.8; análisis descriptivo después del preprocesamiento en las Partes A y D; propuesto por Daniel a partir del consejo del profesor en el Trabajo 1) · 0.3 — 2026-10-22 (equipo asignado a las partes; enunciado literal dentro del Spec, en el Anexo; cualquier integrante puede cambiar el Spec, §0.1) · 0.2 — 2026-10-22 (núcleo + una spec por parte en `docs/spec/partes/`; cronograma comprimido al 27-oct) · 0.1 — 2026-10-19 (borrador inicial) |
 | Repositorio | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Entrega | **Martes 27-oct-2026, 23:59** (meta interna: 6 p. m.) · Sustentación: posterior, fecha por confirmar |
 | Enunciado | **Anexo al final de este archivo** (transcripción literal del PDF del curso). **Si el Spec lo contradice, gana el enunciado.** |
@@ -94,7 +94,7 @@ de la cacería, su video individual, y estar en capacidad de explicar **todo** e
              contratos §5 + datos sintéticos §5.6 (E, jue 22)  ──► todos arrancan sin esperar
 A ──datos reales (vie 23, 2 p. m.)──► B, C, D        D también puede construir su objetivo desde el CSV crudo
 B ──modelo PD final (sáb 24, mediodía)──► C, E
-C ──pd_model.json real (sáb 24, noche)──► E (app)
+C ──pd_model_{logistica,mlp}.json reales (sáb 24, noche)──► E (app)
 B + D ──predicciones de test (sáb 24)──► E (E[L])
 todos ──secciones del blog (dom 25, 8 p. m.)──► E (publicación)
 ```
@@ -142,7 +142,7 @@ app; (3) base de datos para registrar consultas anónimas de la app.
 Trabajo2_Redes_Neuronales/
 ├── README.md · CLAUDE.md · requirements.txt · run.py
 ├── .github/        CODEOWNERS, pull_request_template.md, workflows/ci.yml
-├── configs/        datos.yaml, features.yaml, pd/{base,demo,hpo}.yaml, lgd/{base,demo,hpo}.yaml,
+├── configs/        datos.yaml, features.yaml, pd/{base,demo,hpo,mlp_final}.yaml, lgd/{base,demo,hpo}.yaml,
 │                   scorecard/base.yaml, el/base.yaml
 ├── src/
 │   ├── common/     config.py, cli.py, seeds.py, results.py, preprocesamiento.py, metricas.py, torch_utils.py   (E y A)
@@ -265,11 +265,27 @@ El MLP de PD es una pila `Linear → activación → Dropout` con salida `Linear
 
 ```text
 results/data/{pd|lgd}/semillas/{modelo}_seed{k}.json   # {modelo, seed, config, metricas{...}, n_parametros, tiempo_s, device, epocas, evidencia}
+                                        #   PD mlp (v0.16), además: mejor_epoca, mejor_perdida_val, historial [{epoca,
+                                        #   perdida_train, perdida_val}], hilos_torch, version_torch, calibracion_global
+                                        #   {pd_media_val, tasa_val, pd_media_test, tasa_test}, n {train, val, test}
 results/data/{pd|lgd}/summary.json      # por modelo: n_parametros, n_configuraciones_busqueda, tiempo_total_s,
                                         #   metricas {nombre: {media, desv, mejor, peor, n}}, evidencia
+                                        #   PD mlp (v0.16), además: tiempo_busqueda_s, tiempo_semillas_s (Σ de los fit),
+                                        #   semillas, semilla_mediana, criterio_semilla_mediana, config, config_de_busqueda,
+                                        #   busqueda (bloque de mlp_final.yaml), hilos_torch, version_torch; tiempo_total_s =
+                                        #   tiempo_busqueda_s + tiempo_semillas_s. Si config_de_busqueda es false:
+                                        #   n_configuraciones_busqueda, tiempo_busqueda_s y busqueda = null y
+                                        #   tiempo_total_s = tiempo_semillas_s
 results/data/pd/busqueda_logistica.json # búsqueda de C (B3): criterio, filas [{C, logloss_val, auc_val, n_iter, tiempo_s}],
                                         #   C_elegido, en_borde, tiempo_total_s, evidencia
 results/data/{pd|lgd}/hpo_ensayos.json  # cada ensayo: parámetros, métrica de validación, tiempo, estado
+                                        #   PD (v0.15): criterio, muestreador {nombre, semilla, n_startup_trials,
+                                        #   multivariate}, podador, semilla_ensayos, versiones {optuna, torch}, hilos_torch,
+                                        #   espacio, mlp_base (solo claves no buscadas), n_ensayos (todos), estados,
+                                        #   tiempo_total_s (Σ de los fit, incluidos FAIL), tiempo_reloj_s, mejor {numero,
+                                        #   parametros, logloss_val, auc_val, n_parametros}, en_borde {lr, l2, dropout},
+                                        #   ensayos [{numero, estado, parametros, logloss_val, auc_val, perdida_val_entrenar,
+                                        #   epocas, mejor_epoca, n_parametros, tiempo_s, error si FAIL}], evidencia
 results/data/{pd|lgd}/pred_test.parquet # columnas: id (str), y, pred_<modelo> (float; p. ej. pred_logistica, pred_mlp)
                                         #   con la semilla de la métrica mediana. PD: todo el test. LGD: el test de la LGD.
 results/data/lgd/pred_pd_test.parquet   # LGD predicha para TODOS los créditos de test de loans_pd (no solo los
@@ -284,7 +300,13 @@ JSON en UTF-8, sangría 2, sin NaN/inf (`save_json` del Trabajo 1). `evidencia` 
 
 ### 5.5 Exportación a la app (produce: C · consume: E)
 
-`app/public/model/pd_model.json`:
+**Los dos modelos de PD van a la app** [DECIDIDO, Daniel, 26-oct; v0.17]: un archivo por modelo,
+`app/public/model/pd_model_{modelo}.json` y `app/public/model/casos_paridad_{modelo}.json` con `{modelo}` ∈
+{`logistica`, `mlp`} (el MLP es la semilla mediana guardada en `models/pd_mlp.pt`). Cada archivo sigue el esquema de abajo,
+con su propia `red`, sus `percentiles_score` (los puntajes de test de **ese** modelo) y sus `metricas`; `entradas`,
+`preprocesamiento` y `scorecard` son iguales en los dos.
+
+`app/public/model/pd_model_{modelo}.json`:
 ```jsonc
 {
   "version_contrato": 1,
@@ -303,10 +325,10 @@ JSON en UTF-8, sangría 2, sin NaN/inf (`save_json` del Trabajo 1). `evidencia` 
   "metricas": { "auc_test": 0.0, "ks_test": 0.0, "brier_test": 0.0 }
 }
 ```
-(Los números del ejemplo son marcadores, no valores.) Si el modelo de la app es la logística, `red.capas` tiene una sola capa
-con activación `"identidad"`.
-`app/public/model/casos_paridad.json`: 1 000 filas de test con entradas crudas, `pd` y `score` calculados en Python.
-**Prueba de paridad** en CI: |PD_TS − PD_Py| < 1e-6 y |score_TS − score_Py| < 1e-3 en las 1 000.
+(Los números del ejemplo son marcadores, no valores.) En `pd_model_logistica.json`, `red.capas` tiene una sola capa con
+activación `"identidad"`; en `pd_model_mlp.json`, una capa por cada capa oculta y la última con `"identidad"` (el logit).
+`app/public/model/casos_paridad_{modelo}.json`: 1 000 filas de test con entradas crudas, `pd` y `score` calculados en Python.
+**Prueba de paridad** en CI, para **cada** modelo: |PD_TS − PD_Py| < 1e-6 y |score_TS − score_Py| < 1e-3 en las 1 000.
 
 ### 5.6 Datos sintéticos — **ya no hacen falta** (v0.5): los datos reales están en `data/processed/` desde el vie 23, 9 a. m.
 
@@ -449,7 +471,7 @@ El prompt literal se guarda en `alucinaciones/prompts/<ID>.md` **antes** de envi
 | **Sáb 24, mediodía** | Modelo final de PD (30 semillas) + `pred_test` | B → C, E |
 | **Sáb 24, tarde** | Grabación del video con los 5 (≈ 30 min, todos juntos) | todos |
 | **Sáb 24, 6 p. m.** | LGD final (30 semillas) + `pred_test` | D → E |
-| **Sáb 24, noche** | `pd_model.json` real + casos de paridad | C → E |
+| **Sáb 24, noche** | `pd_model_{logistica,mlp}.json` reales + casos de paridad | C → E |
 | **Dom 25, 8 p. m.** | Secciones del blog de cada parte + ≥ 1 hallazgo por parte | todos → E |
 | **Lun 26** | Clon limpio en otra máquina, blog publicado, app final, videos individuales | E + todos |
 | **Mar 27, 6 p. m.** | Entrega (límite oficial 23:59) | todos |
@@ -477,7 +499,7 @@ Si un hito se atrasa, quien lo recibe sigue con los sintéticos y avisa al puent
 2. Aprobación de los [PROPUESTO] de §3 — hoy.
 3. Variables del modelo y de la app — Parte A, vie 23 en la mañana.
 4. Cortes de la partición temporal — Parte A, vie 23 al mediodía.
-5. Modelo que va a la app — Partes B y C, sáb 24.
+5. ~~Modelo que va a la app~~ — [DECIDIDO, Daniel, 26-oct; v0.17]: los dos (logística y MLP), con selector en la app (§5.5).
 6. Fecha de la sustentación.
 
 ---

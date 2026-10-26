@@ -18,8 +18,9 @@ Pruebas añadidas a las 28 del plan aprobado (cada una atrapa un fallo de nuestr
   criterio en train).
 - ``test_a03_logloss_con_una_sola_clase``: ``logloss`` no falla si y tiene una sola clase (atrapa olvidar
   ``labels=[0, 1]``, que rompería la búsqueda con una validación pequeña).
-- ``test_a04_config_base_valida``: ``configs/pd/base.yaml`` tiene solo el bloque ``logistica``, pasa la validación y
-  declara 13 valores (atrapa un YAML mal escrito antes de la corrida larga).
+- ``test_a04_config_base_valida``: ``configs/pd/base.yaml`` tiene el bloque ``logistica``, pasa la validación y
+  declara 13 valores (atrapa un YAML mal escrito antes de la corrida larga). Desde B4 también hereda el bloque ``mlp``
+  de ``mlp_final.yaml`` y declara ``base_seed`` (decisión de Andrés, 25-oct).
 - ``test_a05_evaluar_usa_las_metricas_comunes``: ``evaluar`` devuelve las 5 métricas con nombre, calculadas con
   ``src.common.metricas`` y ``logloss`` (atrapa un nombre cambiado o una métrica cruzada).
 - ``test_a06_medir_nombra_por_split``: ``medir`` produce ``{metrica}_{split}`` con las PD del modelo en cada split.
@@ -1085,9 +1086,10 @@ def test_a03_logloss_con_una_sola_clase():
 
 
 def test_a04_config_base_valida():
-    """configs/pd/base.yaml tiene solo el bloque logistica, válido, con 13 valores de C."""
+    """configs/pd/base.yaml tiene el bloque logistica, válido, con 13 valores de C (desde B4 hereda además mlp; desde
+    B5 declara semillas, salida y modelos)."""
     cfg = load_config(ROOT / "configs" / "pd" / "base.yaml")  # config declarada
-    assert set(cfg) == {"logistica"}  # B5 añade el bloque mlp
+    assert set(cfg) == {"logistica", "mlp", "busqueda", "base_seed", "semillas", "salida", "modelos"}  # B4 + B5
     validado = validar_cfg_logistica(cfg["logistica"])  # pasa la validación
     assert validado == CFG_PRUEBA["logistica"]  # los valores declarados en el prompt
     assert len(validado["rejilla_C"]) == N_REJILLA_BASE  # 13 configuraciones

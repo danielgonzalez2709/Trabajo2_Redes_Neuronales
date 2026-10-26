@@ -68,3 +68,41 @@ def test_correr_demo_pendiente_no_falla(tmp_path):
 
     cfg = {"demos": {"x": {"parte": "B", "subcomando": "pd", "config": str(tmp_path / "no.yaml"), "salida_temporal": None}}}
     assert correr_demo(cfg, "x") == {"estado": "pendiente"}
+
+
+def _huellas_versionadas(raiz: Path) -> dict:
+    """(tamaño, mtime) de cada archivo de las carpetas que el notebook no debe tocar (núcleo §5.8)."""
+    return {p: (p.stat().st_size, p.stat().st_mtime_ns) for carpeta in ("data", "models", "results", "blog")
+            for p in (raiz / carpeta).rglob("*") if p.is_file()}
+
+
+TIEMPO_MAX_NOTEBOOK_S = 120  # tarea E11 (Parte E): cada notebook corre en < 2 min
+ENTRADAS_05 = ("results/data/pd/pred_test.parquet", "results/data/lgd/pred_pd_test.parquet",
+               "data/processed/montos.parquet", "data/processed/loans_pd.parquet")  # B, D y A
+
+
+@pytest.mark.lento
+def test_notebook_05_perdida_esperada_no_escribe_en_lo_versionado(tmp_path, monkeypatch):
+    """E11: el notebook 05 corre la E[L] y dibuja sus figuras en una carpeta temporal en < 2 min; data/, models/,
+    results/ y blog/ quedan intactos (results/data/el/ lo consumen el blog y la app) y el .ipynb no expone la ruta local
+    de la carpeta temporal."""
+    import tempfile
+    import time
+
+    fuente = RAIZ / "notebooks" / "05_perdida_esperada.py"
+    assert fuente.is_file()
+    faltan = [r for r in ENTRADAS_05 if not (RAIZ / r).is_file()]
+    if faltan:
+        pytest.skip("faltan entradas de la E[L]: " + ", ".join(faltan))
+    copia = tmp_path / fuente.name
+    copia.write_text(fuente.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.chdir(RAIZ)
+    antes = _huellas_versionadas(RAIZ)
+    inicio = time.perf_counter()
+    destino = ejecutar(copia, RAIZ)
+    assert time.perf_counter() - inicio < TIEMPO_MAX_NOTEBOOK_S
+    assert _huellas_versionadas(RAIZ) == antes
+    texto = destino.read_text(encoding="utf-8")
+    temporal = Path(tempfile.gettempdir()).resolve()
+    for forma in (str(temporal), temporal.as_posix(), str(temporal).replace("\\", "\\\\")):
+        assert forma not in texto
