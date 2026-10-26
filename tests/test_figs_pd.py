@@ -4,6 +4,7 @@ import hashlib  # huellas SHA-256 de las carpetas versionadas
 import json  # insumos sintéticos y serialización estricta
 from pathlib import Path  # rutas
 
+import matplotlib.pyplot as plt  # cierra las figuras que captura la espía de la prueba 7c
 import numpy as np  # datos sintéticos y comparaciones
 import pandas as pd  # pred_test sintético
 import pytest  # aserciones de excepciones y marcadores
@@ -415,7 +416,13 @@ def test_4d_metricas_por_semilla_con_metrica_desconocida_da_error():
 def test_7c_titulo_avisa_si_c_quedo_en_el_borde(tmp_path, monkeypatch):
     """en_borde = True → el título general lo dice; False → no."""
     titulos = []  # títulos capturados
-    espia = lambda fig, ruta: titulos.append(fig._suptitle.get_text()) or ruta  # noqa: E731  guarda el título
+
+    def espia(fig, ruta):  # reemplaza a _guardar: captura el título sin escribir
+        """Guarda el título general de ``fig``, la cierra y devuelve ``ruta``."""
+        titulos.append(fig.get_suptitle())  # API pública de matplotlib (≥ 3.8)
+        plt.close(fig)  # _guardar la cerraría: no deja figuras abiertas
+        return ruta  # misma salida que _guardar
+
     monkeypatch.setattr(figs_pd, "_guardar", espia)  # no escribe: solo captura
     for borde in (True, False):  # las dos ramas
         bc = {**figs_pd.datos_busqueda_c(_busqueda()), "en_borde": borde}  # datos con el borde pedido
