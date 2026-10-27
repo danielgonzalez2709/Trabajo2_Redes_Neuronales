@@ -220,26 +220,69 @@ def _validar_modo(modo) -> str:
 
 
 # %% [markdown]
-# ## Rutas: protección del modelo principal
+# ## Rutas: escritura por contención (ronda 2 de B10)
 #
-# Ninguna ruta del modo puede coincidir con las del principal (`RUTAS_PD`, resueltas desde el directorio actual): los
-# resultados no pueden ser `results/data/pd` ni estar dentro, los modelos no pueden ser `models` (se pisarían
-# `pd_logistica.joblib` y `pd_mlp.pt`), y el parquet unido y el preprocesador no pueden ser los de A ni los insumos de
-# la unión. Si no → `ValueError`.
+# En vez de una lista negra de archivos, las escrituras quedan **contenidas**: todas las rutas se resuelven a absolutas
+# desde el directorio actual (con `..` normalizado) y
+#
+# 1. `salida` y `modelos` no pueden ser ni estar dentro de `CARPETAS_PROTEGIDAS` (`data/`, `configs/`, `blog/`,
+#    `app/`, `results/data/pd`), ni contener ninguna de ellas (p. ej. `results` o `.`), ni ser `models/` ni un archivo
+#    existente de `models/` (los modelos de C y E);
+# 2. `union` queda **dentro** de `salida` y `preprocesador` **dentro** de `modelos`, fuera de las carpetas de los
+#    modos y sin ser `comparacion.json`.
+#
+# Las carpetas de cada modo (`{salida}/{modo}`, `{modelos}/{modo}`) y el `destino`/`salida` de la búsqueda (en
+# `{salida}/optuna/`) quedan dentro por construcción. Cualquier falla → `ValueError` que nombra la clave.
 
 # %%
-def _rechazar_protegidas(rutas: ex.RutasPD, insumos: list[Path]) -> None:
-    """ValueError si ``rutas`` pisaría o anidaría las del modelo principal o los insumos de la unión."""
-    principal = ex.RUTAS_PD  # rutas del modelo principal
-    res, res_pd = rutas.resultados.resolve(), principal.resultados.resolve()  # carpetas de resultados
-    if res == res_pd or res_pd in res.parents:  # results/data/pd o dentro
-        raise ValueError(f"la salida {rutas.resultados} pisaría o anidaría {principal.resultados}")  # rechazo
-    if rutas.modelos.resolve() == principal.modelos.resolve():  # models: pisaría pd_*.{joblib,pt}
-        raise ValueError(f"los modelos {rutas.modelos} pisarían los del modelo principal")  # rechazo
-    protegidas = {p.resolve() for p in (principal.parquet, principal.preprocesador, *insumos)}  # entradas
-    for ruta in (rutas.parquet, rutas.preprocesador):  # lo que escribe preparar
-        if ruta.resolve() in protegidas:  # pisaría un archivo de A
-            raise ValueError(f"{ruta} pisaría un archivo de entrada (loans_pd, sensibilidad_lc o preprocesador)")  # A
+CARPETAS_PROTEGIDAS = ("data", "configs", "blog", "app", "results/data/pd")  # nunca se escribe en ellas
+CARPETA_MODELOS = "models"  # models/: ni ella ni sus archivos son salida de sensibilidad
+
+
+def _absoluta(ruta) -> Path:
+    """Ruta absoluta desde el directorio actual, con ``..`` normalizado (sin exigir que exista)."""
+    return Path(ruta).resolve()  # resuelve . y .. y enlaces
+
+
+def _relacionadas(a: Path, b: Path) -> bool:
+    """True si ``a`` y ``b`` son la misma ruta o una contiene a la otra."""
+    return a == b or a in b.parents or b in a.parents  # igual, dentro o contenedora
+
+
+def _validar_carpeta(clave: str, valor) -> Path:
+    """Carpeta ``sensibilidad.clave`` absoluta; ValueError si toca una protegida o models/."""
+    carpeta = _absoluta(valor)  # absoluta
+    for protegida in CARPETAS_PROTEGIDAS:  # data, configs, blog, app, results/data/pd
+        if _relacionadas(carpeta, _absoluta(protegida)):  # es, está dentro o la contiene
+            raise ValueError(f"sensibilidad.{clave}={valor!r} es, está dentro o contiene {protegida}/ "
+                             "(B-pd §3.8: nunca se escribe allí)")  # nombra la clave
+    modelos = _absoluta(CARPETA_MODELOS)  # models/
+    if carpeta == modelos or (modelos in carpeta.parents and carpeta.is_file()):  # models/ o uno de sus archivos
+        raise ValueError(f"sensibilidad.{clave}={valor!r} es {CARPETA_MODELOS}/ o un archivo suyo "
+                         "(los modelos del principal)")  # nombra la clave
+    if carpeta in modelos.parents:  # contendría models/ (p. ej. '.')
+        raise ValueError(f"sensibilidad.{clave}={valor!r} contiene {CARPETA_MODELOS}/")  # nombra la clave
+    return carpeta  # carpeta válida
+
+
+def _validar_archivo_dentro(clave: str, valor, carpeta: Path, clave_carpeta: str, excluidos: list[Path]) -> None:
+    """ValueError si ``sensibilidad.clave`` no queda dentro de ``carpeta`` o cae en ``excluidos``."""
+    archivo = _absoluta(valor)  # absoluta
+    if carpeta not in archivo.parents:  # fuera de su carpeta
+        raise ValueError(f"sensibilidad.{clave}={valor!r} debe quedar dentro de sensibilidad.{clave_carpeta}")  # clave
+    for excluido in excluidos:  # carpetas de los modos y comparacion.json
+        if _relacionadas(archivo, excluido):  # dentro de un modo o el mismo archivo
+            raise ValueError(f"sensibilidad.{clave}={valor!r} pisaría {excluido.name} de sensibilidad")  # clave
+
+
+def _validar_rutas_escritura(s: dict) -> None:
+    """Reglas de contención del bloque sensibilidad (antes de escribir nada)."""
+    salida = _validar_carpeta("salida", s["salida"])  # resultados
+    modelos = _validar_carpeta("modelos", s["modelos"])  # modelos
+    _validar_archivo_dentro("union", s["union"], salida, "salida",  # unión dentro de salida
+                            [salida / m for m in MODOS] + [salida / ARCHIVO_COMPARACION])  # fuera de modos
+    _validar_archivo_dentro("preprocesador", s["preprocesador"], modelos, "modelos",  # dentro de modelos
+                            [modelos / m for m in MODOS])  # fuera de modos
 
 
 # %% [markdown]
@@ -250,12 +293,12 @@ def _rechazar_protegidas(rutas: ex.RutasPD, insumos: list[Path]) -> None:
 
 # %%
 def rutas_sensibilidad(cfg: dict, modo: str) -> ex.RutasPD:
-    """RutasPD del modo con el parquet unido y el preprocesador de sensibilidad; ValueError si pisa el principal."""
+    """RutasPD del modo con el parquet unido y el preprocesador de sensibilidad; ValueError si escapa de su carpeta."""
     _validar_modo(modo)  # reusar u optuna
     s = cfg["sensibilidad"]  # bloque de rutas
     rutas = ex.RutasPD(Path(s["union"]), Path(s["preprocesador"]), Path(s["salida"]) / modo,
                        Path(s["modelos"]) / modo)  # carpetas por modo
-    _rechazar_protegidas(rutas, [Path(s["loans_pd"]), Path(s["datos_lc"])])  # nunca las del principal
+    _validar_rutas_escritura(s)  # contención: nunca las del principal ni data/configs/blog/app
     return rutas  # rutas del modo
 
 

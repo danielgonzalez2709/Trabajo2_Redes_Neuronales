@@ -423,29 +423,107 @@ def test_04_rutas_de_los_modos():
 
 
 # %% [markdown]
-# ## 4b. Rutas protegidas
+# ## 4b. Rutas de escritura: contención (ronda 2 de B10)
 #
-# Una config que apunte a las rutas del modelo principal → `ValueError` antes de escribir nada.
+# `union` debe quedar dentro de `salida` y `preprocesador` dentro de `modelos` (fuera de las carpetas de los modos);
+# `salida` y `modelos`, resueltas (con `..` normalizado, relativas o absolutas), no pueden ser ni estar dentro de
+# `data/`, `configs/`, `blog/`, `app/` ni `results/data/pd`, ni contenerlas (p. ej. `results` o `.`), ni ser `models/`
+# ni un archivo existente de `models/`. Cada caso → `ValueError` que nombra la clave, desde `validar_cfg_sensibilidad`
+# (antes de leer datos).
 
 # %%
-@pytest.mark.parametrize("clave, valor", [  # rutas del principal
-    ("salida", "results/data/pd"),  # reusar/ quedaría dentro de results/data/pd
-    ("salida", "results/data"),  # results/data/{modo}: no pisa, pero optuna/ y reusar/ fuera de B → se acepta
-    ("modelos", "."),  # ./reusar: se acepta (no pisa archivos del principal)
-    ("union", "data/processed/loans_pd.parquet"),  # pisaría loans_pd
-    ("preprocesador", "models/preprocesador_pd.json"),  # pisaría el preprocesador de A
-], ids=["salida_pd", "salida_data", "modelos_punto", "union_loans", "pre_de_A"])
-def test_04b_rutas_protegidas(clave, valor, monkeypatch):
-    """Solo las rutas que pisarían o anidarían el principal se rechazan."""
-    monkeypatch.chdir(ROOT)  # rutas relativas a la raíz
+CASOS_RUTAS = [  # (clave, valor) rechazados
+    ("union", "results/data/pd/pred_test.parquet"),  # pisaría pred_test del principal
+    ("preprocesador", "models/pd_mlp.pt"),  # pisaría la red del principal
+    ("preprocesador", "configs/pd/mlp_final.yaml"),  # pisaría mlp_final.yaml
+    ("union", "data/processed/otro.parquet"),  # escribiría en data/
+    ("salida", "data/processed"),  # carpeta de A
+    ("modelos", "models/pd_logistica.joblib"),  # archivo existente de models/
+    ("salida", "results"),  # contiene results/data/pd
+    ("salida", "."),  # contiene todo el repositorio
+    ("modelos", "."),  # ídem
+    ("modelos", "models"),  # models/ mismo
+    ("salida", "models"),  # ídem para salida
+    ("salida", "configs"),  # configs/
+    ("salida", "blog/docs"),  # dentro de blog/
+    ("modelos", "app/public"),  # dentro de app/
+    ("salida", "results/data/pd"),  # el principal
+    ("salida", "results/data/pd/sub"),  # dentro del principal
+    ("salida", "results/data/pd_sensibilidad/../pd"),  # el principal con ..
+    ("union", "results/data/pd_sensibilidad/../pd/pred_test.parquet"),  # ídem para union
+    ("union", "results/data/pd_sensibilidad/reusar/pred_test.parquet"),  # dentro de una carpeta de modo
+    ("union", "results/data/pd_sensibilidad/comparacion.json"),  # pisaría comparacion.json
+    ("preprocesador", "models/pd_sensibilidad/optuna/pd_mlp.pt"),  # dentro de una carpeta de modo
+    ("salida", str(ROOT / "results" / "data" / "pd")),  # absoluta al principal
+    ("modelos", str(ROOT / "models")),  # absoluta a models/
+    ("modelos", str(ROOT / "data")),  # absoluta a data/
+    ("union", str(ROOT / "results" / "data" / "pd" / "pred_test.parquet")),  # absoluta a pred_test
+]
+
+
+# %% [markdown]
+# Cambia una ruta de la config real; si es `salida` o `modelos`, mueve `union` o `preprocesador` dentro de la nueva
+# carpeta para que falle solo la regla que se prueba.
+
+# %%
+def _cfg_con_ruta(clave: str, valor: str) -> dict:
+    """Config real con ``sensibilidad.clave = valor`` (y su archivo dentro si es una carpeta)."""
     cfg = load_config(RUTA_CFG)  # config real
-    cfg["sensibilidad"][clave] = valor  # ruta a probar
-    aceptadas = {("salida", "results/data"), ("modelos", ".")}  # no pisan nada del principal
-    if (clave, valor) in aceptadas:  # se aceptan
-        sens.rutas_sensibilidad(cfg, "reusar")  # sin error
-        return  # listo
-    with pytest.raises(ValueError):  # rechazo
-        sens.rutas_sensibilidad(cfg, "reusar")  # rutas
+    s = cfg["sensibilidad"]  # rutas
+    s[clave] = valor  # ruta a probar
+    if clave == "salida":  # la unión va dentro de salida
+        s["union"] = str(Path(valor) / "union.parquet")  # dentro
+    if clave == "modelos":  # el preprocesador va dentro de modelos
+        s["preprocesador"] = str(Path(valor) / "pre.json")  # dentro
+    return cfg  # config
+
+
+# %% [markdown]
+# Cada caso se rechaza con un mensaje que nombra la clave; la config real y una en `tmp_path` se aceptan.
+
+# %%
+@pytest.mark.parametrize("clave, valor", CASOS_RUTAS, ids=[f"{c}={v}" for c, v in CASOS_RUTAS])  # cada caso
+def test_04b_rutas_por_contencion(clave, valor, monkeypatch):
+    """ValueError que nombra sensibilidad.<clave>, antes de leer datos."""
+    monkeypatch.chdir(ROOT)  # rutas relativas a la raíz
+    with pytest.raises(ValueError, match=rf"sensibilidad\.{clave}"):  # nombra la clave
+        sens.validar_cfg_sensibilidad(_cfg_con_ruta(clave, valor))  # validación
+
+
+def test_04c_rutas_aceptadas(entorno, tmp_path, monkeypatch):
+    """La config real y una con todo en tmp_path pasan; los modos y optuna/ quedan dentro por construcción."""
+    monkeypatch.chdir(ROOT)  # rutas relativas a la raíz
+    for cfg in (load_config(RUTA_CFG), _cfg(entorno, tmp_path)):  # real y temporal
+        sens.validar_cfg_sensibilidad(cfg)  # pasa
+        s = cfg["sensibilidad"]  # rutas
+        salida, modelos = Path(s["salida"]).resolve(), Path(s["modelos"]).resolve()  # carpetas
+        for modo in sens.MODOS:  # cada modo
+            r = sens.rutas_sensibilidad(cfg, modo)  # rutas del modo
+            assert salida in r.resultados.resolve().parents and modelos in r.modelos.resolve().parents  # dentro
+        h = sens.cfg_hpo_sensibilidad(cfg)["hpo"]  # búsqueda de optuna
+        assert salida in Path(h["destino"]).resolve().parents and salida in Path(h["salida"]).resolve().parents
+
+
+# %% [markdown]
+# Por `run.py`: una ruta rechazada sale en una línea con código 2.
+
+# %%
+def test_04d_cli_ruta_rechazada(capsys, monkeypatch):
+    """run.py pd-sensibilidad --set sensibilidad.union=results/data/pd/pred_test.parquet → código 2, una línea."""
+    monkeypatch.chdir(ROOT)  # rutas relativas
+    antes = _huellas_principal()  # el principal
+
+    def prohibido(*a, **k):
+        """Si la guarda falla, ninguna pieza puede escribir: la prueba falla sin tocar el repositorio."""
+        raise AssertionError("la guarda dejó pasar la ruta: se iba a escribir")  # seguro de la prueba
+
+    for modulo, nombre in ((sens, "preparar"), (ex, "correr_pd"), (hpo, "buscar")):  # piezas que escriben
+        monkeypatch.setattr(modulo, nombre, prohibido)  # se resuelven al llamar
+    codigo = cli.main(["pd-sensibilidad", "--config", str(RUTA_CFG),
+                       "--set", "sensibilidad.union=results/data/pd/pred_test.parquet"])  # CLI
+    err = capsys.readouterr().err.strip().splitlines()  # stderr
+    assert codigo == ex.CODIGO_ERROR and len(err) == 1 and "sensibilidad.union" in err[0]  # una línea
+    assert _huellas_principal() == antes  # nada cambió
 
 
 # %% [markdown]
