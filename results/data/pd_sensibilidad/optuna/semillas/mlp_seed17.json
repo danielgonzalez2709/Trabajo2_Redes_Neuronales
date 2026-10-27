@@ -1,0 +1,169 @@
+{
+  "modelo": "mlp",
+  "seed": 17,
+  "config": {
+    "capas": [
+      64,
+      128,
+      32
+    ],
+    "activacion": "relu",
+    "dropout": 0.06926852555963571,
+    "l2": 0.0012805745538114314,
+    "optimizador": "adam",
+    "lr": 0.003221195829044167,
+    "momento": 0.9,
+    "batch": 1024,
+    "max_epocas": 100,
+    "paciencia": 10,
+    "device": "cpu",
+    "pos_weight": 1.0
+  },
+  "metricas": {
+    "auc_val": 0.6838078340717559,
+    "gini_val": 0.3676156681435119,
+    "ks_val": 0.2642343909115258,
+    "brier_val": 0.16418888780392554,
+    "logloss_val": 0.5018102424718961,
+    "auc_test": 0.6823418746759755,
+    "gini_test": 0.364683749351951,
+    "ks_test": 0.2640026508913457,
+    "brier_test": 0.1805107806728482,
+    "logloss_test": 0.5411622217722734
+  },
+  "n_parametros": 16193,
+  "tiempo_s": 19.17013003001921,
+  "device": "cpu",
+  "epocas": 22,
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_preprocesador": "d58d839a2161db8e53a61163ea003597ccc3eb7e923cb2fcab75b3bb63b78376"
+  },
+  "mejor_epoca": 12,
+  "mejor_perdida_val": 0.5018102526664734,
+  "historial": [
+    {
+      "epoca": 1,
+      "perdida_train": 0.43100023382071345,
+      "perdida_val": 0.5075418949127197
+    },
+    {
+      "epoca": 2,
+      "perdida_train": 0.4080948402409599,
+      "perdida_val": 0.506594181060791
+    },
+    {
+      "epoca": 3,
+      "perdida_train": 0.4077864805278537,
+      "perdida_val": 0.5056923627853394
+    },
+    {
+      "epoca": 4,
+      "perdida_train": 0.4077022998826746,
+      "perdida_val": 0.5079336166381836
+    },
+    {
+      "epoca": 5,
+      "perdida_train": 0.4072905627054578,
+      "perdida_val": 0.5068215131759644
+    },
+    {
+      "epoca": 6,
+      "perdida_train": 0.40744184574473974,
+      "perdida_val": 0.5099340677261353
+    },
+    {
+      "epoca": 7,
+      "perdida_train": 0.40708099743212284,
+      "perdida_val": 0.5031140446662903
+    },
+    {
+      "epoca": 8,
+      "perdida_train": 0.40703546984127864,
+      "perdida_val": 0.510453999042511
+    },
+    {
+      "epoca": 9,
+      "perdida_train": 0.4069318761967747,
+      "perdida_val": 0.5136306285858154
+    },
+    {
+      "epoca": 10,
+      "perdida_train": 0.407029978859287,
+      "perdida_val": 0.5061483979225159
+    },
+    {
+      "epoca": 11,
+      "perdida_train": 0.40645744670548,
+      "perdida_val": 0.503145158290863
+    },
+    {
+      "epoca": 12,
+      "perdida_train": 0.406594505074878,
+      "perdida_val": 0.5018102526664734
+    },
+    {
+      "epoca": 13,
+      "perdida_train": 0.40651179445637375,
+      "perdida_val": 0.5047170519828796
+    },
+    {
+      "epoca": 14,
+      "perdida_train": 0.40647474113694976,
+      "perdida_val": 0.5099375247955322
+    },
+    {
+      "epoca": 15,
+      "perdida_train": 0.40582555141565296,
+      "perdida_val": 0.5052667260169983
+    },
+    {
+      "epoca": 16,
+      "perdida_train": 0.40583865194749136,
+      "perdida_val": 0.5102134346961975
+    },
+    {
+      "epoca": 17,
+      "perdida_train": 0.40637235810264866,
+      "perdida_val": 0.5076664686203003
+    },
+    {
+      "epoca": 18,
+      "perdida_train": 0.4055927683680698,
+      "perdida_val": 0.5058940052986145
+    },
+    {
+      "epoca": 19,
+      "perdida_train": 0.40577198191417535,
+      "perdida_val": 0.5026663541793823
+    },
+    {
+      "epoca": 20,
+      "perdida_train": 0.4059652039497714,
+      "perdida_val": 0.5056395530700684
+    },
+    {
+      "epoca": 21,
+      "perdida_train": 0.40603347371799836,
+      "perdida_val": 0.5072084069252014
+    },
+    {
+      "epoca": 22,
+      "perdida_train": 0.40609089123047803,
+      "perdida_val": 0.5281222462654114
+    }
+  ],
+  "hilos_torch": 4,
+  "version_torch": "2.14.1+cpu",
+  "calibracion_global": {
+    "pd_media_val": 0.21141651235938294,
+    "tasa_val": 0.22949968576659288,
+    "pd_media_test": 0.21595678208334484,
+    "tasa_test": 0.26217061790328233
+  },
+  "n": {
+    "train": 90347,
+    "val": 73194,
+    "test": 74154
+  }
+}

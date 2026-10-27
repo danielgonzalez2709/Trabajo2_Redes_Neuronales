@@ -1,0 +1,1071 @@
+{
+  "criterio": "logloss_val",
+  "muestreador": {
+    "nombre": "TPESampler",
+    "semilla": 0,
+    "n_startup_trials": 10,
+    "multivariate": true
+  },
+  "podador": "NopPruner",
+  "semilla_ensayos": 0,
+  "versiones": {
+    "optuna": "5.0.0",
+    "torch": "2.14.1+cpu"
+  },
+  "hilos_torch": 4,
+  "espacio": {
+    "n_capas": [
+      1,
+      4
+    ],
+    "neuronas": [
+      16,
+      32,
+      64,
+      128,
+      256
+    ],
+    "activacion": [
+      "relu",
+      "leaky_relu",
+      "tanh"
+    ],
+    "dropout": [
+      0.0,
+      0.5
+    ],
+    "l2": [
+      1e-06,
+      0.01
+    ],
+    "optimizador": [
+      "adam",
+      "sgd"
+    ],
+    "lr": [
+      0.0001,
+      0.01
+    ],
+    "batch": [
+      256,
+      512,
+      1024,
+      2048
+    ]
+  },
+  "mlp_base": {
+    "momento": 0.9,
+    "max_epocas": 100,
+    "paciencia": 10,
+    "device": "cpu",
+    "pos_weight": 1.0
+  },
+  "n_ensayos": 40,
+  "estados": {
+    "COMPLETE": 40
+  },
+  "tiempo_total_s": 1051.8753646939003,
+  "tiempo_reloj_s": 1058.4822570050019,
+  "mejor": {
+    "numero": 29,
+    "parametros": {
+      "capas": [
+        64,
+        128,
+        32
+      ],
+      "activacion": "relu",
+      "dropout": 0.06926852555963571,
+      "l2": 0.0012805745538114314,
+      "optimizador": "adam",
+      "lr": 0.003221195829044167,
+      "batch": 1024
+    },
+    "logloss_val": 0.4993068272058507,
+    "auc_val": 0.6900443446699656,
+    "n_parametros": 16193
+  },
+  "en_borde": {
+    "lr": null,
+    "l2": null,
+    "dropout": null
+  },
+  "ensayos": [
+    {
+      "numero": 0,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          16,
+          64,
+          64
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.4350060741234096,
+        "l2": 0.008212461922256876,
+        "optimizador": "adam",
+        "lr": 0.0036396393567863887,
+        "batch": 2048
+      },
+      "logloss_val": 0.5050861927230155,
+      "auc_val": 0.6811070054585935,
+      "perdida_val_entrenar": 0.5050862431526184,
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "n_parametros": 6241,
+      "tiempo_s": 11.319970048003597
+    },
+    {
+      "numero": 1,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          256,
+          128
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.06446314882742665,
+        "l2": 1.8268942281532334e-05,
+        "optimizador": "sgd",
+        "lr": 0.0007537078298264387,
+        "batch": 256
+      },
+      "logloss_val": 0.5058911911295039,
+      "auc_val": 0.6825037948782586,
+      "perdida_val_entrenar": 0.5058911442756653,
+      "epocas": 32,
+      "mejor_epoca": 22,
+      "n_parametros": 53377,
+      "tiempo_s": 69.87170617797528
+    },
+    {
+      "numero": 2,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          256,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.019593896127160337,
+        "l2": 1.3527821070347621e-05,
+        "optimizador": "sgd",
+        "lr": 0.00017276487008217891,
+        "batch": 2048
+      },
+      "logloss_val": 0.5293332215811304,
+      "auc_val": 0.6205178468510326,
+      "perdida_val_entrenar": 0.529333233833313,
+      "epocas": 46,
+      "mejor_epoca": 36,
+      "n_parametros": 43329,
+      "tiempo_s": 63.62813469499815
+    },
+    {
+      "numero": 3,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          256,
+          128,
+          128
+        ],
+        "activacion": "tanh",
+        "dropout": 0.4810942725587191,
+        "l2": 9.885817165390822e-06,
+        "optimizador": "sgd",
+        "lr": 0.001394773898807281,
+        "batch": 512
+      },
+      "logloss_val": 0.5059150143735807,
+      "auc_val": 0.6852733907760813,
+      "perdida_val_entrenar": 0.5059150457382202,
+      "epocas": 21,
+      "mejor_epoca": 11,
+      "n_parametros": 64385,
+      "tiempo_s": 53.49408495699754
+    },
+    {
+      "numero": 4,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          128,
+          256,
+          16
+        ],
+        "activacion": "relu",
+        "dropout": 0.21438435047288307,
+        "l2": 3.482541150827932e-06,
+        "optimizador": "sgd",
+        "lr": 0.0015196568166072376,
+        "batch": 512
+      },
+      "logloss_val": 0.5052566153350564,
+      "auc_val": 0.6843697183957631,
+      "perdida_val_entrenar": 0.5052565932273865,
+      "epocas": 58,
+      "mejor_epoca": 48,
+      "n_parametros": 44577,
+      "tiempo_s": 101.83794000098715
+    },
+    {
+      "numero": 5,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          16,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.4877607525014429,
+        "l2": 0.0026498016706379504,
+        "optimizador": "sgd",
+        "lr": 0.002883906161101797,
+        "batch": 512
+      },
+      "logloss_val": 0.5056301087291248,
+      "auc_val": 0.6838142055961812,
+      "perdida_val_entrenar": 0.5056300759315491,
+      "epocas": 32,
+      "mejor_epoca": 22,
+      "n_parametros": 14385,
+      "tiempo_s": 38.47621287201764
+    },
+    {
+      "numero": 6,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          128
+        ],
+        "activacion": "tanh",
+        "dropout": 0.2886142943020838,
+        "l2": 8.944813408783465e-06,
+        "optimizador": "adam",
+        "lr": 0.0011783263946828998,
+        "batch": 512
+      },
+      "logloss_val": 0.5031450231823537,
+      "auc_val": 0.6885796250463012,
+      "perdida_val_entrenar": 0.5031449794769287,
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "n_parametros": 7553,
+      "tiempo_s": 9.624429885996506
+    },
+    {
+      "numero": 7,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32
+        ],
+        "activacion": "tanh",
+        "dropout": 0.1558979409970513,
+        "l2": 0.000610061973433681,
+        "optimizador": "adam",
+        "lr": 0.00011203596437082348,
+        "batch": 512
+      },
+      "logloss_val": 0.5057060723832338,
+      "auc_val": 0.6859878829270346,
+      "perdida_val_entrenar": 0.5057061314582825,
+      "epocas": 21,
+      "mejor_epoca": 11,
+      "n_parametros": 1889,
+      "tiempo_s": 7.497765322012128
+    },
+    {
+      "numero": 8,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          16,
+          256,
+          32,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.012831359027265787,
+        "l2": 6.758966622072014e-06,
+        "optimizador": "adam",
+        "lr": 0.0008455724970313275,
+        "batch": 1024
+      },
+      "logloss_val": 0.5025654801909348,
+      "auc_val": 0.6840884513767944,
+      "perdida_val_entrenar": 0.5025655031204224,
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "n_parametros": 14049,
+      "tiempo_s": 22.852997864974895
+    },
+    {
+      "numero": 9,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.05014697113274891,
+        "l2": 1.1633717625636615e-06,
+        "optimizador": "adam",
+        "lr": 0.0037179695110280955,
+        "batch": 512
+      },
+      "logloss_val": 0.500310487289013,
+      "auc_val": 0.687250749996827,
+      "perdida_val_entrenar": 0.500310480594635,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 10241,
+      "tiempo_s": 12.017124410020187
+    },
+    {
+      "numero": 10,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          16,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.12663950877316243,
+        "l2": 0.00016400516370414684,
+        "optimizador": "adam",
+        "lr": 0.007401910878972578,
+        "batch": 512
+      },
+      "logloss_val": 0.501514421130981,
+      "auc_val": 0.6842856984036506,
+      "perdida_val_entrenar": 0.5015143752098083,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 2961,
+      "tiempo_s": 7.686430581990862
+    },
+    {
+      "numero": 11,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          16,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.09416553239584849,
+        "l2": 4.451065531349953e-05,
+        "optimizador": "adam",
+        "lr": 0.004965184800549709,
+        "batch": 512
+      },
+      "logloss_val": 0.5003316142426513,
+      "auc_val": 0.6862260497922515,
+      "perdida_val_entrenar": 0.5003316402435303,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 2961,
+      "tiempo_s": 7.795624090009369
+    },
+    {
+      "numero": 12,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          128,
+          32
+        ],
+        "activacion": "tanh",
+        "dropout": 0.00030787026194833284,
+        "l2": 7.965040280479036e-06,
+        "optimizador": "adam",
+        "lr": 0.004568073721910128,
+        "batch": 512
+      },
+      "logloss_val": 0.5043420803779768,
+      "auc_val": 0.690945747537773,
+      "perdida_val_entrenar": 0.5043421387672424,
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "n_parametros": 11585,
+      "tiempo_s": 11.288113046990475
+    },
+    {
+      "numero": 13,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          16,
+          256
+        ],
+        "activacion": "relu",
+        "dropout": 0.05236861576758043,
+        "l2": 1.176251542162118e-06,
+        "optimizador": "adam",
+        "lr": 0.0009821712103978712,
+        "batch": 512
+      },
+      "logloss_val": 0.502028839840878,
+      "auc_val": 0.6870812744139905,
+      "perdida_val_entrenar": 0.5020288825035095,
+      "epocas": 23,
+      "mejor_epoca": 13,
+      "n_parametros": 6993,
+      "tiempo_s": 25.109952730010264
+    },
+    {
+      "numero": 14,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.019996209378183777,
+        "l2": 0.0012389827941121435,
+        "optimizador": "adam",
+        "lr": 0.00203381942497002,
+        "batch": 512
+      },
+      "logloss_val": 0.500219133937596,
+      "auc_val": 0.686401289936865,
+      "perdida_val_entrenar": 0.5002191662788391,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 20513,
+      "tiempo_s": 18.661821189976763
+    },
+    {
+      "numero": 15,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.09572288581753788,
+        "l2": 0.00276409342755445,
+        "optimizador": "adam",
+        "lr": 0.004548329069742181,
+        "batch": 256
+      },
+      "logloss_val": 0.5015518986248877,
+      "auc_val": 0.6852070629534734,
+      "perdida_val_entrenar": 0.5015519261360168,
+      "epocas": 16,
+      "mejor_epoca": 6,
+      "n_parametros": 20513,
+      "tiempo_s": 30.218477351998445
+    },
+    {
+      "numero": 16,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.011266059845348684,
+        "l2": 0.00015942582531863005,
+        "optimizador": "adam",
+        "lr": 0.0012572014778066292,
+        "batch": 512
+      },
+      "logloss_val": 0.5032741758092323,
+      "auc_val": 0.6901845050124813,
+      "perdida_val_entrenar": 0.503274142742157,
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "n_parametros": 16193,
+      "tiempo_s": 17.80904575798195
+    },
+    {
+      "numero": 17,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          32,
+          128,
+          256,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.31607720885159785,
+        "l2": 3.189709433849479e-05,
+        "optimizador": "adam",
+        "lr": 0.008839225986024407,
+        "batch": 512
+      },
+      "logloss_val": 0.5036000371207102,
+      "auc_val": 0.6840199416554147,
+      "perdida_val_entrenar": 0.503600001335144,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 47361,
+      "tiempo_s": 28.111652489984408
+    },
+    {
+      "numero": 18,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          32,
+          64,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.08565010272674307,
+        "l2": 0.00010588789157438622,
+        "optimizador": "sgd",
+        "lr": 0.0012698282801269975,
+        "batch": 512
+      },
+      "logloss_val": 0.5064236778426185,
+      "auc_val": 0.6829027487879515,
+      "perdida_val_entrenar": 0.5064237117767334,
+      "epocas": 58,
+      "mejor_epoca": 48,
+      "n_parametros": 16353,
+      "tiempo_s": 66.36064213200007
+    },
+    {
+      "numero": 19,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          256,
+          64,
+          32,
+          256
+        ],
+        "activacion": "leaky_relu",
+        "dropout": 0.053267229384128194,
+        "l2": 0.00023361299777966213,
+        "optimizador": "adam",
+        "lr": 0.005130243419733469,
+        "batch": 512
+      },
+      "logloss_val": 0.5020902862220562,
+      "auc_val": 0.6854599325652042,
+      "perdida_val_entrenar": 0.502090334892273,
+      "epocas": 11,
+      "mejor_epoca": 1,
+      "n_parametros": 42081,
+      "tiempo_s": 24.095167744992068
+    },
+    {
+      "numero": 20,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32,
+          64
+        ],
+        "activacion": "relu",
+        "dropout": 0.0044784380871544256,
+        "l2": 0.001483037134624921,
+        "optimizador": "adam",
+        "lr": 0.0017057238605869697,
+        "batch": 1024
+      },
+      "logloss_val": 0.5001172619832327,
+      "auc_val": 0.6875156010512331,
+      "perdida_val_entrenar": 0.500117301940918,
+      "epocas": 23,
+      "mejor_epoca": 13,
+      "n_parametros": 18337,
+      "tiempo_s": 22.809573288977845
+    },
+    {
+      "numero": 21,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.005851975843869315,
+        "l2": 0.007125052600955762,
+        "optimizador": "adam",
+        "lr": 0.0008070588136791963,
+        "batch": 1024
+      },
+      "logloss_val": 0.5027740839044308,
+      "auc_val": 0.6847348544578726,
+      "perdida_val_entrenar": 0.5027741193771362,
+      "epocas": 29,
+      "mejor_epoca": 19,
+      "n_parametros": 16193,
+      "tiempo_s": 24.231176207977114
+    },
+    {
+      "numero": 22,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.03334658986179075,
+        "l2": 0.0029398572688756454,
+        "optimizador": "adam",
+        "lr": 0.0022559878392403527,
+        "batch": 512
+      },
+      "logloss_val": 0.5002370749676514,
+      "auc_val": 0.6868600544737049,
+      "perdida_val_entrenar": 0.5002370476722717,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 18337,
+      "tiempo_s": 17.170221102016512
+    },
+    {
+      "numero": 23,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          16,
+          128,
+          32,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.10195196177523452,
+        "l2": 0.008073161198363793,
+        "optimizador": "adam",
+        "lr": 0.0022878288366501224,
+        "batch": 512
+      },
+      "logloss_val": 0.5002670779731414,
+      "auc_val": 0.6873946729799678,
+      "perdida_val_entrenar": 0.5002670288085938,
+      "epocas": 13,
+      "mejor_epoca": 3,
+      "n_parametros": 9409,
+      "tiempo_s": 14.97849902298185
+    },
+    {
+      "numero": 24,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32,
+          64
+        ],
+        "activacion": "relu",
+        "dropout": 0.04284641459970605,
+        "l2": 0.004302307863599401,
+        "optimizador": "sgd",
+        "lr": 0.0021008873346869397,
+        "batch": 512
+      },
+      "logloss_val": 0.5401117711984265,
+      "auc_val": 0.5608777429570988,
+      "perdida_val_entrenar": 0.5401117205619812,
+      "epocas": 11,
+      "mejor_epoca": 1,
+      "n_parametros": 18337,
+      "tiempo_s": 12.54078441800084
+    },
+    {
+      "numero": 25,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          16
+        ],
+        "activacion": "relu",
+        "dropout": 0.0342366328709966,
+        "l2": 0.006191600132813239,
+        "optimizador": "adam",
+        "lr": 0.004799491067173617,
+        "batch": 1024
+      },
+      "logloss_val": 0.5012630293379934,
+      "auc_val": 0.6884430362831252,
+      "perdida_val_entrenar": 0.5012630224227905,
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "n_parametros": 14113,
+      "tiempo_s": 13.485736794013064
+    },
+    {
+      "numero": 26,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          16,
+          128,
+          32,
+          64
+        ],
+        "activacion": "tanh",
+        "dropout": 0.028914087191160336,
+        "l2": 0.0035687411654882163,
+        "optimizador": "adam",
+        "lr": 0.0009249176143531462,
+        "batch": 512
+      },
+      "logloss_val": 0.5027386549158582,
+      "auc_val": 0.6860793664485455,
+      "perdida_val_entrenar": 0.5027386546134949,
+      "epocas": 28,
+      "mejor_epoca": 18,
+      "n_parametros": 9409,
+      "tiempo_s": 31.254942855011905
+    },
+    {
+      "numero": 27,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "activacion": "relu",
+        "dropout": 0.136804783484428,
+        "l2": 0.004273126150796386,
+        "optimizador": "adam",
+        "lr": 0.0009347746853594244,
+        "batch": 1024
+      },
+      "logloss_val": 0.5030867560393245,
+      "auc_val": 0.6857532211391626,
+      "perdida_val_entrenar": 0.5030868053436279,
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "n_parametros": 16257,
+      "tiempo_s": 13.60085529301432
+    },
+    {
+      "numero": 28,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          32,
+          256,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.019475824539455233,
+        "l2": 0.0007771997293493848,
+        "optimizador": "adam",
+        "lr": 0.0008917025771433993,
+        "batch": 256
+      },
+      "logloss_val": 0.5027952823018904,
+      "auc_val": 0.6857053038131585,
+      "perdida_val_entrenar": 0.5027952790260315,
+      "epocas": 12,
+      "mejor_epoca": 2,
+      "n_parametros": 47265,
+      "tiempo_s": 29.439022848004242
+    },
+    {
+      "numero": 29,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.06926852555963571,
+        "l2": 0.0012805745538114314,
+        "optimizador": "adam",
+        "lr": 0.003221195829044167,
+        "batch": 1024
+      },
+      "logloss_val": 0.4993068272058507,
+      "auc_val": 0.6900443446699656,
+      "perdida_val_entrenar": 0.499306857585907,
+      "epocas": 23,
+      "mejor_epoca": 13,
+      "n_parametros": 16193,
+      "tiempo_s": 19.569293526001275
+    },
+    {
+      "numero": 30,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.13450213708855288,
+        "l2": 0.001579197469078946,
+        "optimizador": "adam",
+        "lr": 0.0015288071740513017,
+        "batch": 1024
+      },
+      "logloss_val": 0.5010083552836103,
+      "auc_val": 0.6875669258127649,
+      "perdida_val_entrenar": 0.5010083317756653,
+      "epocas": 28,
+      "mejor_epoca": 18,
+      "n_parametros": 16193,
+      "tiempo_s": 24.22469727898715
+    },
+    {
+      "numero": 31,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.03678264533737028,
+        "l2": 0.0023833707346503654,
+        "optimizador": "adam",
+        "lr": 0.0016612941599714365,
+        "batch": 1024
+      },
+      "logloss_val": 0.5008793493929621,
+      "auc_val": 0.6868222660348152,
+      "perdida_val_entrenar": 0.5008794069290161,
+      "epocas": 28,
+      "mejor_epoca": 18,
+      "n_parametros": 16193,
+      "tiempo_s": 23.7823775249999
+    },
+    {
+      "numero": 32,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          64,
+          32,
+          64
+        ],
+        "activacion": "relu",
+        "dropout": 0.020054058948775027,
+        "l2": 0.0014255134037528643,
+        "optimizador": "adam",
+        "lr": 0.00680926818631954,
+        "batch": 1024
+      },
+      "logloss_val": 0.5003382486155845,
+      "auc_val": 0.6889861670446836,
+      "perdida_val_entrenar": 0.5003382563591003,
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "n_parametros": 12129,
+      "tiempo_s": 13.521412419009721
+    },
+    {
+      "numero": 33,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          64,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.0035297581015417273,
+        "l2": 0.0001284546336109577,
+        "optimizador": "adam",
+        "lr": 0.0030492951671107437,
+        "batch": 2048
+      },
+      "logloss_val": 0.5011618828034338,
+      "auc_val": 0.6860302336138642,
+      "perdida_val_entrenar": 0.5011618733406067,
+      "epocas": 20,
+      "mejor_epoca": 10,
+      "n_parametros": 22401,
+      "tiempo_s": 18.157092306995764
+    },
+    {
+      "numero": 34,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          16,
+          128,
+          32,
+          256
+        ],
+        "activacion": "tanh",
+        "dropout": 0.029025536624760692,
+        "l2": 0.0004892830143004543,
+        "optimizador": "adam",
+        "lr": 0.0017754116972448994,
+        "batch": 512
+      },
+      "logloss_val": 0.5019613365946547,
+      "auc_val": 0.6877719662400239,
+      "perdida_val_entrenar": 0.5019612908363342,
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "n_parametros": 15937,
+      "tiempo_s": 22.61210029598442
+    },
+    {
+      "numero": 35,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.001555518619886601,
+        "l2": 0.0002606136213457475,
+        "optimizador": "adam",
+        "lr": 0.0031237969324504388,
+        "batch": 1024
+      },
+      "logloss_val": 0.5010866588132192,
+      "auc_val": 0.6912477943188482,
+      "perdida_val_entrenar": 0.5010866522789001,
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "n_parametros": 28673,
+      "tiempo_s": 19.604302142979577
+    },
+    {
+      "numero": 36,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128,
+          32
+        ],
+        "activacion": "relu",
+        "dropout": 0.04692194904827763,
+        "l2": 0.0009726844330570131,
+        "optimizador": "adam",
+        "lr": 0.0009553205502914773,
+        "batch": 512
+      },
+      "logloss_val": 0.5005161745874434,
+      "auc_val": 0.6902207285433257,
+      "perdida_val_entrenar": 0.5005161762237549,
+      "epocas": 28,
+      "mejor_epoca": 18,
+      "n_parametros": 16193,
+      "tiempo_s": 29.69877009600168
+    },
+    {
+      "numero": 37,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          256,
+          128,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.05807226032827295,
+        "l2": 0.00043235220150190386,
+        "optimizador": "adam",
+        "lr": 0.0022969174328797744,
+        "batch": 1024
+      },
+      "logloss_val": 0.5002776926934636,
+      "auc_val": 0.6909865153715751,
+      "perdida_val_entrenar": 0.5002777576446533,
+      "epocas": 17,
+      "mejor_epoca": 7,
+      "n_parametros": 69889,
+      "tiempo_s": 37.20984338602284
+    },
+    {
+      "numero": 38,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          128
+        ],
+        "activacion": "relu",
+        "dropout": 0.011008130541637386,
+        "l2": 0.0012698346384497426,
+        "optimizador": "adam",
+        "lr": 0.008189721055713544,
+        "batch": 1024
+      },
+      "logloss_val": 0.5009646430189317,
+      "auc_val": 0.6894387822582069,
+      "perdida_val_entrenar": 0.5009646415710449,
+      "epocas": 23,
+      "mejor_epoca": 13,
+      "n_parametros": 12161,
+      "tiempo_s": 15.328341705986531
+    },
+    {
+      "numero": 39,
+      "estado": "COMPLETE",
+      "parametros": {
+        "capas": [
+          64,
+          256,
+          16
+        ],
+        "activacion": "tanh",
+        "dropout": 0.02714483476078376,
+        "l2": 0.0006298457063762625,
+        "optimizador": "adam",
+        "lr": 0.00222602315145787,
+        "batch": 512
+      },
+      "logloss_val": 0.500744725357713,
+      "auc_val": 0.6914991090506124,
+      "perdida_val_entrenar": 0.5007447004318237,
+      "epocas": 14,
+      "mejor_epoca": 4,
+      "n_parametros": 24481,
+      "tiempo_s": 20.89902883101604
+    }
+  ],
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_preprocesador": "d58d839a2161db8e53a61163ea003597ccc3eb7e923cb2fcab75b3bb63b78376"
+  }
+}
