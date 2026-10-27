@@ -576,6 +576,55 @@ def test_04e_raiz_inyectable(tmp_path):
 
 
 # %% [markdown]
+# ## 4e-bis. La raíz por defecto es la del repositorio, no el directorio actual (ronda 4 de B10)
+#
+# Desde una subcarpeta (`notebooks/`, donde arranca el kernel de Jupyter, o `tests/`), rutas con `../` que caen en el
+# repositorio fuera de la lista blanca → `ValueError` que nombra la clave. Solo se llama a la validación (nada escribe).
+
+# %%
+CASOS_DESDE_SUBCARPETA = [  # (clave, carpeta, archivo) con ../ desde una subcarpeta
+    ("salida", "../src", {"union": "../src/pd/experimento.py"}),  # código
+    ("salida", "../results/data/lgd", {"union": "../results/data/lgd/summary.json"}),  # resultados de D
+    ("modelos", "../tests", {"preprocesador": "../tests/test_fuga.py"}),  # pruebas
+]
+
+
+# %% [markdown]
+# Cada caso desde `notebooks/` y desde `tests/`; la raíz fija es la de `src/pd/sensibilidad.py`.
+
+# %%
+@pytest.mark.parametrize("subcarpeta", ["notebooks", "tests"])  # directorios de trabajo
+@pytest.mark.parametrize("caso", CASOS_DESDE_SUBCARPETA, ids=[c[1] for c in CASOS_DESDE_SUBCARPETA])  # casos
+def test_04e_bis_raiz_fija_desde_subcarpeta(caso, subcarpeta, monkeypatch):
+    """Desde una subcarpeta, ../src, ../results/data/lgd y ../tests se rechazan nombrando la clave."""
+    assert sens.RAIZ_REPOSITORIO == ROOT  # raíz fija = la del repositorio
+    cfg = load_config(RUTA_CFG)  # config real (leída antes de cambiar de carpeta)
+    monkeypatch.chdir(ROOT / subcarpeta)  # como el kernel de Jupyter
+    for k in ("salida", "modelos", "union", "preprocesador"):  # las demás rutas, válidas desde la subcarpeta
+        cfg["sensibilidad"][k] = "../" + cfg["sensibilidad"][k]  # relativas a la subcarpeta
+    clave, valor, otros = caso  # caso
+    cfg["sensibilidad"][clave] = valor  # carpeta con ../
+    cfg["sensibilidad"].update(otros)  # su archivo dentro
+    with pytest.raises(ValueError, match=rf"sensibilidad\.{clave}"):  # nombra la clave
+        sens.validar_rutas_escritura(cfg["sensibilidad"])  # raíz por defecto
+    with pytest.raises(ValueError, match=rf"sensibilidad\.{clave}"):  # ídem por la entrada principal
+        sens.validar_cfg_sensibilidad(cfg)  # validación completa
+
+
+# %% [markdown]
+# Desde `notebooks/`, las rutas de la lista blanca escritas con `../` siguen aceptadas.
+
+# %%
+def test_04e_ter_lista_blanca_desde_subcarpeta(monkeypatch):
+    """../results/data/pd_sensibilidad y ../models/pd_sensibilidad desde notebooks/ pasan."""
+    s = dict(load_config(RUTA_CFG)["sensibilidad"])  # bloque real
+    monkeypatch.chdir(ROOT / "notebooks")  # subcarpeta
+    for clave in ("salida", "modelos", "union", "preprocesador"):  # rutas de escritura
+        s[clave] = "../" + s[clave]  # relativas a notebooks/
+    sens.validar_rutas_escritura(s)  # pasa
+
+
+# %% [markdown]
 # ## 4f. Las rutas se arman sin revalidar; las entradas que escriben sí validan
 #
 # `rutas_sensibilidad` solo arma rutas (la guarda corre una vez en `validar_cfg_sensibilidad`); `preparar` y

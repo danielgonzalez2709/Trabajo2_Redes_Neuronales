@@ -223,8 +223,9 @@ def _validar_modo(modo) -> str:
 # %% [markdown]
 # ## Rutas: lista blanca de escritura (rondas 2 y 3 de B10)
 #
-# Todas las rutas se resuelven a absolutas desde el directorio actual (con `..` normalizado). Con `raiz` = la raíz del
-# repositorio (por defecto el directorio actual; se inyecta en las pruebas):
+# Las rutas de la config se resuelven a absolutas desde el directorio actual (con `..` normalizado, como en `run.py`),
+# pero la lista blanca se evalúa contra `raiz` = la raíz **fija** del repositorio (`RAIZ_REPOSITORIO`, la de este
+# archivo; se inyecta en las pruebas): desde `notebooks/` o `tests/`, `../src` sigue estando dentro del repositorio.
 #
 # 1. si `salida` o `modelos` quedan **dentro** del repositorio, solo pueden ser la carpeta de B
 #    (`results/data/pd_sensibilidad`, `models/pd_sensibilidad`), una carpeta hermana `<carpeta>_<algo>` (p. ej. la de
@@ -236,6 +237,7 @@ def _validar_modo(modo) -> str:
 # construcción. Cualquier falla → `ValueError` que nombra la clave.
 
 # %%
+RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]  # raíz FIJA del repositorio (src/pd/ → raíz), no el cwd
 LISTA_BLANCA = {"salida": Path("results/data/pd_sensibilidad"), "modelos": Path("models/pd_sensibilidad")}  # de B
 SEPARADOR_HERMANA = "_"  # results/data/pd_sensibilidad_<algo> (p. ej. una demo)
 
@@ -303,7 +305,7 @@ def _validar_archivo_dentro(clave: str, valor, carpeta: Path, clave_carpeta: str
 # %%
 def validar_rutas_escritura(s: dict, raiz=None) -> None:
     """Lista blanca de escritura del bloque sensibilidad (antes de leer o escribir nada)."""
-    raiz = _absoluta(Path.cwd() if raiz is None else raiz)  # raíz del repositorio (al llamar)
+    raiz = _absoluta(RAIZ_REPOSITORIO if raiz is None else raiz)  # raíz fija (inyectable en las pruebas)
     salida = _validar_carpeta("salida", s["salida"], raiz)  # resultados
     modelos = _validar_carpeta("modelos", s["modelos"], raiz)  # modelos
     _validar_archivo_dentro("union", s["union"], salida, "salida",  # unión dentro de salida
