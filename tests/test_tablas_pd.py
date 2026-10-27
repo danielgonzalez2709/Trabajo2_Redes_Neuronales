@@ -794,7 +794,8 @@ def test_columnas_enteras_conservan_su_tipo():
 
 # %%
 ARCHIVOS_PERCENT = ("src/pd/tablas.py", "src/pd/espacio.py", "tests/test_tablas_pd.py",  # módulos y pruebas
-                    "tests/test_notebook_02_pd.py", "tests/test_espacio.py")  # de B9
+                    "tests/test_notebook_02_pd.py", "tests/test_espacio.py",  # de B9
+                    "src/pd/sensibilidad.py", "tests/test_sensibilidad_pd.py")  # de B10
 
 
 # %% [markdown]
