@@ -86,13 +86,13 @@ mar 27 6 p. m. entrega.
 5. Avisar a D: `iterar_minilotes(n, batch, rng, device)` recibe `device`; `evidencia` (§5.4, v0.14) va en los JSON de la LGD.
 6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`). (Blog 06: `mejor_epoca` = 1 ya va en §6.7, B8.)
 7. B6: medir la demo en otra máquina y marcar ✅; `demo: pd` aceptada (Daniel, 26-oct); README: instalar torch CPU en Linux (PR aparte).
-9. PR de Spec de la Parte C: §5.4 (`scorecard_mlp.json`, `shap_mlp.json`), §4 (`puntos.py`, `export.yaml`, `mlp.yaml`), C §3.1 [DECIDIDO]; C §6: el punto caliente es mezclar bases (log10 con factor = PDO/ln 2), no log10 (H-28).
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día. Candidatos de B7 sin confirmar (de `dev/andres`): H-22 Conceptos (diagonal al revés), H-23 Datos (redondeo). Candidatos de C sin confirmar: H-24 y H-25 (C4), Código. De B10: H-26 Código (guarda de rutas; registrado primero como H-24). De C6–C7: H-27 Código y H-28 Matemáticas (registrados primero como H-26 y H-27).
 
 ## 📓 Bitácora
+- **2026-10-27** — Spec v0.25 (Juan José, Parte C): el Spec queda igual a C1–C8: §3 Interpretabilidad y C §3.1–§3.4 [DECIDIDO], árbol §4, §5.4 (`scorecard.json`, `scorecard_mlp.json`, `shap_mlp.json`, `hipotesis.json`), C §5 con las 7 pruebas y C §6 corregido (H-24, H-28). Pendiente 9 cerrado; afecta a E.
 - **2026-10-27** — C8 (Juan José): notebook `03_scorecard` (secciones 1–4 en vivo con `SET`, 5–6 leídas de los JSON de C4 y C6); 10–12 s con `SET = {}` y con PDO 40; `puntos_cliente` y `direccion_shap` en `puntos.py` (C3 intacto). Spec y calidad APROBADO; sin candidatos.
 - **2026-10-27** — App en producción en Vercel (PR #21 y #22): https://trabajo2-redes-neuronales.vercel.app; `vercel.json` con `outputDirectory: .next` (con `out` fallaba: NEXT_NO_ROUTES_MANIFEST). URL en blog 00 y README.
 - **2026-10-27** — PR #20 (C6–C7) fusionado; Daniel resolvió los conflictos con `main` y H-26/H-27 de C pasaron a H-27/H-28 (H-26 = B10).
