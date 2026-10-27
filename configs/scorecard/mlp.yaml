@@ -1,0 +1,23 @@
+# Scorecard del MLP con SHAP (Parte C §3.2 y §3.3, tarea C4; núcleo §4.1):
+#   python run.py scorecard --config configs/scorecard/mlp.yaml
+#   python run.py scorecard --config configs/scorecard/mlp.yaml --set scorecard.pdo=40
+#   python run.py scorecard --config configs/scorecard/mlp.yaml --set salida=<otra carpeta>   # no pisa results/
+# Escribe <salida>/scorecard_mlp.json y <salida>/shap_mlp.json (src/scorecard/shap_pd.py).
+# Hereda base.yaml (scorecard, rutas, distribucion y salida) y solo cambia el modelo y añade el bloque shap.
+# Tamaños aprobados por Juan José en el plan de C4 (26-oct); la corrida completa tarda ~65 s en CPU.
+# Demo más corta (sustentación): --set shap.k_permutacion=1 --set shap.n_explicar=200 --set shap.n_estabilidad=50
+hereda: base.yaml
+modelo: mlp   # scorecard del MLP: puntos por variable con SHAP sobre el logit
+rutas:
+  modelo: models/pd_mlp.pt                  # MLP de la semilla mediana (B5)
+  logistica: models/pd_logistica.joblib     # logística de B3: verificación de SHAP (forma cerrada) y permutación
+shap:
+  base_seed: 0         # semilla del fondo, de los explicados, de las permutaciones de SHAP y de la importancia por
+                       # permutación; la corrida de estabilidad usa base_seed + 1 (otro fondo y otras permutaciones)
+  n_fondo: 100         # filas de TRAIN sin reemplazo: el fondo del masker Independent (φ₀ = E_fondo[f])
+  n_explicar: 1000     # filas de TEST sin reemplazo que se explican (puntos por cliente, tramos e importancia global)
+  n_estabilidad: 200   # los primeros n_estabilidad explicados se vuelven a explicar con base_seed + 1; también la
+                       # verificación con la logística (forma cerrada) se hace sobre ellos
+  max_evals: 500       # evaluaciones por fila del explainer de permutaciones: 500 // (2·15 + 1) = 16 permutaciones
+                       # (ida y vuelta) por fila; el mínimo es 31 (una permutación)
+  k_permutacion: 5     # repeticiones de la importancia por permutación en TEST, por variable y por modelo

@@ -1,0 +1,253 @@
+{
+  "modos": [
+    "reusar",
+    "optuna"
+  ],
+  "modelos": [
+    "logistica",
+    "mlp"
+  ],
+  "metricas_test": [
+    "auc_test",
+    "gini_test",
+    "ks_test",
+    "brier_test"
+  ],
+  "misma_particion": true,
+  "sha256_particion": {
+    "logistica": {
+      "principal": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+      "reusar": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+      "optuna": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99"
+    },
+    "mlp": {
+      "principal": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+      "reusar": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+      "optuna": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99"
+    }
+  },
+  "metricas": {
+    "logistica": {
+      "auc_test": {
+        "principal": {
+          "media": 0.6696471920866485,
+          "desv": 0.0,
+          "n": 1
+        },
+        "reusar": {
+          "media": 0.6863410175235287,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.01669382543688025
+        },
+        "optuna": {
+          "media": 0.6863410175235287,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.01669382543688025
+        }
+      },
+      "gini_test": {
+        "principal": {
+          "media": 0.33929438417329694,
+          "desv": 0.0,
+          "n": 1
+        },
+        "reusar": {
+          "media": 0.37268203504705744,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.0333876508737605
+        },
+        "optuna": {
+          "media": 0.37268203504705744,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.0333876508737605
+        }
+      },
+      "ks_test": {
+        "principal": {
+          "media": 0.24650160083183942,
+          "desv": 0.0,
+          "n": 1
+        },
+        "reusar": {
+          "media": 0.27218463642000834,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.025683035588168923
+        },
+        "optuna": {
+          "media": 0.27218463642000834,
+          "desv": 0.0,
+          "n": 1,
+          "delta": 0.025683035588168923
+        }
+      },
+      "brier_test": {
+        "principal": {
+          "media": 0.186521674060379,
+          "desv": 0.0,
+          "n": 1
+        },
+        "reusar": {
+          "media": 0.18208380416083067,
+          "desv": 0.0,
+          "n": 1,
+          "delta": -0.004437869899548336
+        },
+        "optuna": {
+          "media": 0.18208380416083067,
+          "desv": 0.0,
+          "n": 1,
+          "delta": -0.004437869899548336
+        }
+      }
+    },
+    "mlp": {
+      "auc_test": {
+        "principal": {
+          "media": 0.671628723405266,
+          "desv": 0.003088663764230977,
+          "n": 30
+        },
+        "reusar": {
+          "media": 0.6875724601478755,
+          "desv": 0.0029969923049949754,
+          "n": 30,
+          "delta": 0.015943736742609516
+        },
+        "optuna": {
+          "media": 0.6885898229320734,
+          "desv": 0.0032424513205391707,
+          "n": 30,
+          "delta": 0.016961099526807355
+        }
+      },
+      "gini_test": {
+        "principal": {
+          "media": 0.3432574468105315,
+          "desv": 0.006177327528461954,
+          "n": 30
+        },
+        "reusar": {
+          "media": 0.3751449202957509,
+          "desv": 0.005993984609989951,
+          "n": 30,
+          "delta": 0.03188747348521942
+        },
+        "optuna": {
+          "media": 0.37717964586414715,
+          "desv": 0.006484902641078341,
+          "n": 30,
+          "delta": 0.033922199053615654
+        }
+      },
+      "ks_test": {
+        "principal": {
+          "media": 0.25004334801315914,
+          "desv": 0.0053578755065393354,
+          "n": 30
+        },
+        "reusar": {
+          "media": 0.2737415930021453,
+          "desv": 0.0046386342025525,
+          "n": 30,
+          "delta": 0.02369824498898615
+        },
+        "optuna": {
+          "media": 0.27530868196708647,
+          "desv": 0.005920784906426356,
+          "n": 30,
+          "delta": 0.025265333953927327
+        }
+      },
+      "brier_test": {
+        "principal": {
+          "media": 0.18323501836928774,
+          "desv": 0.001080528012682153,
+          "n": 30
+        },
+        "reusar": {
+          "media": 0.1796911094828962,
+          "desv": 0.0008585170335162533,
+          "n": 30,
+          "delta": -0.003543908886391528
+        },
+        "optuna": {
+          "media": 0.17950182366555714,
+          "desv": 0.0007588009021762529,
+          "n": 30,
+          "delta": -0.003733194703730597
+        }
+      }
+    }
+  },
+  "presupuesto": {
+    "logistica": {
+      "principal": {
+        "n_parametros": 49,
+        "n_configuraciones_busqueda": 13,
+        "tiempo_total_s": 60.75075939799717
+      },
+      "reusar": {
+        "n_parametros": 58,
+        "n_configuraciones_busqueda": 13,
+        "tiempo_total_s": 71.82556460701744
+      },
+      "optuna": {
+        "n_parametros": 58,
+        "n_configuraciones_busqueda": 13,
+        "tiempo_total_s": 77.44295435000095
+      }
+    },
+    "mlp": {
+      "principal": {
+        "n_parametros": 2673,
+        "n_configuraciones_busqueda": 40,
+        "tiempo_total_s": 940.3721247839421
+      },
+      "reusar": {
+        "n_parametros": 2961,
+        "n_configuraciones_busqueda": null,
+        "tiempo_total_s": 276.038820669055
+      },
+      "optuna": {
+        "n_parametros": 16193,
+        "n_configuraciones_busqueda": 40,
+        "tiempo_total_s": 1570.6743913439277
+      }
+    }
+  },
+  "calibracion_global": {
+    "logistica": {
+      "principal": {
+        "pd_media_test": 0.18676790032968169,
+        "tasa_test": 0.26217061790328233
+      },
+      "reusar": {
+        "pd_media_test": 0.19879604733620163,
+        "tasa_test": 0.26217061790328233
+      },
+      "optuna": {
+        "pd_media_test": 0.19879604733620163,
+        "tasa_test": 0.26217061790328233
+      }
+    },
+    "mlp": {
+      "principal": {
+        "pd_media_test": 0.20411399873802233,
+        "tasa_test": 0.26217061790328233
+      },
+      "reusar": {
+        "pd_media_test": 0.2128378305091799,
+        "tasa_test": 0.26217061790328233
+      },
+      "optuna": {
+        "pd_media_test": 0.21794339884335281,
+        "tasa_test": 0.26217061790328233
+      }
+    }
+  }
+}

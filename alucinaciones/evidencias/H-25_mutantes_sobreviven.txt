@@ -1,0 +1,17 @@
+Nota: registrado primero como H-22 en dev/juanjose; renumerado (en main ya existen H-21…H-23).
+H-25 — evidencia (26-oct-2026). Mutantes del verificador-matematico aplicados a una copia de src/scorecard/shap_pd.py (ronda 2 de C4,
+sin commit) fuera del repo, contra tests/test_shap_pd.py de esa ronda (62 pruebas). Scripts de cada mutante: H-25_mutantes/*.py.
+
+== m5_48_jugadores
+62 passed in 22.45s
+
+== m8_desv_poblacional
+62 passed in 22.80s
+
+== m9_signo_auc
+62 passed in 21.45s
+
+== m10_logloss_signo
+62 passed in 22.90s
+
+== m6b_fondo_test (fondo sacado de test; con -m "not lento", como la CI): 61 passed, 1 deselected (solo lo mata test_08, marcada lento)
