@@ -22,7 +22,8 @@ Fuente: Elaboración propia a partir de results/data/pd/busqueda_logistica.json.
 :::
 
 Para el MLP no se usó una rejilla: el espacio tiene 8 hiperparámetros, tres de ellos continuos (tasa de aprendizaje, L2 y
-dropout), y con solo 3 valores por eje ya serían 3⁸ = 6 561 combinaciones. El TPE, en cambio, usa los ensayos ya hechos para
+dropout), y solo su parte discreta ya suma 18 720 combinaciones (sección 4.8); discretizar además los tres continuos en
+3 valores cada uno las multiplicaría por 27, hasta 505 440. El TPE, en cambio, usa los ensayos ya hechos para
 proponer los siguientes en las zonas que dieron menor pérdida (la teoría está en la sección 4.8).
 
 La búsqueda TPE del MLP probó 40 configuraciones; los 10 primeros ensayos son aleatorios y los demás los propone el TPE
