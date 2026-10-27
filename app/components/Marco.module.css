@@ -16,7 +16,7 @@
 .titulo {
   margin: 0;
   color: var(--ds-acento);
-  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-size: clamp(1.25rem, 2.3vw, 2.5rem); /* desde 900 px cabe en un renglón junto a los enlaces */
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.022em;
