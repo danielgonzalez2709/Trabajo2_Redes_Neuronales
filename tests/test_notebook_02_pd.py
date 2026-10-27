@@ -10,6 +10,7 @@
 import ast  # lectura de los moldes y de la celda de parámetros sin ejecutarlos
 import re  # bloques de código y cifras en el texto
 import shlex  # separación del comando como la shell
+import subprocess  # git check-ignore
 import tempfile  # carpeta temporal del sistema (no debe aparecer en el .ipynb)
 import time  # duración del notebook
 from pathlib import Path  # rutas
@@ -20,11 +21,13 @@ from src.common.cli import build_parser  # parser de run.py
 from src.common.config import apply_overrides, load_config  # cargador del CLI
 from src.common.notebooks import config_notebook, ejecutar  # cargador y ejecución del notebook
 from src.pd.tablas import comando_terminal, moldes_de  # moldes y comando esperados
+from src.viz import figs_pd  # figuras de la PD (B7)
 
 RAIZ = Path(__file__).resolve().parents[1]  # raíz del repositorio
 FUENTE = RAIZ / "notebooks" / "02_pd.py"  # fuente percent del notebook
 TIEMPO_MAX_S = 120  # núcleo §5.8: < 2 min en CPU
 CARPETAS_PROTEGIDAS = ("data", "models", "results", "blog")  # el notebook no las escribe
+CARPETA_EJEMPLO = {"salida": "results/data/pd2_demo", "modelos": "models/pd2_demo"}  # del comando de ejemplo
 SET_UNA_SEMILLA = '{"mlp.capas": [8], "semillas.n": 1}'  # prueba 14: otra arquitectura y una semilla
 SECCIONES = ("1", "1.0", "1.1", "1.2", "1.3", "2", "2.1", "2.2", "2.3", "3", "3.1", "3.2", "3.3", "3.4", "3.5",
              "4", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6")  # B-pd §3.7, en orden
@@ -49,17 +52,26 @@ def _celdas(texto: str) -> list[tuple[str, str]]:
     return celdas  # en orden
 
 
+# %% [markdown]
+# Bloques cercados de un lenguaje dentro del texto.
+
 # %%
 def _bloques(md: str, lenguaje: str) -> list[str]:
     """Contenido de los bloques ```<lenguaje> … ``` de un texto markdown."""
     return re.findall(rf"^```{lenguaje}\n(.*?)^```", md, flags=re.M | re.S)  # bloques cercados
 
 
+# %% [markdown]
+# Fuente del notebook.
+
 # %%
 def _texto() -> str:
     """Fuente del notebook."""
     return FUENTE.read_text(encoding="utf-8")  # UTF-8
 
+
+# %% [markdown]
+# `CONFIG` y `SET` leídos de la celda de parámetros sin ejecutarla.
 
 # %%
 def _parametros() -> dict:
@@ -79,10 +91,14 @@ def test_moldes_del_texto_coinciden_con_demo_yaml():
     moldes = [ast.literal_eval(ast.parse(b, mode="eval").body) for b in _bloques(md, "python")]  # sin comentarios
     esperado = moldes_de(load_config(RAIZ / _parametros()["CONFIG"]))  # de la config real
     assert moldes == [esperado["comunes"], esperado["logistica"], esperado["mlp"]]  # mismo orden y valores
+    tipos = {clave: type(v) for m in esperado.values() for clave, v in m.items()}  # clave → tipo esperado
     for molde in moldes:  # tipos exactos (1e-3 float, listas)
         for clave, valor in molde.items():  # cada clave
-            assert type(valor) is type({**esperado["comunes"], **esperado["logistica"], **esperado["mlp"]}[clave])
+            assert type(valor) is tipos[clave], clave  # mismo tipo que en demo.yaml
 
+
+# %% [markdown]
+# Cada clave de los moldes lleva su comentario de una línea.
 
 # %%
 def test_cada_clave_del_molde_tiene_su_comentario():
@@ -94,6 +110,9 @@ def test_cada_clave_del_molde_tiene_su_comentario():
                 assert re.search(r",\s+# \S", linea), linea  # valor, coma y comentario
 
 
+# %% [markdown]
+# El comando de texto sale de `comando_terminal` y el CLI lo entiende igual que el notebook.
+
 # %%
 def test_comando_del_texto_es_el_de_comando_terminal(monkeypatch):
     """La primera línea = comando_terminal(CONFIG, {}); cada línea da por el CLI la misma config que el notebook."""
@@ -103,7 +122,9 @@ def test_comando_del_texto_es_el_de_comando_terminal(monkeypatch):
     lineas = [ln for ln in bloque.splitlines() if ln.strip()]  # comandos
     config = _parametros()["CONFIG"]  # config de la celda de parámetros
     assert lineas[0] == comando_terminal(config, {})  # comando base
-    assert any("--set salida=" in ln for ln in lineas[1:])  # ejemplo con otra carpeta (B-pd §3.5)
+    ejemplos = [shlex.split(ln) for ln in lineas[1:]]  # modificaciones de ejemplo
+    assert ejemplos and all("salida=" + CARPETA_EJEMPLO["salida"] in e  # otra carpeta de resultados (B-pd §3.5)
+                            and "modelos=" + CARPETA_EJEMPLO["modelos"] in e for e in ejemplos)  # y de modelos
     for linea in lineas:  # ida y vuelta
         args = build_parser().parse_args(shlex.split(linea)[2:])  # parser del CLI
         assert args.config == config  # misma config base
@@ -114,6 +135,9 @@ def test_comando_del_texto_es_el_de_comando_terminal(monkeypatch):
         assert comando_terminal(config, cambios) == linea  # el texto es el que arma comando_terminal
 
 
+# %% [markdown]
+# Valor de una config en una clave con punto.
+
 # %%
 def _hoja(cfg: dict, clave: str):
     """Valor de ``cfg`` en la clave con punto ``clave``."""
@@ -121,6 +145,45 @@ def _hoja(cfg: dict, clave: str):
     for parte in clave.split("."):  # baja
         nodo = nodo[parte]  # nivel
     return nodo  # hoja
+
+
+# %% [markdown]
+# Las carpetas del comando de ejemplo deben estar ignoradas por git: pegar el comando no ensucia el repositorio.
+
+# %%
+@pytest.mark.parametrize("clave", sorted(CARPETA_EJEMPLO))  # salida y modelos
+def test_carpetas_del_ejemplo_ignoradas_por_git(clave):
+    """`git check-ignore` reconoce la carpeta del ejemplo (results/data/*_demo/, models/*_demo*)."""
+    ruta = CARPETA_EJEMPLO[clave] + "/x.json"  # un archivo que escribiría la corrida
+    r = subprocess.run(["git", "check-ignore", "-q", ruta], cwd=RAIZ, check=False)  # 0 = ignorado
+    assert r.returncode == 0, ruta  # ignorada
+
+
+# %% [markdown]
+# ## Figuras citadas
+#
+# Cada figura del blog que el notebook muestra existe en `blog/docs/figures/`, y las de la demo son exactamente las
+# que dibuja `figs_pd.generar` sin `hpo_ensayos.json` (todas menos `pd-busqueda-mlp.png`).
+
+# %%
+def test_figuras_del_blog_citadas_existen():
+    """Cada FIGURAS_BLOG / "…" del notebook es un archivo de blog/docs/figures/."""
+    citadas = re.findall(r'FIGURAS_BLOG / "([^"]+)"', _texto())  # nombres citados
+    assert "pd-calibracion.json" in citadas and len(citadas) >= 10  # figuras y JSON de la calibración
+    faltan = [n for n in citadas if not (RAIZ / figs_pd.SALIDA / n).is_file()]  # no existen
+    assert not faltan, faltan  # todas existen
+
+
+# %% [markdown]
+# `FIGURAS_DEMO` se lee del `.py` sin ejecutarlo y se compara con `figs_pd.ARCHIVOS`.
+
+# %%
+def test_figuras_demo_son_las_de_generar_sin_hpo():
+    """FIGURAS_DEMO = PNG de figs_pd.ARCHIVOS menos pd-busqueda-mlp.png (sin repetir)."""
+    asignacion = re.search(r"^FIGURAS_DEMO = (\(.*?\))", _texto(), flags=re.M | re.S).group(1)  # tupla
+    demo = ast.literal_eval(re.sub(r"#[^\n]*", "", asignacion))  # sin comentarios
+    sin_hpo = {n for n in figs_pd.ARCHIVOS if n.endswith(".png")} - {figs_pd.FIGURA_BUSQUEDA_MLP}  # de generar
+    assert len(demo) == len(set(demo)) and set(demo) == sin_hpo  # exactamente esas
 
 
 # %% [markdown]
@@ -139,6 +202,9 @@ def test_primera_celda_de_codigo_es_la_de_parametros():
     assert not _bloques(despues, "python") and not _bloques(despues, "bash")  # ninguno después
 
 
+# %% [markdown]
+# Títulos numerados en el orden de B-pd §3.7.
+
 # %%
 def test_secciones_en_el_orden_de_la_spec():
     """Títulos '## N.' y '### N.M' en el orden de B-pd §3.7; 1.0 justo antes de la celda de parámetros."""
@@ -150,6 +216,9 @@ def test_secciones_en_el_orden_de_la_spec():
     assert re.search(r"^### 1\.0 ", celdas[primera - 1][1], flags=re.M)  # 1.0 inmediatamente antes
 
 
+# %% [markdown]
+# El texto no trae cifras: todas salen impresas de los JSON.
+
 # %%
 def test_texto_sin_cifras_escritas_a_mano():
     """Fuera de títulos, bloques, código en línea y referencias (§, enlaces, secciones), no hay números decimales."""
@@ -160,6 +229,9 @@ def test_texto_sin_cifras_escritas_a_mano():
     md = re.sub(r"sección \d+\.\d+", "", md)  # sin referencias a otras secciones del notebook
     assert not re.findall(r"\d+[.,]\d+", md)  # ninguna cifra decimal
 
+
+# %% [markdown]
+# Cada sección enlaza a una sección del blog que existe.
 
 # %%
 def test_cada_seccion_enlaza_al_blog():
@@ -182,6 +254,9 @@ def _huellas(raiz: Path) -> dict:
             for p in (raiz / c).rglob("*") if p.is_file()}  # cada archivo
 
 
+# %% [markdown]
+# Ejecuta una copia del notebook fuera del repo y comprueba que lo versionado no cambie.
+
 # %%
 def _correr_copia(tmp_path: Path, monkeypatch, texto: str) -> tuple[str, float]:
     """Ejecuta una copia del notebook con ``texto`` y devuelve (texto del .ipynb, segundos)."""
@@ -199,6 +274,9 @@ def _correr_copia(tmp_path: Path, monkeypatch, texto: str) -> tuple[str, float]:
     return destino.read_text(encoding="utf-8"), segundos  # salida
 
 
+# %% [markdown]
+# El `.ipynb` no expone la carpeta temporal del sistema.
+
 # %%
 def _sin_ruta_temporal(ipynb: str) -> None:
     """El .ipynb no contiene la ruta de la carpeta temporal del sistema en ninguna forma."""
@@ -206,6 +284,9 @@ def _sin_ruta_temporal(ipynb: str) -> None:
     for forma in (str(temporal), temporal.as_posix(), str(temporal).replace("\\", "\\\\")):  # Linux y Windows
         assert forma not in ipynb  # no aparece
 
+
+# %% [markdown]
+# Prueba 13: el notebook tal cual.
 
 # %%
 @pytest.mark.lento  # entrena la demo
@@ -217,6 +298,9 @@ def test_notebook_02_corre_sin_tocar_lo_versionado(tmp_path, monkeypatch):
     _sin_ruta_temporal(ipynb)  # no se expone
     assert ipynb.count('"image/png"') == 6 + 2 + 2 + 5  # demo, datos, búsqueda y modelo final
 
+
+# %% [markdown]
+# Prueba 14: otra arquitectura y una sola semilla desde la celda de parámetros.
 
 # %%
 @pytest.mark.lento  # entrena la demo

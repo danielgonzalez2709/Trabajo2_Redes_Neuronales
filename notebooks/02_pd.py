@@ -74,12 +74,12 @@
 # ### Comando de terminal equivalente
 #
 # La primera línea es la demo; la segunda, un ejemplo de modificación. Con otra muestra hay que cambiar también
-# `salida` (si no, el pre-chequeo falla porque `pred_test.parquet` tiene otros ids, B-pd §3.5); `results/data/*_demo/`
-# está ignorada por git.
+# `salida` (si no, el pre-chequeo falla porque `pred_test.parquet` tiene otros ids, B-pd §3.5) y, para no pisar los
+# modelos de la demo, `modelos`; `results/data/*_demo/` y `models/*_demo*` están ignoradas por git.
 #
 # ```bash
 # python run.py pd --config configs/pd/demo.yaml
-# python run.py pd --config configs/pd/demo.yaml --set datos.muestra=20000 --set 'mlp.capas=[64, 32]' --set salida=results/data/pd2_demo
+# python run.py pd --config configs/pd/demo.yaml --set datos.muestra=20000 --set 'mlp.capas=[64, 32]' --set salida=results/data/pd2_demo --set modelos=models/pd2_demo
 # ```
 
 # %% [markdown]
