@@ -7,7 +7,7 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 4 (H-08, H-10, H-14, H-15) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 15 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
+| Código | 16 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
 | Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
 | Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
@@ -585,3 +585,29 @@ falsas se registran como candidatos.
    y una prueba no lenta de que el fondo sale de train.
 6. **Lección aprendida:** una prueba de formato ("las claves y los tipos son correctos") no prueba una fórmula; cada
    decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
+
+### H-26 — "La guarda impide escribir en los archivos del modelo principal" (B10, tres guardas que no lo impedían)
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
+  cazó:** los subagentes `revisor-spec` (ronda 1) y `revisor-calidad` (rondas 2 y 3) de B10, intentando romper la guarda
+- **Nota de numeración:** registrado primero como H-24 en `dev/andres`; renumerado a H-26 porque en `main` ya existen
+  H-24 y H-25 (Parte C, C4).
+1. **Prompt (literal):** `prompts/B10.md`, "1. implementador" ("NO toques `results/data/pd/`, `models/pd_*`,
+   `configs/pd/mlp_final.yaml`…") y B-pd §3.8 ("Nunca se escribe en `results/data/pd/`, `models/pd_*` ni
+   `configs/pd/mlp_final.yaml`").
+2. **Respuesta relevante de la IA:** el informe de la ronda 1 declaró como caso cubierto que "rutas que pisarían o quedarían
+   dentro de las del modelo principal (`results/data/pd`, `models`, `loans_pd`, el preprocesador de A) dan `ValueError`"; la
+   guarda era una lista negra que no revisaba `sensibilidad.union` ni `sensibilidad.preprocesador`. Las dos correcciones
+   siguientes repitieron el patrón (otra lista negra; luego una lista blanca con raíz = directorio actual).
+3. **Cómo sospechamos:** los revisores llamaron a `validar_cfg_sensibilidad` con la config real y un `--set` por caso, y
+   después desde `notebooks/` con `../`.
+4. **Evidencia:** `evidencias/H-26_guarda_rutas_sensibilidad.txt`: los casos aceptados en cada ronda y el efecto real: en
+   una ronda roja, una prueba que llamaba al CLI sobrescribió `results/data/pd/pred_test.parquet` (restaurado; SHA-256 =
+   HEAD).
+5. **Corrección:** lista blanca evaluada contra la raíz fija del repositorio (`RAIZ_REPOSITORIO`, commit 59cce7b): dentro del
+   repo solo `results/data/pd_sensibilidad*` y `models/pd_sensibilidad*`; las pruebas de la guarda solo validan, nunca
+   escriben.
+6. **Lección aprendida:** una protección de escritura se define por lo permitido, no por lo prohibido, y contra una raíz que
+   no dependa del directorio desde donde se ejecuta; y una prueba de la guarda en rojo no debe poder escribir de verdad.

@@ -1,0 +1,27 @@
+# Generado por `python run.py pd-hpo` (src/pd/hpo.py). No se edita a mano.
+# Configuración final del MLP de PD (Parte B §3.2–§3.3) y su procedencia; la hereda configs/pd/base.yaml.
+mlp:
+  capas:
+  - 64
+  - 128
+  - 32
+  activacion: relu
+  dropout: 0.06926852555963571
+  l2: 0.0012805745538114314
+  optimizador: adam
+  lr: 0.003221195829044167
+  momento: 0.9
+  batch: 1024
+  max_epocas: 100
+  paciencia: 10
+  device: cpu
+  pos_weight: 1.0
+busqueda:
+  tipo: optuna
+  ensayo: 29
+  n_ensayos: 40
+  tiempo_s: 1051.8753646939003
+  evidencia:
+    sha256_particion: d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99
+    sha256_preprocesador: d58d839a2161db8e53a61163ea003597ccc3eb7e923cb2fcab75b3bb63b78376
+  fecha: '2026-10-27T02:01:58'
