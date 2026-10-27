@@ -1,0 +1,30 @@
+# Parte B — DEMO de la PD (< 2 min en CPU, B6): `python run.py pd --config configs/pd/demo.yaml`.
+# Completa, sin `hereda`: no depende de que pd-hpo reescriba mlp_final.yaml. Escribe en results/data/pd_demo/ y
+# models/pd_demo/ (ignorados por git): nunca toca los resultados reales ni los modelos que usan C y E.
+# Muestra, semillas, rejilla y épocas reducidas solo para que corra rápido; NO son los resultados reportados.
+base_seed: 0  # semilla del muestreo de datos.muestra y semilla efectiva base_seed + k del MLP (como base.yaml)
+datos:
+  muestra: 50000  # filas repartidas entre train, val y test en proporción a su tamaño (núcleo §4.1)
+logistica:
+  rejilla_C: [1.0e-3, 3.1623e-3, 1.0e-2]  # 3 valores de la rejilla de base.yaml alrededor del C elegido en B3
+  max_iter: 1000  # iteraciones máximas de lbfgs (como base.yaml)
+  tol: 1.0e-6  # tolerancia de lbfgs (como base.yaml)
+mlp:  # arquitectura y optimización de configs/pd/mlp_final.yaml (ensayo 11 de pd-hpo), con menos épocas
+  capas: [32, 16, 32]  # neuronas por capa oculta (mlp_final.yaml)
+  activacion: relu  # φ de las capas ocultas (mlp_final.yaml)
+  dropout: 0.09416553239584849  # probabilidad de apagar una neurona (mlp_final.yaml)
+  l2: 4.451065531349953e-05  # weight_decay = λ de (λ/2)‖W‖² (mlp_final.yaml)
+  optimizador: adam  # (mlp_final.yaml)
+  lr: 0.004965184800549709  # tasa de aprendizaje (mlp_final.yaml)
+  momento: 0.9  # solo lo usa sgd (mlp_final.yaml)
+  batch: 512  # tamaño de minilote (mlp_final.yaml)
+  max_epocas: 20  # demo: 20 en vez de 100
+  paciencia: 5  # demo: 5 en vez de 10 (parada temprana con la pérdida de val)
+  device: cpu  # la demo corre en CPU (núcleo §3, fila GPU)
+  pos_weight: 1.0  # sin reponderar la clase positiva (obligatorio, B-pd §3.2)
+busqueda:
+  tipo: sin_busqueda  # config fijada a mano: config_de_busqueda false y presupuesto de búsqueda null (B-pd §3.5)
+semillas:
+  n: 3  # demo: 3 semillas efectivas base_seed + 0, 1, 2 (la corrida reportada usa 30)
+salida: results/data/pd_demo  # semillas/, summary.json, pred_test.parquet y busqueda_logistica.json de la demo
+modelos: models/pd_demo  # pd_logistica.joblib y pd_mlp.pt de la demo

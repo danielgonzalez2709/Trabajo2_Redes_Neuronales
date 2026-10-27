@@ -8,9 +8,9 @@
 |---|---|---|
 | Matemáticas | 4 (H-08, H-10, H-14, H-15) | 4 (H-08, H-10, H-14, H-15) |
 | Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
-| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
+| Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 2 (H-16, H-21) | 2 (H-16, H-21) |
+| Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -497,3 +497,41 @@ falsas se registran como candidatos.
 5. **Corrección:** ronda 2 del blog 10: las PD medias por conjunto de cada modelo, sin afirmar la causa del nivel del MLP.
 6. **Lección aprendida:** "los dos modelos hacen X" se comprueba con cada modelo por separado; una red con parada temprana
    en otra cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
+
+### H-22 — "En test, los 10 bins de ambos modelos quedan por debajo de la diagonal" (calibración que subestima)
+- **Estado:** candidato
+- **Categoría:** Conceptos
+- **Parte:** B
+- **Nota de numeración:** registrado primero como H-21 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el orquestador, al mirar `pd-calibracion.png` generada por el subagente `implementador`
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" (pide las figuras de B7 y sugerir la curva
+   para el video).
+2. **Respuesta relevante de la IA:** el plan aprobado (copia literal en `prompts/B7.md`, "Hallazgo que hay que contar"): "En
+   test, los 10 bins de ambos modelos quedan **por debajo de la diagonal**"; el mismo texto en el mensaje a Andrés y repetido
+   por el `implementador` en su entrega ("los 10 bins de los dos modelos quedan por debajo de la diagonal").
+3. **Cómo sospechamos:** la figura dibuja la tasa observada (eje y) contra la PD media (eje x), y los puntos se ven arriba de
+   y = x. Si el modelo subestima (PD < tasa), los puntos deben quedar por encima.
+4. **Evidencia:** `evidencias/H-22_calibracion_diagonal.txt`: en los 20 bins (10 por modelo) la tasa observada supera a la
+   PD media (y − x entre +0,012 y +0,109); PD media global 0,187 y 0,204 frente a una tasa de 0,262.
+5. **Corrección:** el blog 06 (§6.4) y la Spec dicen "por encima de la diagonal"; el prompt de la escena 7 del video ya
+   pedía no disimularlo y lo dice bien ("los puntos quedan POR ENCIMA").
+6. **Lección aprendida:** una frase sobre una figura se verifica contra la figura y sus ejes, no contra la conclusión
+   (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
+
+### H-23 — "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" (faltaba el 23, descartado por redondeo)
+- **Estado:** candidato
+- **Categoría:** Datos del mundo real
+- **Parte:** B
+- **Nota de numeración:** registrado primero como H-22 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-spec` de B7, recalculando cada cifra del blog 06
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" y respuesta "Bloques + una frase por figura".
+2. **Respuesta relevante de la IA:** primer borrador del blog 06 (commit 27ca6a7, línea 21): "Dos ensayos posteriores, el 19 y
+   el 27, quedaron a menos de 0,001 de ese valor." El orquestador decidió la frase mirando valores redondeados a 4 decimales.
+3. **Cómo sospechamos:** el `revisor-spec` recalculó las diferencias sin redondear desde `hpo_ensayos.json`.
+4. **Evidencia:** `evidencias/H-23_ensayos_cercanos.txt`: el ensayo 23 tiene Δ = 0,000987 < 0,001 (redondeado se ve 0,5085,
+   igual que el 39, que sí queda fuera con Δ = 0,001013).
+5. **Corrección:** "Tres ensayos posteriores (el 19, el 23 y el 27) quedaron a menos de 0,001 de ese valor."
+6. **Lección aprendida:** una comparación con un umbral se hace con los valores sin redondear; redondear antes de comparar
+   cambia el conteo justo en el borde.
