@@ -81,3 +81,40 @@ Título: AUC, KS y Brier de prueba de las 30 semillas del MLP frente a la regres
 Fuente: Elaboración propia a partir de results/data/pd/semillas/ y results/data/pd/summary.json.
 ![Tres paneles con cajas y puntos de las 30 semillas, la semilla mediana marcada y la logística como línea horizontal](figures/pd-semillas.png)
 :::
+
+### 6.6 Sensibilidad a la evaluación de Lending Club
+
+<!-- B10 (27-oct): cifras de results/data/pd_sensibilidad/comparacion.json (python run.py pd-sensibilidad --config
+configs/pd/sensibilidad.yaml); MLP = media ± desv. de 30 semillas; PD media = semilla mediana (calibracion_global).
+Composición por partición: data/processed/sensibilidad_lc.parquet unido con data/processed/loans_pd.parquet. -->
+
+Para medir cuánto ganaría la PD si viera la evaluación de riesgo del propio Lending Club, repetimos los dos modelos con las
+15 variables de originación más `grade` ("LC assigned loan grade") e `int_rate` ("Interest Rate on the loan"), con la misma
+partición y un preprocesador propio ajustado solo con entrenamiento. Hay dos modos: la **misma arquitectura que el modelo
+principal** y una **arquitectura buscada con las 17 variables** (TPE, 40 ensayos); la logística usa en ambos la misma
+rejilla de C y da el mismo resultado. Estas dos variables quedaron fuera del modelo principal porque son la evaluación de
+riesgo de Lending Club (A §3.4), así que este análisis no va a la app ni lo reemplaza ([[tab:pd-sensibilidad]]).
+
+::: tabla pd-sensibilidad
+Título: Métricas de prueba de la PD con y sin `grade` e `int_rate`
+Fuente: Elaboración propia a partir de results/data/pd_sensibilidad/comparacion.json y results/data/pd/summary.json. MLP: media ± desviación de 30 semillas; logística: una corrida. ΔAUC frente al modelo principal. PD media de prueba: semilla mediana en el MLP; la tasa observada de prueba es 0,2622.
+| Modelo | Variables | Parámetros | AUC | KS | Brier | ΔAUC | PD media |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Logística | 15 (principal) | 49 | 0,6696 | 0,2465 | 0,1865 | — | 0,1868 |
+| Logística | 17 (misma arquitectura y buscada) | 58 | 0,6863 | 0,2722 | 0,1821 | +0,0167 | 0,1988 |
+| MLP | 15 (principal) | 2 673 | 0,6716 ± 0,0031 | 0,2500 ± 0,0054 | 0,1832 ± 0,0011 | — | 0,2041 |
+| MLP | 17, misma arquitectura | 2 961 | 0,6876 ± 0,0030 | 0,2737 ± 0,0046 | 0,1797 ± 0,0009 | +0,0159 | 0,2128 |
+| MLP | 17, arquitectura buscada | 16 193 | 0,6886 ± 0,0032 | 0,2753 ± 0,0059 | 0,1795 ± 0,0008 | +0,0170 | 0,2179 |
+:::
+
+Con la nota de Lending Club, la AUC de prueba sube unas 0,016–0,017 en los dos modelos, unas 5 veces la desviación entre
+semillas del MLP (0,0030–0,0032); en la logística la Δ viene de una sola corrida, sin variabilidad medida. Ver esa
+evaluación mejora la discriminación, pero la AUC sigue cerca de 0,69. Buscar una arquitectura nueva con las 17 variables no
+se distingue del ruido: gana 0,0010 de AUC frente a la misma arquitectura, con 16 193 parámetros en vez de 2 961.
+<!-- revisar: autor -->
+
+La PD media de prueba sube (logística 0,1868 → 0,1988; MLP 0,2041 → 0,2128 con la misma arquitectura y 0,2179 con la
+buscada), pero sigue por debajo de la tasa observada de 0,2622 (§6.4). Es consistente con la deriva de composición entre
+entrenamiento y prueba: la participación del grado A baja de 23,2 % en entrenamiento a 12,2 % en validación y 12,9 % en
+prueba, y la `int_rate` media sube de 12,77 % a 14,69 % y 14,33 %. No basta para afirmar una causa; también puede influir
+el sesgo de selección de los créditos recientes (sección 2.4).
