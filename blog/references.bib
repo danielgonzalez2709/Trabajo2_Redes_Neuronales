@@ -11,6 +11,15 @@
 %   - siddiqi2017: 2.ª edición, enero de 2017 según la página de Wiley (consultada el 25-oct-2026; la versión digital es de
 %     diciembre de 2016). Crossref la registra como "edition-number 1": dato erróneo de Crossref, se usa el de la editorial.
 %   - bergstra2011, srivastava2014: sin DOI; verificadas por la URL oficial (título de la página = título del trabajo).
+%   - breiman2001, aas2021 (27-oct-2026, C7): BibTeX de doi.org, contrastado con Crossref (volumen, número, páginas y año
+%     coinciden). Se quitaron los campos month y la URL dx.doi.org (el ISSN se conserva); en aas2021 la "ø" se escribe {\o}.
+%   - fisher2019 (27-oct-2026, C7): sin DOI; BibTeX de JMLR (jmlr.org/papers/v20/18-760.bib): vol. 20, núm. 177, pp. 1-81,
+%     2019; se dejó la URL que publica JMLR. Título completo tomado del BibTeX de JMLR.
+%   - janzing2020 (27-oct-2026, C7): sin DOI; BibTeX de la página de PMLR (v108/janzing20a): AISTATS 2020, PMLR 108,
+%     pp. 2907-2916; la página escribe "Bloebaum" y así se conserva. Se quitaron abstract, pdf y month.
+%   - strumbelj2014: NO incluida (27-oct-2026): el resumen oficial de Springer no menciona el muestreo de permutaciones y
+%     el texto completo es de pago; ver alucinaciones/evidencias/C7_verificacion_bib.md. Nota: Crossref da 2013 como
+%     año en línea (30-ago-2013) y diciembre de 2014 como número impreso (vol. 41, núm. 3).
 
 @article{yurdakul2020,
   title     = {Statistical properties of the population stability index},
@@ -152,4 +161,53 @@
   publisher = {arXiv},
   year      = {2022},
   doi       = {10.48550/arXiv.2207.08815}
+}
+
+@article{breiman2001,
+  title     = {Random Forests},
+  author    = {Breiman, Leo},
+  journal   = {Machine Learning},
+  volume    = {45},
+  number    = {1},
+  pages     = {5--32},
+  year      = {2001},
+  publisher = {Springer Science and Business Media LLC},
+  issn      = {1573-0565},
+  doi       = {10.1023/a:1010933404324}
+}
+
+@article{fisher2019,
+  title   = {All Models are Wrong, but Many are Useful: Learning a Variable's Importance by Studying an Entire Class of Prediction Models Simultaneously},
+  author  = {Fisher, Aaron and Rudin, Cynthia and Dominici, Francesca},
+  journal = {Journal of Machine Learning Research},
+  volume  = {20},
+  number  = {177},
+  pages   = {1--81},
+  year    = {2019},
+  url     = {http://jmlr.org/papers/v20/18-760.html}
+}
+
+@article{aas2021,
+  title     = {Explaining individual predictions when features are dependent: More accurate approximations to Shapley values},
+  author    = {Aas, Kjersti and Jullum, Martin and L{\o}land, Anders},
+  journal   = {Artificial Intelligence},
+  volume    = {298},
+  pages     = {103502},
+  year      = {2021},
+  publisher = {Elsevier BV},
+  issn      = {0004-3702},
+  doi       = {10.1016/j.artint.2021.103502}
+}
+
+@inproceedings{janzing2020,
+  title     = {Feature relevance quantification in explainable AI: A causal problem},
+  author    = {Janzing, Dominik and Minorics, Lenon and Bloebaum, Patrick},
+  booktitle = {Proceedings of the Twenty Third International Conference on Artificial Intelligence and Statistics},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {108},
+  pages     = {2907--2916},
+  year      = {2020},
+  editor    = {Chiappa, Silvia and Calandra, Roberto},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v108/janzing20a.html}
 }

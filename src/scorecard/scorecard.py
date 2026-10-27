@@ -165,7 +165,8 @@ def bloque_scorecard(cfg: dict) -> dict:
 #
 # **Puntos calientes (C §6):**
 # - usar odds malo:bueno $p/(1-p)$ cambia el **signo**: el puntaje crecería con el riesgo;
-# - usar $\log_{10}$ en vez de $\ln$ cambia el factor: duplicar las odds ya no sumaría pdo;
+# - mezclar bases ($\text{factor} = \text{pdo}/\ln 2$ con $\log_{10}$ en el puntaje): duplicar las odds sumaría
+#   $\text{pdo}\cdot\log_{10}2/\ln 2 \approx 0{,}434\cdot\text{pdo}$; con $\log_{10}$ consistente el puntaje no cambia;
 # - el PDO **no** es "puntos por cada 1 % de PD": el puntaje es lineal en $\ln o$, no en $p$.
 
 # %%

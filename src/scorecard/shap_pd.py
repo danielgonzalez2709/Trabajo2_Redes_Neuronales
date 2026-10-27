@@ -1047,4 +1047,13 @@ def manejador_mlp(cfg: dict) -> int:
     rutas = [save_json(carpeta / ARCHIVO_SCORECARD_MLP, sc),  # UTF-8, sangría 2, sin NaN, atómico
              save_json(carpeta / ARCHIVO_SHAP, sh)]  # SHAP, permutación y estabilidad
     _imprimir_resumen(sc, sh, rutas)  # resumen
+    from src.scorecard import hipotesis  # perezosa: cierre de hipótesis (C6), solo al terminar
+    if (carpeta / hipotesis.ARCHIVO_SCORECARD).is_file():  # la scorecard de la logística (C3) ya está
+        rutas_h = {**hipotesis.RUTAS_POR_DEFECTO, "shap": carpeta / ARCHIVO_SHAP,
+                   "scorecard": carpeta / hipotesis.ARCHIVO_SCORECARD, "datos": cfg["rutas"]["datos"],
+                   "preprocesador": cfg["rutas"]["preprocesador"]}  # mismas entradas que esta corrida
+        print(f"Escrito: {hipotesis.escribir(rutas_h, carpeta).as_posix()}")  # hipotesis.json
+    else:  # sin scorecard.json no hay contraste con la logística
+        print(f"Aviso: no existe {(carpeta / hipotesis.ARCHIVO_SCORECARD).as_posix()}; no se escribe "
+              f"{hipotesis.ARCHIVO_HIPOTESIS} (corre antes run.py scorecard con configs/scorecard/base.yaml)")  # aviso
     return 0  # éxito
