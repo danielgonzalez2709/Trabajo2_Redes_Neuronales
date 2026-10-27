@@ -30,6 +30,7 @@
 
 import copy  # copias profundas: la config de entrada no se muta
 import math  # isfinite: validación de reales finitos
+import sys  # mensajes de config inválida a la salida de error
 from decimal import Decimal  # decimales del ancho del histograma
 from numbers import Real  # comprobación de que un valor es numérico
 from pathlib import Path  # rutas de la config y de la salida
@@ -50,7 +51,9 @@ from src.scorecard.scorecard import (  # transformación PD ↔ puntaje de C1
 )
 
 __all__ = [  # interfaz pública acordada (tarea C3); lo demás es interno
-    "CLAVES_RAIZ", "CLAVES_RUTAS", "CLAVES_DISTRIBUCION", "MODELOS", "ARCHIVO_SCORECARD", "SPLITS",  # constantes
+    "ConfigInvalida", "CLAVE_RUTA_LOGISTICA",  # C4
+    "CLAVES_RAIZ", "CLAVE_SHAP", "CLAVES_RUTAS", "CLAVES_DISTRIBUCION", "MODELOS", "MODELO_LOGISTICA", "MODELO_MLP",
+    "ARCHIVO_SCORECARD", "SPLITS",  # constantes
     "TOL_ADITIVIDAD",  # tolerancia de la suma de puntos
     "validar_cfg_puntos",  # config
     "puntos_base", "puntos_columnas", "grupos_columnas", "puntos_por_variable", "error_aditividad",  # puntos
@@ -60,13 +63,25 @@ __all__ = [  # interfaz pública acordada (tarea C3); lo demás es interno
 ]
 
 CLAVES_RAIZ = ("scorecard", "modelo", "rutas", "distribucion", "salida")  # claves exactas de la raíz de la config
+CLAVE_SHAP = "shap"  # bloque extra de la raíz SOLO con modelo mlp (C4, src/scorecard/shap_pd.py)
+CLAVE_RUTA_LOGISTICA = "logistica"  # ruta extra SOLO con modelo mlp: la logística de la verificación y la permutación
 CLAVES_RUTAS = ("modelo", "preprocesador", "datos", "features")  # claves exactas del bloque rutas
 CLAVES_DISTRIBUCION = ("percentiles_tabla", "percentiles_rango", "fraccion_min_categoria", "ancho_bin",
                        "n_bandas")  # claves exactas del bloque distribucion
-MODELOS = ("logistica",)  # modelos admitidos (el MLP es C4)
+MODELOS = ("logistica", "mlp")  # modelos admitidos; la scorecard del MLP la construye src/scorecard/shap_pd.py (C4)
+MODELO_LOGISTICA = "logistica"  # modelo cuya scorecard construye este módulo
+MODELO_MLP = "mlp"  # modelo que se deriva a shap_pd.manejador_mlp
 ARCHIVO_SCORECARD = "scorecard.json"  # nombre del resultado (núcleo §5.4)
 SPLITS = ("train", "val", "test")  # particiones (núcleo §5.1)
 TOL_ADITIVIDAD = 1e-9  # máximo |pb + Σ puntos − score| admitido (puntajes del orden de 10², float64)
+
+
+class ConfigInvalida(ValueError):
+    """Error de configuración que solo se detecta con los datos cargados (p. ej. más explicados que filas de test).
+
+    Es un ``ValueError``; ``manejador`` lo convierte en "Config inválida: …" y código 2.
+    """
+
 
 _OTRA = "OTRA"  # categoría interna del preprocesador para lo no visto en train (núcleo §5.2)
 _SEPARADOR = "="  # columnas one-hot: "nombre=categoria" (Preprocesador.nombres_salida)
@@ -81,13 +96,15 @@ _MAX_INTERVALOS = 10_000  # tope de intervalos del histograma (un ancho mal pues
 # %% [markdown]
 # ## Validación de la configuración
 #
-# La config (tras la herencia y los `--set`) tiene exactamente las claves de raíz `CLAVES_RAIZ`:
+# La config (tras la herencia y los `--set`) tiene exactamente las claves de raíz `CLAVES_RAIZ` con `modelo: logistica`
+# y `CLAVES_RAIZ` + `shap` con `modelo: mlp` (C4; el bloque lo valida `shap_pd.validar_cfg_shap`):
 #
 # | Clave | Regla |
 # |---|---|
 # | `scorecard` | `{base, odds_base, pdo}`, validado por `bloque_scorecard` de C1 |
-# | `modelo` | uno de `MODELOS` (`logistica`) |
-# | `rutas` | exactamente `CLAVES_RUTAS`, cada una texto no vacío |
+# | `modelo` | uno de `MODELOS` (`logistica`, `mlp`) |
+# | `shap` | solo con `mlp`: claves exactas de `shap_pd.CLAVES_SHAP` |
+# | `rutas` | exactamente `CLAVES_RUTAS` (con `mlp`, además `logistica`), cada una texto no vacío |
 # | `distribucion.percentiles_tabla` | lista no vacía de reales en $[0, 100]$, estrictamente creciente |
 # | `distribucion.percentiles_rango` | $[a, b]$ con $0 \le a < b \le 100$ |
 # | `distribucion.fraccion_min_categoria` | real en $[0, 1)$ |
@@ -179,17 +196,22 @@ def validar_cfg_puntos(cfg: dict) -> dict:
     Retorna:
         dict: copia profunda con el bloque ``scorecard`` en float (``bloque_scorecard`` de C1).
     """
-    _exigir_claves(cfg, CLAVES_RAIZ, "La config de la scorecard")  # raíz exacta
+    es_mlp = isinstance(cfg, dict) and cfg.get("modelo") == MODELO_MLP  # el MLP añade el bloque shap
+    _exigir_claves(cfg, CLAVES_RAIZ + ((CLAVE_SHAP,) if es_mlp else ()), "La config de la scorecard")  # raíz exacta
     sc = bloque_scorecard(cfg)  # base, odds_base y pdo validados por C1 (copia en float)
-    if cfg["modelo"] not in MODELOS:  # el MLP llega con C4
+    if cfg["modelo"] not in MODELOS:  # logistica o mlp
         raise ValueError(f"modelo debe ser uno de {MODELOS}; se recibió {cfg['modelo']!r}")  # valor
-    _exigir_claves(cfg["rutas"], CLAVES_RUTAS, "El bloque rutas")  # rutas exactas
-    for clave in CLAVES_RUTAS:  # cada ruta es un texto
+    claves_rutas = CLAVES_RUTAS + ((CLAVE_RUTA_LOGISTICA,) if es_mlp else ())  # el MLP añade la logística
+    _exigir_claves(cfg["rutas"], claves_rutas, "El bloque rutas")  # rutas exactas
+    for clave in claves_rutas:  # cada ruta es un texto
         _exigir_texto(cfg["rutas"][clave], f"rutas.{clave}")  # no vacía
     _validar_distribucion(cfg["distribucion"])  # percentiles, fracción, ancho y bandas
     _exigir_texto(cfg["salida"], "salida")  # carpeta de scorecard.json
     copia = copy.deepcopy(cfg)  # la entrada queda intacta
     copia["scorecard"] = sc  # bloque en float
+    if es_mlp:  # bloque shap del MLP
+        from src.scorecard.shap_pd import validar_cfg_shap  # perezoso: shap_pd importa este módulo
+        copia[CLAVE_SHAP] = validar_cfg_shap(cfg[CLAVE_SHAP])  # claves exactas y enteros válidos
     return copia  # config validada
 
 
@@ -603,7 +625,11 @@ def preparar_splits(cfg: dict) -> dict:
         dict: {rutas, features, pre_json, coef, intercepto, crudos_train {nombre: float64}, evidencia,
         splits {split: {X, logit, prob, y}}}; los arrays son de solo lectura.
     """
-    rutas = validar_cfg_puntos(cfg)["rutas"]  # config validada (no se muta)
+    cfg_ok = validar_cfg_puntos(cfg)  # config validada (no se muta)
+    if cfg_ok["modelo"] != MODELO_LOGISTICA:  # el MLP se prepara en shap_pd.preparar_mlp
+        raise ValueError(f"preparar_splits es de la logística; con modelo {cfg_ok['modelo']!r} use "
+                         "src.scorecard.shap_pd")  # valor
+    rutas = cfg_ok["rutas"]  # rutas de los archivos
     features = load_config(rutas["features"])["features"]  # variables (orden de la scorecard)
     pre_json = load_json(rutas["preprocesador"])  # receta del preprocesador
     pre = Preprocesador.from_dict(pre_json)  # preprocesador ajustado con train (A)
@@ -673,6 +699,9 @@ def construir_scorecard(cfg: dict, preparado: dict | None = None) -> dict:
         distribucion_scores, evidencia}.
     """
     cfg = validar_cfg_puntos(cfg)  # copia validada
+    if cfg["modelo"] != MODELO_LOGISTICA:  # la del MLP es shap_pd.construir_scorecard_mlp
+        raise ValueError(f"construir_scorecard es de la logística; con modelo {cfg['modelo']!r} use "
+                         "src.scorecard.shap_pd")  # valor
     if preparado is None:  # sin preparación compartida
         preparado = preparar_splits(cfg)  # carga y transforma
     if preparado["rutas"] != cfg["rutas"]:  # un preparado de otros archivos daría una scorecard incoherente
@@ -733,12 +762,28 @@ def _imprimir_resumen(sc: dict, ruta: Path) -> None:
 def manejador(cfg: dict) -> int:
     """``run.py scorecard``: escribe ``salida/scorecard.json`` e imprime el resumen; devuelve 0.
 
+    Con ``modelo: mlp`` deriva a ``shap_pd.manejador_mlp`` (C4), que escribe ``scorecard_mlp.json`` y ``shap_mlp.json``.
+    Una config inválida (``ValueError`` al validar o ``ConfigInvalida`` al construir) imprime "Config inválida: …"
+    en la salida de error y devuelve 2.
+
     Parámetros:
         cfg: config resuelta.
     Retorna:
-        int: 0 si todo salió bien.
+        int: 0 si todo salió bien; 2 si la config es inválida.
     """
-    sc = construir_scorecard(cfg)  # valida la config y construye
+    try:  # una config inválida da un mensaje y código 2, sin traceback (como src/el/experimento.py)
+        cfg_ok = validar_cfg_puntos(cfg)  # raíz, rutas, scorecard, distribucion y, con mlp, shap
+    except ValueError as exc:  # clave faltante, valor fuera de rango…
+        print(f"Config inválida: {exc}", file=sys.stderr)  # mensaje limpio
+        return 2  # mismo código que argparse para errores de uso
+    if cfg_ok["modelo"] == MODELO_MLP:  # scorecard del MLP con SHAP
+        from src.scorecard import shap_pd  # perezoso: la ruta de la logística no carga shap
+        try:  # errores de config que solo se ven con los datos cargados (p. ej. n_explicar > filas de test)
+            return shap_pd.manejador_mlp(cfg_ok)  # escribe los dos JSON del MLP
+        except ConfigInvalida as exc:  # los errores numéricos (eficiencia, aditividad) siguen como excepción
+            print(f"Config inválida: {exc}", file=sys.stderr)  # mensaje limpio
+            return 2  # código de error de uso
+    sc = construir_scorecard(cfg)  # construye (la logística no cambia: C3)
     ruta = save_json(Path(cfg["salida"]) / ARCHIVO_SCORECARD, sc)  # UTF-8, sangría 2, sin NaN, atómico
     _imprimir_resumen(sc, ruta)  # resumen
     return 0  # éxito
