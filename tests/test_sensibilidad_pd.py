@@ -423,13 +423,14 @@ def test_04_rutas_de_los_modos():
 
 
 # %% [markdown]
-# ## 4b. Rutas de escritura: contención (ronda 2 de B10)
+# ## 4b. Rutas de escritura: lista blanca (rondas 2 y 3 de B10)
 #
-# `union` debe quedar dentro de `salida` y `preprocesador` dentro de `modelos` (fuera de las carpetas de los modos);
-# `salida` y `modelos`, resueltas (con `..` normalizado, relativas o absolutas), no pueden ser ni estar dentro de
-# `data/`, `configs/`, `blog/`, `app/` ni `results/data/pd`, ni contenerlas (p. ej. `results` o `.`), ni ser `models/`
-# ni un archivo existente de `models/`. Cada caso → `ValueError` que nombra la clave, desde `validar_cfg_sensibilidad`
-# (antes de leer datos).
+# Dentro del repositorio (raíz = directorio actual), `salida` solo puede ser `results/data/pd_sensibilidad` (o
+# `results/data/pd_sensibilidad_<algo>`) o una subcarpeta suya, y `modelos` solo `models/pd_sensibilidad` (o
+# `models/pd_sensibilidad_<algo>`) o una subcarpeta; fuera del repositorio se aceptan si no lo contienen. `union` va
+# dentro de `salida` y `preprocesador` dentro de `modelos`, fuera de las carpetas de los modos y sin pisar
+# `comparacion.json`. Cada caso → `ValueError` que nombra la clave, **solo** con `validar_cfg_sensibilidad` (ninguna
+# prueba de la guarda corre el CLI con escritura).
 
 # %%
 CASOS_RUTAS = [  # (clave, valor) rechazados
@@ -458,16 +459,32 @@ CASOS_RUTAS = [  # (clave, valor) rechazados
     ("modelos", str(ROOT / "models")),  # absoluta a models/
     ("modelos", str(ROOT / "data")),  # absoluta a data/
     ("union", str(ROOT / "results" / "data" / "pd" / "pred_test.parquet")),  # absoluta a pred_test
+    ("salida", "src", {"union": "src/pd/experimento.py"}),  # pisaría código (revisor-calidad, r3)
+    ("salida", "results/data/lgd", {"union": "results/data/lgd/summary.json"}),  # resultados de D (r3)
+    ("modelos", "tests", {"preprocesador": "tests/test_fuga.py"}),  # pisaría una prueba (r3)
+    ("salida", "tests"),  # tests/
+    ("salida", "docs"),  # docs/
+    ("modelos", ".git"),  # el repositorio git
+    ("salida", "results/data/el"),  # resultados de E
+    ("salida", "results/data/eda"),  # resultados de A
+    ("salida", "results/data/scorecard"),  # resultados de C
+    ("salida", "results/data/pd_sensibilidad/../lgd"),  # con ..
+    ("salida", "results/data/pd_sensibilidadX"),  # parecido pero no es pd_sensibilidad ni pd_sensibilidad_<algo>
+    ("salida", "results/data/pd_sensibilidad_"),  # sufijo vacío
+    ("modelos", "models/pd_sensibilidad/../pd_mlp.pt"),  # con .. a un archivo de models/
+    ("salida", str(ROOT / "src" / "pd")),  # absoluta dentro del repositorio
+    ("salida", ".."),  # fuera del repositorio pero lo contiene
+    ("modelos", str(ROOT.parent)),  # ídem, absoluta
 ]
 
 
 # %% [markdown]
 # Cambia una ruta de la config real; si es `salida` o `modelos`, mueve `union` o `preprocesador` dentro de la nueva
-# carpeta para que falle solo la regla que se prueba.
+# carpeta para que falle solo la regla que se prueba; `otros` fija además otras rutas del caso.
 
 # %%
-def _cfg_con_ruta(clave: str, valor: str) -> dict:
-    """Config real con ``sensibilidad.clave = valor`` (y su archivo dentro si es una carpeta)."""
+def _cfg_con_ruta(clave: str, valor: str, otros: dict | None = None) -> dict:
+    """Config real con ``sensibilidad.clave = valor`` (y su archivo dentro si es una carpeta) y ``otros``."""
     cfg = load_config(RUTA_CFG)  # config real
     s = cfg["sensibilidad"]  # rutas
     s[clave] = valor  # ruta a probar
@@ -475,6 +492,7 @@ def _cfg_con_ruta(clave: str, valor: str) -> dict:
         s["union"] = str(Path(valor) / "union.parquet")  # dentro
     if clave == "modelos":  # el preprocesador va dentro de modelos
         s["preprocesador"] = str(Path(valor) / "pre.json")  # dentro
+    s.update(otros or {})  # archivos pedidos por el caso
     return cfg  # config
 
 
@@ -482,18 +500,22 @@ def _cfg_con_ruta(clave: str, valor: str) -> dict:
 # Cada caso se rechaza con un mensaje que nombra la clave; la config real y una en `tmp_path` se aceptan.
 
 # %%
-@pytest.mark.parametrize("clave, valor", CASOS_RUTAS, ids=[f"{c}={v}" for c, v in CASOS_RUTAS])  # cada caso
-def test_04b_rutas_por_contencion(clave, valor, monkeypatch):
+@pytest.mark.parametrize("caso", CASOS_RUTAS, ids=[f"{c[0]}={c[1]}" for c in CASOS_RUTAS])  # cada caso
+def test_04b_rutas_lista_blanca(caso, monkeypatch):
     """ValueError que nombra sensibilidad.<clave>, antes de leer datos."""
     monkeypatch.chdir(ROOT)  # rutas relativas a la raíz
+    clave, valor, otros = (*caso, None)[:3]  # el tercer elemento es opcional
     with pytest.raises(ValueError, match=rf"sensibilidad\.{clave}"):  # nombra la clave
-        sens.validar_cfg_sensibilidad(_cfg_con_ruta(clave, valor))  # validación
+        sens.validar_cfg_sensibilidad(_cfg_con_ruta(clave, valor, otros))  # validación
 
 
 def test_04c_rutas_aceptadas(entorno, tmp_path, monkeypatch):
     """La config real y una con todo en tmp_path pasan; los modos y optuna/ quedan dentro por construcción."""
     monkeypatch.chdir(ROOT)  # rutas relativas a la raíz
-    for cfg in (load_config(RUTA_CFG), _cfg(entorno, tmp_path)):  # real y temporal
+    hermana = _cfg_con_ruta("salida", "results/data/pd_sensibilidad_demo/sub")  # carpeta hermana y subcarpeta
+    hermana["sensibilidad"]["modelos"] = "models/pd_sensibilidad_demo"  # ídem en models/
+    hermana["sensibilidad"]["preprocesador"] = "models/pd_sensibilidad_demo/pre.json"  # dentro de modelos
+    for cfg in (load_config(RUTA_CFG), _cfg(entorno, tmp_path), hermana):  # real, temporal y hermana
         sens.validar_cfg_sensibilidad(cfg)  # pasa
         s = cfg["sensibilidad"]  # rutas
         salida, modelos = Path(s["salida"]).resolve(), Path(s["modelos"]).resolve()  # carpetas
@@ -524,6 +546,63 @@ def test_04d_cli_ruta_rechazada(capsys, monkeypatch):
     err = capsys.readouterr().err.strip().splitlines()  # stderr
     assert codigo == ex.CODIGO_ERROR and len(err) == 1 and "sensibilidad.union" in err[0]  # una línea
     assert _huellas_principal() == antes  # nada cambió
+
+
+# %% [markdown]
+# ## 4e. Raíz del repositorio inyectable
+#
+# `validar_rutas_escritura(s, raiz=…)`: con una raíz falsa en `tmp_path`, una carpeta dentro de ella fuera de la lista
+# blanca se rechaza, la hermana `results/data/pd_sensibilidad_x` se acepta, una carpeta fuera de la raíz se acepta y una
+# que contiene la raíz se rechaza.
+
+# %%
+def test_04e_raiz_inyectable(tmp_path):
+    """La lista blanca se mide contra la raíz inyectada."""
+    raiz = tmp_path / "repo"  # repositorio falso
+    raiz.mkdir()  # existe
+
+    def bloque(salida: Path, modelos: Path) -> dict:
+        """Bloque sensibilidad con union y preprocesador dentro de sus carpetas."""
+        return {"salida": str(salida), "modelos": str(modelos), "union": str(salida / "u.parquet"),  # salidas
+                "preprocesador": str(modelos / "p.json")}  # dentro de modelos
+
+    bien = (raiz / "results/data/pd_sensibilidad_x", raiz / "models/pd_sensibilidad")  # lista blanca
+    sens.validar_rutas_escritura(bloque(*bien), raiz=raiz)  # pasa
+    sens.validar_rutas_escritura(bloque(tmp_path / "fuera", tmp_path / "fuera_m"), raiz=raiz)  # fuera del repo
+    with pytest.raises(ValueError, match=r"sensibilidad\.salida"):  # dentro, fuera de la lista
+        sens.validar_rutas_escritura(bloque(raiz / "src", bien[1]), raiz=raiz)  # src/
+    with pytest.raises(ValueError, match=r"sensibilidad\.modelos"):  # contiene la raíz
+        sens.validar_rutas_escritura(bloque(bien[0], tmp_path), raiz=raiz)  # tmp_path ⊃ repo
+
+
+# %% [markdown]
+# ## 4f. Las rutas se arman sin revalidar; las entradas que escriben sí validan
+#
+# `rutas_sensibilidad` solo arma rutas (la guarda corre una vez en `validar_cfg_sensibilidad`); `preparar` y
+# `escribir_comparacion`, que escriben y se pueden llamar solos, validan antes de leer nada.
+
+# %%
+def test_04f_validacion_en_las_entradas(entorno, tmp_path, monkeypatch):
+    """rutas_sensibilidad no llama a la guarda; preparar y escribir_comparacion sí, antes de leer."""
+    cfg = _cfg(entorno, tmp_path)  # config sana
+    llamadas = []  # llamadas a la guarda
+    original = sens.validar_rutas_escritura  # guarda real
+    monkeypatch.setattr(sens, "validar_rutas_escritura", lambda s, raiz=None: llamadas.append(1) or original(s))
+    sens.rutas_sensibilidad(cfg, "reusar")  # solo arma
+    assert llamadas == []  # sin revalidar
+    cfg["sensibilidad"]["union"] = str(tmp_path / "otra" / "u.parquet")  # fuera de salida
+    leidos = []  # lecturas
+
+    def leer(ruta):
+        """Lector que registra (no debe llamarse)."""
+        leidos.append(ruta)  # registro
+        raise AssertionError("leyó antes de validar")  # seguro
+
+    with pytest.raises(ValueError, match=r"sensibilidad\.union"):  # preparar valida
+        sens.preparar(cfg, leer=leer, escribir=lambda p, o: None)  # entrada que escribe
+    with pytest.raises(ValueError, match=r"sensibilidad\.union"):  # escribir_comparacion valida
+        sens.escribir_comparacion(cfg, ["reusar"], leer=leer, escribir=lambda p, o: None)  # ídem
+    assert leidos == [] and len(llamadas) == 2  # validó una vez en cada entrada, sin leer
 
 
 # %% [markdown]
@@ -915,10 +994,43 @@ def test_07c_escribir_comparacion(entorno, tmp_path):
         return fuentes[clave]["summary" if ruta.suffix == ".json" else "pred_test"]  # objeto
 
     comp = sens.escribir_comparacion(cfg, ["reusar"], leer=leer,  # lector falso
-                                     escribir=lambda p, o: escritos.update({p: o}))  # escritor en memoria
+                                     escribir=lambda p, o: escritos.update({p: o}),  # escritor en memoria
+                                     existe=lambda p: Path(p) in fuentes)  # solo los summary falsos
     assert set(leidos) == {principal, principal.parent / ex.ARCHIVO_PRED_TEST, r / ex.ARCHIVO_SUMMARY,
                            r / ex.ARCHIVO_PRED_TEST}  # cuatro lecturas
     assert escritos == {Path(cfg["sensibilidad"]["salida"]) / sens.ARCHIVO_COMPARACION: comp}  # una escritura
+
+
+# %% [markdown]
+# ## 7d. `escribir_comparacion` compara todos los modos que hay en disco
+#
+# Relanzar con `modos: [optuna]` no borra `reusar` de `comparacion.json`: entran los modos con `summary.json` en disco
+# además de los de la corrida; un modo corrido sin summary en disco → error al leerlo.
+
+# %%
+def test_07d_comparacion_con_los_modos_en_disco(entorno, tmp_path):
+    """reusar ya en disco + optuna recién corrido → los dos; sin reusar en disco → solo optuna."""
+    cfg = _cfg(entorno, tmp_path, modos=["optuna"])  # la corrida solo pide optuna
+    principal = Path(cfg["sensibilidad"]["principal"])  # summary del principal
+    r = {m: sens.rutas_sensibilidad(cfg, m).resultados / ex.ARCHIVO_SUMMARY for m in sens.MODOS}  # summary por modo
+    fuentes = {principal: _fuente(0.67, 0.672, [0.1] * 4, [0.2] * 4, [0, 1, 0, 0]),  # principal
+               r["reusar"]: _fuente(0.70, 0.67, [0.3] * 4, [0.1] * 4, [0, 1, 0, 0]),  # de una corrida anterior
+               r["optuna"]: _fuente(0.71, 0.68, [0.3] * 4, [0.1] * 4, [0, 1, 0, 0])}  # recién corrido
+
+    def leer(ruta):
+        """Lector falso por ruta."""
+        ruta = Path(ruta)  # normaliza
+        clave = ruta if ruta.name == ex.ARCHIVO_SUMMARY else ruta.parent / ex.ARCHIVO_SUMMARY  # fuente
+        return fuentes[clave]["summary" if ruta.suffix == ".json" else "pred_test"]  # objeto
+
+    en_disco = set(fuentes)  # los dos modos tienen summary
+    comp = sens.escribir_comparacion(cfg, ["optuna"], leer=leer, escribir=lambda p, o: None,  # sin escribir
+                                     existe=lambda p: Path(p) in en_disco)  # existencia falsa
+    assert comp["modos"] == ["reusar", "optuna"]  # reusar no se pierde
+    en_disco.discard(r["reusar"])  # ahora reusar no está en disco
+    comp = sens.escribir_comparacion(cfg, ["optuna"], leer=leer, escribir=lambda p, o: None,  # sin escribir
+                                     existe=lambda p: Path(p) in en_disco)  # existencia falsa
+    assert comp["modos"] == ["optuna"]  # solo lo que hay
 
 
 # %% [markdown]

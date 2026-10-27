@@ -61,6 +61,7 @@ __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "rutas_de", "leer_test_rapido", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
     "TIPO_SIN_BUSQUEDA",  # B5 ronda 2: config fijada a mano
     "validar_datos", "muestra_de", "muestrear", "filas_muestra",  # B6: datos.muestra
+    "escribir_parquet_atomico", "linea_modelo", "una_linea",  # B10: las reutiliza src/pd/sensibilidad.py
 ]
 
 COLUMNA_ID = "id"  # identificador del crédito (núcleo §5.1)
@@ -408,7 +409,7 @@ def actualizar_summary(ruta, modelo: str, entrada: dict) -> None:
 # (`PERMISOS_ARCHIVO`), como hace `save_json` con los JSON: el resultado debe quedar legible (en Windows es inocuo).
 
 # %%
-def _escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
+def escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
     """Escribe ``df`` en ``ruta`` vía un temporal de la misma carpeta y ``os.replace``."""
     ruta.parent.mkdir(parents=True, exist_ok=True)  # crea la carpeta si falta
     fd, temporal = tempfile.mkstemp(prefix=f".{ruta.name}.", suffix=".tmp", dir=ruta.parent)  # misma carpeta
@@ -457,7 +458,7 @@ def actualizar_pred_test(ruta, ids, y, columna: str, pred) -> None:
     ruta = Path(ruta)  # acepta texto o Path
     nuevo = _tabla_nueva(ids, y, columna, pred)  # tabla del modelo
     tabla = _combinar(pd.read_parquet(ruta), nuevo, columna) if ruta.exists() else nuevo  # combina si existe
-    _escribir_parquet_atomico(ruta, tabla)  # nunca queda a medias
+    escribir_parquet_atomico(ruta, tabla)  # nunca queda a medias
 
 
 # %% [markdown]
@@ -1168,7 +1169,7 @@ def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, com
 # búsqueda y tiempo total (núcleo §6).
 
 # %%
-def _linea_modelo(nombre: str, entrada: dict) -> str:
+def linea_modelo(nombre: str, entrada: dict) -> str:
     """Texto de una línea con las métricas de test y el presupuesto de ``entrada``."""
     partes = []  # piezas de la línea
     for metrica, etiqueta in (("auc_test", "AUC"), ("ks_test", "KS"), ("brier_test", "Brier")):  # de test
@@ -1194,8 +1195,8 @@ def _correr_e_informar(cfg: dict | None) -> int:
     inicio = time.perf_counter()  # tiempo total del subcomando
     res = correr_pd(cfg)  # corrida completa (valida la config)
     mlp, rutas = res["mlp"], res["rutas"]  # atajos
-    print(_linea_modelo(MODELO_LOGISTICA, res["logistica"]))  # logística
-    print(_linea_modelo(MODELO_MLP, mlp))  # MLP
+    print(linea_modelo(MODELO_LOGISTICA, res["logistica"]))  # logística
+    print(linea_modelo(MODELO_MLP, mlp))  # MLP
     print(f"Semilla mediana: {mlp['semilla_mediana']} ({mlp['criterio_semilla_mediana']})")  # pd_mlp.pt
     print(f"Config de la búsqueda: {'sí' if mlp['config_de_busqueda'] else 'no'}")  # procedencia
     print(f"Resultados: {rutas.resultados.as_posix()} · Modelos: {rutas.modelos.as_posix()}")  # archivos
@@ -1210,7 +1211,7 @@ def _correr_e_informar(cfg: dict | None) -> int:
 # línea de stderr.
 
 # %%
-def _una_linea(exc: BaseException) -> str:
+def una_linea(exc: BaseException) -> str:
     """Texto de ``exc`` en una sola línea (saltos de línea → espacios)."""
     return " ".join(str(exc).splitlines())  # sin saltos de línea
 
@@ -1236,5 +1237,5 @@ def manejador(cfg: dict | None) -> int:
     except ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
         raise  # se propagan con su traza
     except ERRORES_ESPERADOS as exc:  # config, datos o fit
-        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {_una_linea(exc)}", file=sys.stderr)  # una línea con el tipo
+        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {una_linea(exc)}", file=sys.stderr)  # una línea con el tipo
         return CODIGO_ERROR  # como argparse

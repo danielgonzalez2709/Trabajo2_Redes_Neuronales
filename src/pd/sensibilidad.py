@@ -57,7 +57,7 @@ __all__ = [  # interfaz pública (B10); lo demás es interno
     "ARCHIVO_COMPARACION", "ARCHIVO_MLP_FINAL", "PREFIJO_ERROR",  # nombres
     "unir_sensibilidad", "features_sensibilidad", "ajustar_preprocesador",  # datos
     "rutas_sensibilidad", "cfg_modo", "cfg_hpo_sensibilidad", "validar_cfg_sensibilidad",  # rutas y config
-    "comparacion",  # comparación
+    "comparacion", "validar_rutas_escritura", "LISTA_BLANCA",  # comparación y lista blanca
     "leer_archivo", "escribir_archivo", "preparar", "escribir_comparacion", "correr_sensibilidad", "manejador",  # E/S
 ]
 
@@ -145,7 +145,8 @@ def unir_sensibilidad(loans_pd: pd.DataFrame, sens: pd.DataFrame, adicionales: l
         raise ValueError("loans_pd y sensibilidad_lc deben tener el mismo id fila a fila (mismas filas y orden)")  # A
     if pd.Series(ids_pd).duplicated().any():  # id repetido
         raise ValueError("hay ids repetidos en loans_pd/sensibilidad_lc")  # unión ambigua
-    con_vacios = {c: _vacios(sens[c]) for c in adicionales if _vacios(sens[c])}  # vacíos por columna
+    conteo = {c: _vacios(sens[c]) for c in adicionales}  # vacíos por columna (una vez cada una)
+    con_vacios = {c: n for c, n in conteo.items() if n}  # solo las que tienen
     if con_vacios:  # A entrega sin vacíos
         raise ValueError(f"variables adicionales con vacíos: {con_vacios}")  # cuántos
     union = loans_pd.copy()  # no muta loans_pd
@@ -220,65 +221,91 @@ def _validar_modo(modo) -> str:
 
 
 # %% [markdown]
-# ## Rutas: escritura por contención (ronda 2 de B10)
+# ## Rutas: lista blanca de escritura (rondas 2 y 3 de B10)
 #
-# En vez de una lista negra de archivos, las escrituras quedan **contenidas**: todas las rutas se resuelven a absolutas
-# desde el directorio actual (con `..` normalizado) y
+# Todas las rutas se resuelven a absolutas desde el directorio actual (con `..` normalizado). Con `raiz` = la raíz del
+# repositorio (por defecto el directorio actual; se inyecta en las pruebas):
 #
-# 1. `salida` y `modelos` no pueden ser ni estar dentro de `CARPETAS_PROTEGIDAS` (`data/`, `configs/`, `blog/`,
-#    `app/`, `results/data/pd`), ni contener ninguna de ellas (p. ej. `results` o `.`), ni ser `models/` ni un archivo
-#    existente de `models/` (los modelos de C y E);
+# 1. si `salida` o `modelos` quedan **dentro** del repositorio, solo pueden ser la carpeta de B
+#    (`results/data/pd_sensibilidad`, `models/pd_sensibilidad`), una carpeta hermana `<carpeta>_<algo>` (p. ej. la de
+#    una demo) o una subcarpeta de ellas; **fuera** del repositorio (p. ej. `tmp_path`) se aceptan si no lo contienen;
 # 2. `union` queda **dentro** de `salida` y `preprocesador` **dentro** de `modelos`, fuera de las carpetas de los
 #    modos y sin ser `comparacion.json`.
 #
-# Las carpetas de cada modo (`{salida}/{modo}`, `{modelos}/{modo}`) y el `destino`/`salida` de la búsqueda (en
-# `{salida}/optuna/`) quedan dentro por construcción. Cualquier falla → `ValueError` que nombra la clave.
+# Las carpetas de cada modo y el `destino`/`salida` de la búsqueda (en `{salida}/optuna/`) quedan dentro por
+# construcción. Cualquier falla → `ValueError` que nombra la clave.
 
 # %%
-CARPETAS_PROTEGIDAS = ("data", "configs", "blog", "app", "results/data/pd")  # nunca se escribe en ellas
-CARPETA_MODELOS = "models"  # models/: ni ella ni sus archivos son salida de sensibilidad
+LISTA_BLANCA = {"salida": Path("results/data/pd_sensibilidad"), "modelos": Path("models/pd_sensibilidad")}  # de B
+SEPARADOR_HERMANA = "_"  # results/data/pd_sensibilidad_<algo> (p. ej. una demo)
 
 
+# %% [markdown]
+# Ruta absoluta con `..` normalizado, sin exigir que exista.
+
+# %%
 def _absoluta(ruta) -> Path:
-    """Ruta absoluta desde el directorio actual, con ``..`` normalizado (sin exigir que exista)."""
+    """Ruta absoluta desde el directorio actual, con ``..`` normalizado."""
     return Path(ruta).resolve()  # resuelve . y .. y enlaces
 
 
-def _relacionadas(a: Path, b: Path) -> bool:
-    """True si ``a`` y ``b`` son la misma ruta o una contiene a la otra."""
-    return a == b or a in b.parents or b in a.parents  # igual, dentro o contenedora
+# %% [markdown]
+# ¿Está `ruta` dentro de una carpeta permitida (o es ella)? Permitida = la carpeta de B o una hermana con sufijo no
+# vacío, comparando componente a componente desde la raíz.
+
+# %%
+def _en_lista_blanca(relativa: Path, permitida: Path) -> bool:
+    """True si ``relativa`` es ``permitida`` (o su hermana con sufijo) o está dentro."""
+    n = len(permitida.parts)  # componentes de la carpeta permitida
+    if len(relativa.parts) < n or relativa.parts[:n - 1] != permitida.parts[:-1]:  # otra carpeta padre
+        return False  # p. ej. src/ o results/data/lgd
+    nombre, base = relativa.parts[n - 1], permitida.name  # p. ej. pd_sensibilidad_demo y pd_sensibilidad
+    sufijo = nombre[len(base) + len(SEPARADOR_HERMANA):]  # lo que sigue a "pd_sensibilidad_"
+    return nombre == base or (nombre.startswith(base + SEPARADOR_HERMANA) and bool(sufijo))  # ella o hermana
 
 
-def _validar_carpeta(clave: str, valor) -> Path:
-    """Carpeta ``sensibilidad.clave`` absoluta; ValueError si toca una protegida o models/."""
+# %% [markdown]
+# Una carpeta de salida (`salida` o `modelos`): dentro del repositorio, solo la lista blanca; fuera, que no lo contenga.
+
+# %%
+def _validar_carpeta(clave: str, valor, raiz: Path) -> Path:
+    """Carpeta ``sensibilidad.clave`` absoluta; ValueError si sale de la lista blanca o contiene el repositorio."""
     carpeta = _absoluta(valor)  # absoluta
-    for protegida in CARPETAS_PROTEGIDAS:  # data, configs, blog, app, results/data/pd
-        if _relacionadas(carpeta, _absoluta(protegida)):  # es, está dentro o la contiene
-            raise ValueError(f"sensibilidad.{clave}={valor!r} es, está dentro o contiene {protegida}/ "
-                             "(B-pd §3.8: nunca se escribe allí)")  # nombra la clave
-    modelos = _absoluta(CARPETA_MODELOS)  # models/
-    if carpeta == modelos or (modelos in carpeta.parents and carpeta.is_file()):  # models/ o uno de sus archivos
-        raise ValueError(f"sensibilidad.{clave}={valor!r} es {CARPETA_MODELOS}/ o un archivo suyo "
-                         "(los modelos del principal)")  # nombra la clave
-    if carpeta in modelos.parents:  # contendría models/ (p. ej. '.')
-        raise ValueError(f"sensibilidad.{clave}={valor!r} contiene {CARPETA_MODELOS}/")  # nombra la clave
+    if carpeta == raiz or carpeta in raiz.parents:  # es o contiene el repositorio (p. ej. '.' o '..')
+        raise ValueError(f"sensibilidad.{clave}={valor!r} contiene el repositorio {raiz}")  # nombra la clave
+    if raiz in carpeta.parents:  # dentro del repositorio
+        permitida = LISTA_BLANCA[clave]  # carpeta de B
+        if not _en_lista_blanca(carpeta.relative_to(raiz), permitida):  # fuera de la lista blanca
+            raise ValueError(f"sensibilidad.{clave}={valor!r}: dentro del repositorio solo se admite {permitida}, "
+                             f"{permitida}{SEPARADOR_HERMANA}<algo> o una subcarpeta (B-pd §3.8)")  # nombra la clave
     return carpeta  # carpeta válida
 
 
+# %% [markdown]
+# Un archivo (`union` o `preprocesador`) dentro de su carpeta y fuera de los `excluidos` (carpetas de los modos y
+# `comparacion.json`).
+
+# %%
 def _validar_archivo_dentro(clave: str, valor, carpeta: Path, clave_carpeta: str, excluidos: list[Path]) -> None:
     """ValueError si ``sensibilidad.clave`` no queda dentro de ``carpeta`` o cae en ``excluidos``."""
     archivo = _absoluta(valor)  # absoluta
     if carpeta not in archivo.parents:  # fuera de su carpeta
         raise ValueError(f"sensibilidad.{clave}={valor!r} debe quedar dentro de sensibilidad.{clave_carpeta}")  # clave
     for excluido in excluidos:  # carpetas de los modos y comparacion.json
-        if _relacionadas(archivo, excluido):  # dentro de un modo o el mismo archivo
+        if archivo == excluido or excluido in archivo.parents:  # el mismo archivo o dentro de un modo
             raise ValueError(f"sensibilidad.{clave}={valor!r} pisaría {excluido.name} de sensibilidad")  # clave
 
 
-def _validar_rutas_escritura(s: dict) -> None:
-    """Reglas de contención del bloque sensibilidad (antes de escribir nada)."""
-    salida = _validar_carpeta("salida", s["salida"])  # resultados
-    modelos = _validar_carpeta("modelos", s["modelos"])  # modelos
+# %% [markdown]
+# La guarda completa del bloque `sensibilidad` (pública: la llaman `validar_cfg_sensibilidad`, `preparar` y
+# `escribir_comparacion`, las entradas que escriben).
+
+# %%
+def validar_rutas_escritura(s: dict, raiz=None) -> None:
+    """Lista blanca de escritura del bloque sensibilidad (antes de leer o escribir nada)."""
+    raiz = _absoluta(Path.cwd() if raiz is None else raiz)  # raíz del repositorio (al llamar)
+    salida = _validar_carpeta("salida", s["salida"], raiz)  # resultados
+    modelos = _validar_carpeta("modelos", s["modelos"], raiz)  # modelos
     _validar_archivo_dentro("union", s["union"], salida, "salida",  # unión dentro de salida
                             [salida / m for m in MODOS] + [salida / ARCHIVO_COMPARACION])  # fuera de modos
     _validar_archivo_dentro("preprocesador", s["preprocesador"], modelos, "modelos",  # dentro de modelos
@@ -289,17 +316,17 @@ def _validar_rutas_escritura(s: dict) -> None:
 # ## Rutas de cada modo
 #
 # `RutasPD(union, preprocesador, {salida}/{modo}, {modelos}/{modo})`: el mismo objeto que usa todo el pipeline de B,
-# con el parquet unido y el preprocesador de sensibilidad como entradas.
+# con el parquet unido y el preprocesador de sensibilidad como entradas. Solo arma las rutas: la lista blanca corre
+# una vez en cada entrada (`validar_cfg_sensibilidad`, `preparar`, `escribir_comparacion`). Modo desconocido →
+# `ValueError`.
 
 # %%
 def rutas_sensibilidad(cfg: dict, modo: str) -> ex.RutasPD:
-    """RutasPD del modo con el parquet unido y el preprocesador de sensibilidad; ValueError si escapa de su carpeta."""
+    """RutasPD del modo con el parquet unido y el preprocesador de sensibilidad (solo arma: no valida)."""
     _validar_modo(modo)  # reusar u optuna
     s = cfg["sensibilidad"]  # bloque de rutas
-    rutas = ex.RutasPD(Path(s["union"]), Path(s["preprocesador"]), Path(s["salida"]) / modo,
-                       Path(s["modelos"]) / modo)  # carpetas por modo
-    _validar_rutas_escritura(s)  # contención: nunca las del principal ni data/configs/blog/app
-    return rutas  # rutas del modo
+    return ex.RutasPD(Path(s["union"]), Path(s["preprocesador"]), Path(s["salida"]) / modo,
+                      Path(s["modelos"]) / modo)  # carpetas por modo (la guarda ya corrió en la entrada)
 
 
 # %% [markdown]
@@ -358,7 +385,8 @@ def cfg_hpo_sensibilidad(cfg: dict) -> dict:
 # Raíz con **exactamente** `CLAVES_RAIZ`; `sensibilidad` con exactamente `CLAVES_SENSIBILIDAD` (rutas = texto no
 # vacío); `modos` = lista no vacía, sin repetidos, ⊆ `MODOS`; `hpo` con exactamente `n_ensayos` y `espacio`;
 # `busqueda` = `{tipo: sin_busqueda}`; y las mismas reglas del pipeline: `datos.muestra`, bloques `mlp`, `semillas`,
-# `base_seed` y `logistica`, rutas de cada modo y, si corre optuna, el bloque `hpo` armado. Devuelve los modos.
+# `base_seed` y `logistica`, la lista blanca de escritura (`raiz` inyectable) y, si corre optuna, el bloque `hpo`
+# armado. Devuelve los modos.
 
 # %%
 def _claves_exactas(bloque, claves, nombre: str) -> None:
@@ -370,7 +398,7 @@ def _claves_exactas(bloque, claves, nombre: str) -> None:
         raise ValueError(f"{nombre} inválido: faltan {sorted(faltan)}, sobran {sorted(sobran)}")  # cuáles
 
 
-def validar_cfg_sensibilidad(cfg: dict) -> list[str]:
+def validar_cfg_sensibilidad(cfg: dict, raiz=None) -> list[str]:
     """Modos validados; cualquier falla de la config → ValueError (antes de leer datos)."""
     _claves_exactas(cfg, CLAVES_RAIZ, "La config de pd-sensibilidad")  # raíz
     s = cfg["sensibilidad"]  # bloque propio
@@ -383,6 +411,7 @@ def validar_cfg_sensibilidad(cfg: dict) -> list[str]:
     for clave in CLAVES_RUTA:  # rutas
         if not isinstance(s[clave], str) or not s[clave].strip():  # '' o un número no son rutas
             raise ValueError(f"sensibilidad.{clave} debe ser una ruta (texto no vacío); se recibió {s[clave]!r}")  # tipo
+    validar_rutas_escritura(s, raiz=raiz)  # lista blanca de escritura (una vez, antes de armar rutas)
     _claves_exactas(cfg["hpo"], CLAVES_HPO_SENSIBILIDAD, "El bloque hpo de pd-sensibilidad")  # sin destino/salida
     if cfg["busqueda"] != {"tipo": ex.TIPO_SIN_BUSQUEDA}:  # la del principal no vale aquí
         raise ValueError(f"busqueda debe ser {{tipo: {ex.TIPO_SIN_BUSQUEDA}}} (B-pd §3.8); se recibió "
@@ -390,8 +419,6 @@ def validar_cfg_sensibilidad(cfg: dict) -> list[str]:
     ex.muestra_de(cfg)  # datos.muestra y base_seed (B6)
     ex.validar_cfg_mlp_final(cfg_modo(cfg, MODO_REUSAR))  # semillas, base_seed, mlp y busqueda (B5)
     bloque_logistica(cfg)  # logística (B3)
-    for modo in modos:  # rutas de cada modo
-        rutas_sensibilidad(cfg, modo)  # ValueError si pisan el principal
     if MODO_OPTUNA in modos:  # la búsqueda se valida antes de leer datos
         hpo.validar_cfg(cfg_hpo_sensibilidad(cfg))  # reglas de B4
     return list(modos)  # modos validados
@@ -434,6 +461,23 @@ def _calibracion(pred_test: pd.DataFrame, modelo: str, fuente: str) -> dict:
 
 
 # %% [markdown]
+# ## Comparación: una métrica con su Δ
+#
+# Para la métrica $k$ de un modelo: `{media, desv, n}` de cada fuente (principal y modos) y, en cada modo,
+#
+# $$\Delta_k^{\text{modo}} = \bar x_k^{\text{modo}} - \bar x_k^{\text{principal}}.$$
+
+# %%
+def _metricas_con_delta(entradas: dict, k: str, modos: list[str]) -> dict:
+    """{fuente: {media, desv, n}} de la métrica ``k`` y ``delta`` en cada modo."""
+    base = entradas[FUENTE_PRINCIPAL]["metricas"][k]["media"]  # media del principal
+    resultado = {f: {c: e["metricas"][k][c] for c in CLAVES_RESUMEN} for f, e in entradas.items()}  # por fuente
+    for m in modos:  # cada modo
+        resultado[m]["delta"] = float(entradas[m]["metricas"][k]["media"] - base)  # sensibilidad − principal
+    return resultado  # métrica con Δ
+
+
+# %% [markdown]
 # ## Comparación: principal frente a cada modo
 #
 # Para cada modelo $m$ y métrica de test $k$, con $\bar x$ la media entre semillas (n = 1 en la logística, desv 0):
@@ -457,13 +501,7 @@ def comparacion(principal: dict, por_modo: dict) -> dict:
     metricas, presupuesto, calibracion, huellas = {}, {}, {}, {}  # bloques del JSON
     for modelo in MODELOS_COMPARADOS:  # logística y MLP
         entradas = {f: _entrada_modelo(d["summary"], modelo, f) for f, d in fuentes.items()}  # validadas
-        metricas[modelo] = {}  # por métrica
-        for k in METRICAS_COMPARADAS:  # métricas de test
-            base = entradas[FUENTE_PRINCIPAL]["metricas"][k]["media"]  # media del principal
-            metricas[modelo][k] = {f: {c: e["metricas"][k][c] for c in CLAVES_RESUMEN}  # media, desv y n
-                                   for f, e in entradas.items()}  # de cada fuente
-            for m in modos:  # Δ = sensibilidad − principal
-                metricas[modelo][k][m]["delta"] = float(entradas[m]["metricas"][k]["media"] - base)  # con signo
+        metricas[modelo] = {k: _metricas_con_delta(entradas, k, modos) for k in METRICAS_COMPARADAS}  # con Δ
         presupuesto[modelo] = {f: {c: e[c] for c in CLAVES_PRESUPUESTO} for f, e in entradas.items()}  # núcleo §6
         calibracion[modelo] = {f: _calibracion(d["pred_test"], modelo, f) for f, d in fuentes.items()}  # p̄ y ȳ
         huellas[modelo] = {f: e["evidencia"]["sha256_particion"] for f, e in entradas.items()}  # partición
@@ -509,7 +547,7 @@ def leer_archivo(ruta):
 def escribir_archivo(ruta, obj) -> None:
     """Escribe ``obj`` en ``ruta`` de forma atómica (DataFrame → parquet, dict → JSON)."""
     if isinstance(obj, pd.DataFrame):  # la unión
-        ex._escribir_parquet_atomico(Path(ruta), obj)  # temporal + os.replace (B3)
+        ex.escribir_parquet_atomico(Path(ruta), obj)  # temporal + os.replace (B3)
     elif isinstance(obj, dict):  # preprocesador y comparación
         save_json(ruta, obj)  # atómico, sin NaN
     else:  # tipo inesperado
@@ -529,6 +567,7 @@ def preparar(cfg: dict, leer=None, escribir=None) -> dict:
     leer = leer_archivo if leer is None else leer  # al llamar
     escribir = escribir_archivo if escribir is None else escribir  # al llamar
     s = cfg["sensibilidad"]  # rutas
+    validar_rutas_escritura(s)  # lista blanca antes de leer o escribir (entrada pública)
     adicionales = leer(s["adicionales"])["adicionales"]  # grade e int_rate (A)
     features = features_sensibilidad(leer(s["features"])["features"], adicionales)  # 15 + 2 validadas
     percentiles = tuple(leer(s["config_datos"])["preprocesamiento"]["percentiles_recorte"])  # de A
@@ -545,8 +584,10 @@ def preparar(cfg: dict, leer=None, escribir=None) -> dict:
 # %% [markdown]
 # ## Comparación en disco
 #
-# Lee con `leer` el `summary.json` del principal y el `pred_test.parquet` de su misma carpeta, y los de cada modo;
-# arma `comparacion` y la escribe con `escribir` en `{salida}/comparacion.json`. Devuelve el contenido.
+# Lee con `leer` el `summary.json` del principal y el `pred_test.parquet` de su misma carpeta, y los de **todos** los
+# modos que tengan `summary.json` en disco (`existe`) además de los de la corrida (`modos`): relanzar con
+# `modos: [optuna]` no borra `reusar` de `comparacion.json`. Arma `comparacion` y la escribe con `escribir` en
+# `{salida}/comparacion.json`. Valida la lista blanca antes de leer nada. Devuelve el contenido.
 
 # %%
 def _fuente(leer, carpeta_o_summary: Path) -> dict:
@@ -555,13 +596,17 @@ def _fuente(leer, carpeta_o_summary: Path) -> dict:
     return {"summary": leer(summary), "pred_test": leer(summary.parent / ex.ARCHIVO_PRED_TEST)}  # fuente
 
 
-def escribir_comparacion(cfg: dict, modos: list[str], leer=None, escribir=None) -> dict:
-    """Lee el principal y los modos, escribe {salida}/comparacion.json y devuelve su contenido."""
+def escribir_comparacion(cfg: dict, modos: list[str], leer=None, escribir=None, existe=None) -> dict:
+    """Lee el principal y los modos (corridos o en disco), escribe {salida}/comparacion.json y devuelve su contenido."""
     leer = leer_archivo if leer is None else leer  # al llamar
     escribir = escribir_archivo if escribir is None else escribir  # al llamar
+    existe = (lambda p: Path(p).is_file()) if existe is None else existe  # al llamar
     s = cfg["sensibilidad"]  # rutas
+    validar_rutas_escritura(s)  # lista blanca antes de leer o escribir (entrada pública)
+    summary_de = {m: rutas_sensibilidad(cfg, m).resultados / ex.ARCHIVO_SUMMARY for m in MODOS}  # por modo
+    incluidos = [m for m in MODOS if m in modos or existe(summary_de[m])]  # corridos o ya en disco
     principal = _fuente(leer, Path(s["principal"]))  # modelo principal (solo lectura)
-    por_modo = {m: _fuente(leer, rutas_sensibilidad(cfg, m).resultados / ex.ARCHIVO_SUMMARY) for m in modos}  # modos
+    por_modo = {m: _fuente(leer, summary_de[m]) for m in incluidos}  # modos
     comp = comparacion(principal, por_modo)  # pura
     escribir(Path(s["salida"]) / ARCHIVO_COMPARACION, comp)  # atómico
     return comp  # contenido escrito
@@ -626,7 +671,7 @@ def correr_sensibilidad(cfg: dict, preparar_fn=None, correr_pd_fn=None, buscar_f
 # ## `run.py pd-sensibilidad`: corrida e informe
 #
 # Corre todo e imprime las filas por split, una línea por modo y modelo (AUC, KS y Brier de test, parámetros,
-# configuraciones y tiempo: `_linea_modelo` de `run.py pd`), el ΔAUC de test frente al principal, si la partición es
+# configuraciones y tiempo: `linea_modelo` de `run.py pd`), el ΔAUC de test frente al principal, si la partición es
 # la misma, dónde quedaron los archivos y el tiempo total (núcleo §4.1). La config resuelta ya la imprime el CLI.
 
 # %%
@@ -638,7 +683,7 @@ def _correr_e_informar(cfg: dict) -> int:
     print(f"Filas de la unión: {res['preparacion']['filas']}")  # por split
     for modo, r in res["modos"].items():  # cada modo
         for modelo in MODELOS_COMPARADOS:  # logística y MLP
-            print(f"[{modo}] " + ex._linea_modelo(modelo, r[modelo]))  # misma línea que run.py pd
+            print(f"[{modo}] " + ex.linea_modelo(modelo, r[modelo]))  # misma línea que run.py pd
         deltas = " · ".join(f"{m} {comp['metricas'][m]['auc_test'][modo]['delta']:+.4f}"
                             for m in MODELOS_COMPARADOS)  # Δ por modelo
         print(f"[{modo}] ΔAUC test frente al principal: {deltas}")  # sensibilidad − principal
@@ -666,5 +711,5 @@ def manejador(cfg: dict | None) -> int:
     except ex.ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
         raise  # con su traza
     except ex.ERRORES_ESPERADOS as exc:  # config, datos, fit o archivo
-        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {ex._una_linea(exc)}", file=sys.stderr)  # una línea
+        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {ex.una_linea(exc)}", file=sys.stderr)  # una línea
         return ex.CODIGO_ERROR  # como run.py pd

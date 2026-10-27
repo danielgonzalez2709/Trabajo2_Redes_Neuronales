@@ -1532,3 +1532,18 @@ def test_56_set_datos_muestra():
         cfg = apply_overrides(load_config(ruta), ["datos.muestra=20000"])  # como el CLI
         assert ex.validar_datos(cfg) == 20000  # entero
         assert ex.validar_datos(apply_overrides(cfg, ["datos.muestra=null"])) is None  # todos los datos
+
+
+# %% [markdown]
+# ## 57. B10 r3: piezas públicas que reutiliza `src/pd/sensibilidad.py`
+#
+# `escribir_parquet_atomico`, `linea_modelo` y `una_linea` son públicas (en `__all__`) y ya no existen con guion bajo:
+# otro módulo de B no debe depender de nombres privados.
+
+# %%
+def test_57_piezas_publicas_para_sensibilidad():
+    """Los tres nombres públicos existen, están en __all__ y los privados ya no."""
+    for nombre in ("escribir_parquet_atomico", "linea_modelo", "una_linea"):  # públicas (B10 r3)
+        assert callable(getattr(ex, nombre)) and nombre in ex.__all__  # existen y se exportan
+        assert not hasattr(ex, "_" + nombre)  # sin el alias privado
+    assert ex.una_linea(ValueError("a\nb")) == "a b"  # mismo comportamiento
