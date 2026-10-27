@@ -1,11 +1,17 @@
 .encabezado {
-  max-width: 44rem;
   margin-bottom: 2rem;
 }
 
+/* Fijo arriba al desplazarse, con el fondo de la página para tapar lo que pasa por debajo. La altura queda en
+   --alto-titulo (page.module.css) para que la columna fija del resultado se ubique debajo. */
 .titulo {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   margin: 0;
-  font-size: clamp(1.875rem, 5vw, 2.75rem);
+  padding: 0.75rem 0;
+  background: var(--ds-pagina);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.022em;
@@ -13,7 +19,7 @@
 }
 
 .detalle {
-  margin: 0.6rem 0 0;
+  margin: 0;
   font-size: 0.9375rem;
   color: var(--ds-texto-suave);
 }

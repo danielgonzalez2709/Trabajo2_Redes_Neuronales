@@ -5,29 +5,32 @@ import estilos from "./Marco.module.css";
 
 export function Encabezado() {
   return (
-    <header className={estilos.encabezado}>
+    <>
+      {/* Fuera del <header>: así el título queda fijo arriba mientras se recorre toda la página. */}
       <h1 className={estilos.titulo}>Conoce tu puntaje y tu probabilidad de incumplimiento</h1>
-      <p className={estilos.detalle}>
-        Describe tu préstamo y tu historial: dos modelos entrenados con préstamos históricos calculan, en tu navegador, qué
-        tan probable es que no se pague.
-      </p>
-      <nav className={estilos.enlaces} aria-label="Más sobre el proyecto">
-        <a className={estilos.enlace} href={URL_REPORTE_TECNICO} target="_blank" rel="noopener noreferrer">
-          Reporte técnico<span aria-hidden="true">↗</span>
-          <span className="oculta"> (se abre en otra pestaña)</span>
-        </a>
-        {URL_VIDEO ? (
-          <a className={estilos.enlace} href={URL_VIDEO} target="_blank" rel="noopener noreferrer">
-            Video promocional<span aria-hidden="true">↗</span>
+      <header className={estilos.encabezado}>
+        <p className={estilos.detalle}>
+          Describe tu préstamo y tu historial: dos modelos entrenados con préstamos históricos calculan, en tu
+          navegador, qué tan probable es que no se pague.
+        </p>
+        <nav className={estilos.enlaces} aria-label="Más sobre el proyecto">
+          <a className={estilos.enlace} href={URL_REPORTE_TECNICO} target="_blank" rel="noopener noreferrer">
+            Reporte técnico<span aria-hidden="true">↗</span>
             <span className="oculta"> (se abre en otra pestaña)</span>
           </a>
-        ) : (
-          <span className={estilos.enlaceInactivo} aria-disabled="true">
-            Video promocional (próximamente)
-          </span>
-        )}
-      </nav>
-    </header>
+          {URL_VIDEO ? (
+            <a className={estilos.enlace} href={URL_VIDEO} target="_blank" rel="noopener noreferrer">
+              Video promocional<span aria-hidden="true">↗</span>
+              <span className="oculta"> (se abre en otra pestaña)</span>
+            </a>
+          ) : (
+            <span className={estilos.enlaceInactivo} aria-disabled="true">
+              Video promocional (próximamente)
+            </span>
+          )}
+        </nav>
+      </header>
+    </>
   );
 }
 
