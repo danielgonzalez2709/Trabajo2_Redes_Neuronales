@@ -6,8 +6,8 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-27) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 16 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
+| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 4 (H-08, H-10, H-14, H-15) |
+| Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
 | Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
 | Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
@@ -586,29 +586,59 @@ falsas se registran como candidatos.
 6. **Lección aprendida:** una prueba de formato ("las claves y los tipos son correctos") no prueba una fórmula; cada
    decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
 
-### H-26 — Pruebas de la regla del veredicto que no distinguen `≥ 2` de `≥ 1` ni las desigualdades de borde
+### H-26 — "La guarda impide escribir en los archivos del modelo principal" (B10, tres guardas que no lo impedían)
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
+  cazó:** los subagentes `revisor-spec` (ronda 1) y `revisor-calidad` (rondas 2 y 3) de B10, intentando romper la guarda
+- **Nota de numeración:** registrado primero como H-24 en `dev/andres`; renumerado a H-26 porque en `main` ya existen
+  H-24 y H-25 (Parte C, C4).
+1. **Prompt (literal):** `prompts/B10.md`, "1. implementador" ("NO toques `results/data/pd/`, `models/pd_*`,
+   `configs/pd/mlp_final.yaml`…") y B-pd §3.8 ("Nunca se escribe en `results/data/pd/`, `models/pd_*` ni
+   `configs/pd/mlp_final.yaml`").
+2. **Respuesta relevante de la IA:** el informe de la ronda 1 declaró como caso cubierto que "rutas que pisarían o quedarían
+   dentro de las del modelo principal (`results/data/pd`, `models`, `loans_pd`, el preprocesador de A) dan `ValueError`"; la
+   guarda era una lista negra que no revisaba `sensibilidad.union` ni `sensibilidad.preprocesador`. Las dos correcciones
+   siguientes repitieron el patrón (otra lista negra; luego una lista blanca con raíz = directorio actual).
+3. **Cómo sospechamos:** los revisores llamaron a `validar_cfg_sensibilidad` con la config real y un `--set` por caso, y
+   después desde `notebooks/` con `../`.
+4. **Evidencia:** `evidencias/H-26_guarda_rutas_sensibilidad.txt`: los casos aceptados en cada ronda y el efecto real: en
+   una ronda roja, una prueba que llamaba al CLI sobrescribió `results/data/pd/pred_test.parquet` (restaurado; SHA-256 =
+   HEAD).
+5. **Corrección:** lista blanca evaluada contra la raíz fija del repositorio (`RAIZ_REPOSITORIO`, commit 59cce7b): dentro del
+   repo solo `results/data/pd_sensibilidad*` y `models/pd_sensibilidad*`; las pruebas de la guarda solo validan, nunca
+   escriben.
+6. **Lección aprendida:** una protección de escritura se define por lo permitido, no por lo prohibido, y contra una raíz que
+   no dependa del directorio desde donde se ejecuta; y una prueba de la guarda en rojo no debe poder escribir de verdad.
+
+### H-27 — Pruebas de la regla del veredicto que no distinguen `≥ 2` de `≥ 1` ni las desigualdades de borde
 - **Estado:** candidato
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
   cazó:** el subagente `revisor-calidad`, con mutantes sobre C6; el orquestador guardó la evidencia
+- **Nota de numeración:** registrado primero como H-26 en `dev/juanjose`; renumerado a H-27 porque en `main` ya existe H-26
+  (Parte B, B10).
 1. **Prompt (literal):** `prompts/C6.md`, "1. implementador — fases roja y verde" (pruebas: "juguetes de cada rama").
 2. **Respuesta relevante de la IA:** `tests/test_hipotesis.py` (fase verde, 34 pruebas), presentado como cobertura de cada
    rama de la regla (confirmada, refutada, no concluyente).
 3. **Cómo sospechamos:** el revisor buscó, para cada desigualdad de `hipotesis.py`, un caso que fallara al invertirla.
-4. **Evidencia:** `evidencias/H-26_mutantes_regla_c6.txt`: sobrevivían `len(contra) >= 2` → `>= 1` (refutar con una sola
+4. **Evidencia:** `evidencias/H-27_mutantes_regla_c6.txt`: sobrevivían `len(contra) >= 2` → `>= 1` (refutar con una sola
    fuente en contra), `s·ρ ≤ −u` → `< −u` y `a > 0` → `a ≥ 0`.
 5. **Corrección:** ronda 2 de C6: `test_2g` (una en contra y dos nulas → no concluyente) y los casos de borde ρ = −0,5 y
    a = 0; el revisor comprobó que los tres mutantes ya fallan.
 6. **Lección aprendida:** "un caso por rama" no basta: cada umbral necesita su caso en el borde y cada conteo ("≥ 2") el
    caso justo por debajo.
 
-### H-27 — "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" (Matemáticas)
+### H-28 — "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" (Matemáticas)
 - **Estado:** candidato (pendiente de confirmar por Juan José)
 - **Categoría:** Matemáticas
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 (C1) · **Quién
   lo cazó:** el subagente `verificador-matematico`, en C7 (27-oct-2026)
+- **Nota de numeración:** registrado primero como H-27 en `dev/juanjose`; renumerado a H-28 porque en `main` ya existe H-26
+  (Parte B, B10).
 1. **Prompt (literal):** `prompts/C1.md`, sección 3 "implementador — fase verde", ítem de la nota de los puntos calientes:
    "odds malo:bueno cambia el signo; log10 cambia el factor; PDO no es 'puntos por 1 % de PD'". El encargo repite la idea de
    C §6 ("log10 en vez de ln"); no dice la frase falsa completa.

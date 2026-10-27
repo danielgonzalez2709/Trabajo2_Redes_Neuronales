@@ -1,4 +1,4 @@
-H-26 (candidato, Parte C, C6) — evidencia
+H-27 (antes H-26; candidato, Parte C, C6) — evidencia
 Fuente: informe del subagente revisor-calidad, ronda 1 de C6 (27-oct-2026), sobre tests/test_hipotesis.py de la fase verde
 del implementador (34 pruebas, todas en verde):
 1. "Ninguna prueba cubre una sola fuente en contra + dos nulas (→ no concluyente). El mutante `len(contra) >= 2` → `>= 1`

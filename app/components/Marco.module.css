@@ -1,0 +1,97 @@
+/* Fija arriba al desplazarse, con el fondo de la página para tapar lo que pasa por debajo. Su altura queda en
+   --alto-titulo (page.module.css) para que la columna fija del resultado se ubique debajo. */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.75rem 0;
+  background: var(--ds-pagina);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ds-acento);
+  font-size: clamp(1.25rem, 2.3vw, 2.5rem); /* desde 900 px cabe en un renglón junto a los enlaces */
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.detalle {
+  margin: 0 0 2rem;
+  font-size: 0.9375rem;
+  color: var(--ds-texto-pagina);
+}
+
+.enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.enlace,
+.enlaceInactivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 999px;
+}
+
+.enlace {
+  color: var(--ds-texto);
+  text-decoration: none;
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  transition: border-color 150ms ease;
+}
+
+.enlace:hover {
+  border-color: var(--ds-acento);
+}
+
+.enlaceInactivo {
+  color: var(--ds-texto-pagina);
+  border: 1px dashed rgba(29, 29, 31, 0.35);
+  cursor: default;
+}
+
+.pie {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ds-borde);
+  font-size: 0.75rem;
+  color: var(--ds-texto-pagina);
+}
+
+.pie p {
+  margin: 0;
+}
+
+.carga,
+.error {
+  padding: 1.25rem;
+  border-radius: var(--ds-radio);
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  font-size: 0.9375rem;
+}
+
+.carga {
+  color: var(--ds-texto-suave);
+}
+
+.error {
+  color: #8f1d17;
+  background: #fff5f4;
+  border-color: rgba(143, 29, 23, 0.25);
+}
