@@ -60,6 +60,7 @@ __all__ = [  # interfaz pública acordada (tarea C3); lo demás es interno
     "puntos_valor_crudo", "entrada_numerica", "entrada_categorica",  # tablas por variable
     "cortes_bandas", "tabla_bandas", "histograma", "distribucion_split",  # distribución del puntaje
     "preparar_splits", "construir_scorecard", "manejador",  # orquestación
+    "puntos_cliente", "direccion_shap",  # puntos de un crédito y dirección SHAP para mostrar (C8, notebook 03)
 ]
 
 CLAVES_RAIZ = ("scorecard", "modelo", "rutas", "distribucion", "salida")  # claves exactas de la raíz de la config
@@ -623,7 +624,8 @@ def preparar_splits(cfg: dict) -> dict:
         cfg: config con el bloque ``rutas`` (se valida la config completa).
     Retorna:
         dict: {rutas, features, pre_json, coef, intercepto, crudos_train {nombre: float64}, evidencia,
-        splits {split: {X, logit, prob, y}}}; los arrays son de solo lectura.
+        splits {split: {X, logit, prob, y, id}}}; los arrays son de solo lectura (``id``: identificadores del
+        crédito en el orden de las filas; ningún cálculo de la scorecard lo usa, lo consume ``puntos_cliente``).
     """
     cfg_ok = validar_cfg_puntos(cfg)  # config validada (no se muta)
     if cfg_ok["modelo"] != MODELO_LOGISTICA:  # el MLP se prepara en shap_pd.preparar_mlp
@@ -643,7 +645,8 @@ def preparar_splits(cfg: dict) -> dict:
             raise ValueError(f"El split {s!r} no tiene filas")  # dato
         X = pre.transform(df)  # float32, columnas en orden fijo
         splits[s] = {"X": X, "logit": modelo.predict_logit(X), "prob": modelo.predict_proba(X),
-                     "y": df[_COLUMNA_OBJETIVO].to_numpy()}  # logit, PD y objetivo
+                     "y": df[_COLUMNA_OBJETIVO].to_numpy(),  # logit, PD y objetivo
+                     "id": df[_COLUMNA_ID].astype(str).to_numpy(dtype=object)}  # id como texto (C8)
     train = datos[datos[_COLUMNA_SPLIT] == SPLITS[0]]  # crudos de train
     crudos = {f["nombre"]: pd.to_numeric(train[f["nombre"]], errors="raise").to_numpy(dtype=np.float64)
               for f in features if f["tipo"] == "num"}  # valores antes de transformar
@@ -670,11 +673,16 @@ def _puntajes(preparado: dict, params: dict, grupos: list, pb: float) -> dict:
     return salida  # split → puntaje y error
 
 
+def _validar_orden(features: list[dict], grupos: list) -> None:
+    """ValueError si features.yaml y el preprocesador no tienen las mismas variables en el mismo orden."""
+    if [f["nombre"] for f in features] != [nombre for nombre, _ in grupos]:  # mismas variables y orden
+        raise ValueError("features.yaml y el preprocesador no tienen las mismas variables en el mismo orden")  # dato
+
+
 def _entradas(preparado: dict, grupos: list, params: dict, cfg_dist: dict) -> list[dict]:
     """Entradas de ``puntos_por_variable`` en el orden de features.yaml (estadísticos solo de train)."""
     features, pre_json, coef = preparado["features"], preparado["pre_json"], preparado["coef"]  # entradas
-    if [f["nombre"] for f in features] != [nombre for nombre, _ in grupos]:  # mismas variables y orden
-        raise ValueError("features.yaml y el preprocesador no tienen las mismas variables en el mismo orden")  # dato
+    _validar_orden(features, grupos)  # mismas variables y orden
     medias = np.mean(preparado["splits"][SPLITS[0]]["X"], axis=0, dtype=np.float64)  # fracción one-hot en train
     entradas = []  # resultado
     for f, v, (_, idx) in zip(features, pre_json["variables"], grupos, strict=True):  # orden de features.yaml
@@ -787,3 +795,84 @@ def manejador(cfg: dict) -> int:
     ruta = save_json(Path(cfg["salida"]) / ARCHIVO_SCORECARD, sc)  # UTF-8, sangría 2, sin NaN, atómico
     _imprimir_resumen(sc, ruta)  # resumen
     return 0  # éxito
+
+
+# %% [markdown]
+# ## Puntos de un crédito (C8, notebook 03)
+#
+# `puntos_cliente` descompone el puntaje de **un** crédito: puntos base + puntos de cada variable (la suma de sus
+# columnas one-hot en las categóricas) = su puntaje de C1, con el mismo preparado y las mismas funciones de la
+# scorecard (`puntos_columnas`, `grupos_columnas`, `puntos_por_variable`). El valor crudo de cada variable se lee de
+# `rutas.datos` (el parquet de A) por `id` y `split`; el preparado no guarda crudos de val ni de test. Devuelve un
+# diccionario con escalares y un `pandas.DataFrame` (`variables`) con columnas `nombre`, `etiqueta_es`, `valor` y
+# `puntos`, en el orden de `features.yaml`.
+
+# %%
+def puntos_cliente(preparado: dict, params: dict, id_credito, split: str = "test") -> dict:
+    """Puntos base, puntos por variable, valor crudo y puntaje de un crédito.
+
+    Parámetros:
+        preparado: salida de ``preparar_splits`` (no se modifica).
+        params: parámetros de C1 (``parametros_scorecard``).
+        id_credito: id del crédito (se compara como texto).
+        split: partición donde se busca (uno de ``SPLITS``).
+    Retorna:
+        dict: {id, split, puntos_base, score, error_aditividad, variables}; ``variables`` es un DataFrame con
+        columnas nombre, etiqueta_es, valor (crudo) y puntos, una fila por variable en el orden de features.yaml.
+    """
+    if split not in SPLITS:  # partición inexistente
+        raise ValueError(f"split debe ser uno de {SPLITS}; se recibió {split!r}")  # valor
+    id_txt = str(id_credito)  # los id se guardan como texto
+    d = preparado["splits"][split]  # matrices y predicciones del split
+    filas = np.flatnonzero(d["id"] == id_txt)  # posición del crédito en el split
+    if filas.size != 1:  # ausente (o repetido, que haría ambigua la fila)
+        raise ValueError(f"El crédito {id_txt!r} no está (una sola vez) en el split {split!r}")  # dato
+    i = int(filas[0])  # fila del crédito
+    grupos = grupos_columnas(preparado["pre_json"])  # columnas de cada variable (valida los nombres)
+    features = preparado["features"]  # orden y etiquetas
+    _validar_orden(features, grupos)  # mismas variables y orden
+    pb = puntos_base(preparado["intercepto"], params)  # offset − factor · β₀
+    P = puntos_por_variable(puntos_columnas(d["X"][i:i + 1], preparado["coef"], params), grupos)  # (1, k)
+    score = np.asarray(score_desde_logit(d["logit"][i:i + 1], params), dtype=np.float64)  # puntaje de C1
+    error = error_aditividad(pb, P, score)  # |pb + Σ puntos − score|
+    if not error <= TOL_ADITIVIDAD:  # también atrapa NaN
+        raise ValueError(f"Aditividad rota en el crédito {id_txt!r}: error {error:.3e} > {TOL_ADITIVIDAD:.0e}")
+    nombres = [f["nombre"] for f in features]  # columnas crudas a leer
+    datos = pd.read_parquet(preparado["rutas"]["datos"], columns=[_COLUMNA_ID, *nombres],  # solo lo necesario
+                            filters=[(_COLUMNA_SPLIT, "==", split)])  # solo las filas del split
+    fila = datos[datos[_COLUMNA_ID].astype(str) == id_txt]  # el crédito
+    if len(fila) != 1:  # el parquet no corresponde al preparado
+        raise ValueError(f"El crédito {id_txt!r} no está una sola vez en {preparado['rutas']['datos']}")  # dato
+    variables = pd.DataFrame({
+        "nombre": nombres,  # nombre técnico
+        "etiqueta_es": [f["etiqueta_es"] for f in features],  # etiqueta en español
+        "valor": [fila.iloc[0][n] for n in nombres],  # valor crudo (antes del preprocesador)
+        "puntos": P[0],  # puntos de la variable
+    })  # una fila por variable
+    return {"id": id_txt, "split": split, "puntos_base": pb, "score": float(score[0]),  # escalares
+            "error_aditividad": error, "variables": variables}  # aditividad y tabla
+
+
+def direccion_shap(shap: dict, nombres: list[str]) -> dict:
+    """Dirección SHAP del bloque ``direccion`` de ``shap_mlp.json`` (C4), lista para mostrar.
+
+    Parámetros:
+        shap: contenido de ``shap_mlp.json``.
+        nombres: variables en el orden de la tabla donde se mostrará el ρ.
+    Retorna:
+        dict: {spearman: np.ndarray float64 alineado con ``nombres`` (ρ de Spearman valor–φ en las numéricas, NaN en
+        las categóricas), categorias: DataFrame largo con variable, categoria, phi_medio y n de cada categórica, en el
+        orden de ``nombres`` y de sus categorías en el JSON}.
+    """
+    direccion = shap["direccion"]  # nombre → {tipo, spearman | phi_medio, n}
+    faltan = [n for n in nombres if n not in direccion]  # variables sin dirección
+    if faltan:  # la tabla quedaría incompleta
+        raise ValueError(f"{faltan} no están en direccion de shap_mlp.json")  # dato
+    spearman = np.array([direccion[n]["spearman"] if direccion[n]["tipo"] == "num" else np.nan  # NaN en cat
+                         for n in nombres], dtype=np.float64)  # ρ alineado
+    filas = [{"variable": n, "categoria": c, "phi_medio": phi, "n": direccion[n]["n"][c]}  # una fila por categoría
+             for n in nombres if direccion[n]["tipo"] != "num"  # solo categóricas
+             for c, phi in direccion[n]["phi_medio"].items()]  # orden del JSON
+    categorias = pd.DataFrame(filas, columns=["variable", "categoria", "phi_medio", "n"])  # formato largo
+    return {"spearman": spearman, "categorias": categorias}  # para el notebook
+

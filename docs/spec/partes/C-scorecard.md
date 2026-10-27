@@ -31,26 +31,45 @@
 
 ## 3. Especificación
 
-### 3.1 Probabilidad → puntaje [PROPUESTO: valores por defecto]
+### 3.1 Probabilidad → puntaje [DECIDIDO, Juan José, 25-oct]
 Con odds de buen pagador o = (1 − p)/p (p = PD):
 - score = offset + factor · ln(o), **factor = PDO / ln 2**, **offset = base − factor · ln(odds_base)**.
-- Por defecto `base = 600` con `odds_base = 50` (50:1) y `pdo = 20`, todos configurables con `--set scorecard.*`.
+- Por defecto `base = 600` con `odds_base = 50` (50:1) y `pdo = 20`, todos configurables con `--set scorecard.*`; puntajes en
+  float, sin redondear.
 - Mayor puntaje = menor riesgo. Como ln(o) = −logit(p): **score = offset − factor · logit(p)**.
 
 ### 3.2 Puntos por variable
 - **Logística:** logit(p) = β₀ + Σ βⱼ xⱼ ⇒ puntosⱼ = −factor · βⱼ xⱼ y puntos base = offset − factor · β₀ (lineales en xⱼ
   estandarizada).
 - **MLP:** SHAP φⱼ sobre el **logit**: logit(p) = φ₀ + Σ φⱼ ⇒ puntosⱼ = −factor · φⱼ y puntos base = offset − factor · φ₀. La
-  suma de puntos reproduce el score exacto (aditividad; se comprueba en una prueba).
+  suma de puntos reproduce el score exacto (aditividad; se comprueba en una prueba). En `scorecard_mlp.json`, los puntos de
+  una variable son la media de −factor · φⱼ de los explicados en cada tramo (numéricas: bordes = percentiles de train) o
+  categoría.
+- [DECIDIDO, Juan José, 26-oct; C3] Rango de puntos de una numérica = |puntos(p99) − puntos(p1)|: el preprocesador recorta en
+  [p1, p99] de train, así que es todo el efecto que el modelo puede producir con ella. De una categórica: entre las
+  categorías con ≥ 1 % de train. Bandas de puntaje = deciles del puntaje de **train** (val y test solo se evalúan). El nivel
+  de los puntos depende de la referencia (estandarización y one-hot): solo se interpretan las **diferencias** de puntos entre
+  valores o categorías de una misma variable.
 - [DECIDIDO, Daniel, 26-oct; núcleo v0.17] Los dos modelos van a la app (logística y MLP, con selector); ver §3.5.
 
-### 3.3 Interpretabilidad [PROPUESTO]
-SHAP (Lundberg & Lee, 2017 [VERIFICAR]) global (media de |φ|) y por individuo + importancia por permutación en test como
-contraste. Justificar por qué SHAP (aditividad, que conecta con los puntos de la scorecard).
+### 3.3 Interpretabilidad [DECIDIDO, Juan José, 26-oct]
+SHAP (Lundberg y Lee, 2017; `lundberg2017`) **intervencional del logit** del MLP: `shap.explainers.Permutation` con masker
+`Independent` (fondo de train), 15 jugadores (las categóricas enteras, no sus columnas one-hot) y explicados de test; global
+(media de |φ|) y por individuo. Contraste: importancia por permutación en test (caída de AUC y aumento de log-loss) para el
+MLP y la logística. Los tamaños (fondo de 100 filas de train, 1 000 explicados de test, 16 permutaciones por fila con `max_evals` = 500, 5
+repeticiones de la permutación) son valores por defecto de `configs/scorecard/mlp.yaml`. Por qué SHAP: la eficiencia
+(Σ φⱼ = logit − φ₀) conecta con los puntos aditivos de la scorecard; el explainer de permutaciones es agnóstico al modelo y
+su eficiencia es exacta si cada jugador se codifica con un entero (§6, H-24). Comprobaciones: eficiencia, forma cerrada con
+la logística y estabilidad del ranking con otra semilla.
 
 ### 3.4 Cierre de hipótesis
 `hipotesis.json`: para cada H-k, evidencia del EDA (A) + dirección y magnitud en SHAP → **confirmada / refutada / no
-concluyente**, con tabla en el blog.
+concluyente**, con tabla en el blog. [DECIDIDO, Juan José, 27-oct; C6] Tres señales con voto: **EDA** (train, efecto
+marginal, evidencia de A), **SHAP** (MLP, efecto condicional: ρ(valor, φ) ≥ 0,5 en numéricas; Δφ entre la categoría más
+riesgosa y la de referencia en categóricas) y **test** (fuera de tiempo, tasas de malos con los grupos/cortes de train).
+**Confirmada** = las 3 a favor y permutación del MLP relevante (caída media de AUC − 2·desv > 0); **refutada** = ≥ 2 en
+contra y ninguna a favor; si no, **no concluyente**. La logística y el PSI de test son contraste sin voto. Sensibilidad:
+umbral ρ 0,3 y 0,7 y sin la compuerta de permutación (el oficial es el de los umbrales fijados).
 
 ### 3.5 Exportación (`run.py export`)
 `pd_model_{modelo}.json` y `casos_paridad_{modelo}.json` **para los dos modelos** (`logistica` y `mlp`; Spec v0.17)
@@ -70,15 +89,22 @@ entradas. Receta del JSON frente al modelo en todo el test: |ΔPD| ≤ 1,5e-8 (l
 | ✅ C4 | SHAP del MLP + permutación + scorecard del MLP (26-oct: `src/scorecard/shap_pd.py`, `configs/scorecard/mlp.yaml`, `scorecard_mlp.json` y `shap_mlp.json`) | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
 | ✅ C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
 | ✅ C6 | Cierre de hipótesis (27-oct: `src/scorecard/hipotesis.py`, `python -m src.scorecard.hipotesis` y al final de `run.py scorecard` con `mlp.yaml`; `hipotesis.json`: EDA, SHAP, logística, test con cortes de train, veredicto, motivo, matiz y sensibilidad) | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
-| C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
+| ✅ C8 | Notebook `03_scorecard` (núcleo §5.8; 27-oct: `notebooks/03_scorecard.py`, `puntos_cliente` y `direccion_shap` en `puntos.py`; ~10 s) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
 | ✅ C7 | Blog 07 (27-oct: `blog/secciones/07-scorecard.md`, 5 figuras `sc-*` de `src/viz/figs_scorecard.py` en `run.py figures`, 4 referencias nuevas) | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
 
 ## 5. Pruebas de la parte
-`test_scorecard.py` (base, PDO, monotonía, aditividad), `test_export.py`, `test_shap_pd.py`.
+`test_scorecard.py` (base, PDO, monotonía), `test_puntos.py` (aditividad, rangos, bandas, `puntos_cliente`),
+`test_export.py` (contrato §5.5), `test_shap_pd.py` (eficiencia, forma cerrada, permutación), `test_hipotesis.py` (señales
+y regla del veredicto), `test_figs_scorecard.py` (figuras `sc-*`) y `test_notebook_03_scorecard.py` (lenta).
 
 ## 6. Puntos calientes de alucinación
-- Odds malo:bueno en vez de bueno:malo; signo del factor; log10 en vez de ln; "PDO = puntos por cada 1 % de PD".
-- SHAP aditivo en **probabilidad** (no lo es si se explica la salida sigmoide: se explica el logit).
+- Odds malo:bueno en vez de bueno:malo; signo del factor; "PDO = puntos por cada 1 % de PD".
+- **Mezclar bases** (factor = PDO/ln 2 con el puntaje en log10, o al revés): con log10 de forma consistente (factor =
+  PDO/log10 2) el puntaje no cambia; el error no es usar log10 (H-28).
+- SHAP en **probabilidad**: sí suma la PD (eficiencia), pero no se convierte en puntos aditivos del puntaje, que es afín en el
+  logit, no en p; por eso se explica el logit.
+- Masker de shap: decide qué jugador "no cambia" frente al fondo con `np.isclose` (rtol 1e-5), no con igualdad; valores
+  float32 cercanos se toman por iguales y la eficiencia se rompe. Se codifica cada jugador con un índice entero (H-24).
 - Explainer de SHAP para PyTorch: qué garantiza cada uno (DeepExplainer, GradientExplainer, KernelExplainer).
 - Referencias de scorecards (p. ej. Siddiqi) con año o edición equivocados.
 

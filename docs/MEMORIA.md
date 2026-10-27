@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-26 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Spec v0.24 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C8 (notebook 03); PR de Spec de la Parte C (pendiente 9). D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: confirmar H-22…H-28 (blog 12); README con torch CPU en Linux (PR aparte); video; clon limpio |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C8 (notebook 03); PR de Spec de la Parte C (pendiente 9). D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: confirmar H-22…H-28 (blog 12); README con torch CPU en Linux (PR aparte); video; clon limpio |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -86,19 +86,19 @@ mar 27 6 p. m. entrega.
 5. Avisar a D: `iterar_minilotes(n, batch, rng, device)` recibe `device`; `evidencia` (§5.4, v0.14) va en los JSON de la LGD.
 6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`). (Blog 06: `mejor_epoca` = 1 ya va en §6.7, B8.)
 7. B6: medir la demo en otra máquina y marcar ✅; `demo: pd` aceptada (Daniel, 26-oct); README: instalar torch CPU en Linux (PR aparte).
-9. PR de Spec de la Parte C: §5.4 (`scorecard_mlp.json`, `shap_mlp.json`), §4 (`puntos.py`, `export.yaml`, `mlp.yaml`), C §3.1 [DECIDIDO]; C §6: el punto caliente es mezclar bases (log10 con factor = PDO/ln 2), no log10 (H-27).
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día. Candidatos de B7 sin confirmar (de `dev/andres`): H-22 Conceptos (diagonal al revés), H-23 Datos (redondeo). Candidatos de C sin confirmar: H-24 y H-25 (C4), Código. De B10: H-26 Código (guarda de rutas; registrado primero como H-24). De C6–C7: H-27 Código y H-28 Matemáticas (registrados primero como H-26 y H-27).
 
 ## 📓 Bitácora
+- **2026-10-27** — Spec v0.25 (Juan José, Parte C): el Spec queda igual a C1–C8: §3 Interpretabilidad y C §3.1–§3.4 [DECIDIDO], árbol §4, §5.4 (`scorecard.json`, `scorecard_mlp.json`, `shap_mlp.json`, `hipotesis.json`), C §5 con las 7 pruebas y C §6 corregido (H-24, H-28). Pendiente 9 cerrado; afecta a E.
+- **2026-10-27** — C8 (Juan José): notebook `03_scorecard` (secciones 1–4 en vivo con `SET`, 5–6 leídas de los JSON de C4 y C6); 10–12 s con `SET = {}` y con PDO 40; `puntos_cliente` y `direccion_shap` en `puntos.py` (C3 intacto). Spec y calidad APROBADO; sin candidatos.
 - **2026-10-27** — App en producción en Vercel (PR #21 y #22): https://trabajo2-redes-neuronales.vercel.app; `vercel.json` con `outputDirectory: .next` (con `out` fallaba: NEXT_NO_ROUTES_MANIFEST). URL en blog 00 y README.
 - **2026-10-27** — PR #20 (C6–C7) fusionado; Daniel resolvió los conflictos con `main` y H-26/H-27 de C pasaron a H-27/H-28 (H-26 = B10).
 - **2026-10-27** — PR #17 fusionado (app E1–E3c de José, Spec v0.24): CI verde; 104 pruebas y build en Windows; revisada en el navegador.
 - **2026-10-27** — PR #18 (C4) y #19 (B8–B10) fusionados; en el #19, Daniel resolvió los conflictos y el H-24 de B10 pasó a H-26.
-- **2026-10-27** — C7 (Juan José): blog 07 (derivación de la scorecard, SHAP, variables de riesgo, 11 hipótesis), 5 figuras `sc-*` y 4 referencias (Štrumbelj descartada: sin fuente primaria). Calidad, matemático (1 corrección: log10, H-28), cazador y spec APROBADO.
-- **2026-10-27** — C6 (Juan José): `hipotesis.json`; 10 de 11 confirmadas, H9 (`pub_rec`) no concluyente (test en contra, permutación < 0, PSI 0,27); ninguna cambia con la sensibilidad. Spec, calidad (2 rondas) y analista APROBADO; candidato H-27 (antes H-26).
+- **2026-10-27** — C6 y C7 (Juan José): `hipotesis.json` (10 de 11 confirmadas; H9 `pub_rec` no concluyente, PSI 0,27; candidato H-27, antes H-26) y blog 07 con 5 figuras `sc-*` y 4 referencias (Štrumbelj descartada). Spec, calidad, analista, matemático (log10, H-28) y cazador APROBADO.
 - **2026-10-27** — B8 ✅ (Andrés): blog 04 (fundamentos) y 05 (métricas) escritos y 06 completo (tabla `pd-comparacion`, §6.7); verificador-matematico y cazador APROBADO; quedan 2 marcas (H-22 y época 1).
 - **2026-10-27** — B10 ✅ (Andrés, Spec v0.23): con `grade` e `int_rate`, ΔAUC test logística +0,0167, MLP +0,0159 (misma arquitectura) / +0,0170 (buscada; no se distingue del ruido); PD media 0,199–0,218 vs 0,262; 2 041 s; analista y cazador OK; H-26 (guarda de rutas); blog 6.6.
 - **2026-10-26** — B9 ✅ (Andrés, Spec v0.22): notebook 02 (moldes + comando, demo 15 s, datos, búsquedas, modelo final), `src/pd/tablas.py` y `espacio.py`; 1 525 pruebas; spec OK, calidad OK en la 2.ª.
