@@ -55,7 +55,6 @@ término $p - y$ aparece aquí por la misma razón que en la retropropagación (
 $C$ se eligió en una rejilla de 13 valores, de $10^{-4}$ a $10^{2}$ cada medio orden de magnitud, con la log-loss de
 validación como criterio (sección 4.8). Ganó $C = 0{,}0031623$ (Fuente: `results/data/pd/busqueda_logistica.json`); con los
 90 347 créditos de entrenamiento (Fuente: `data/processed/resumen_datos.json`) equivale a $\lambda = 1/(Cn) \approx 0{,}0035$.
-<!-- revisar: autor (λ ≈ 0,0035 es una cuenta propia: 1/(0,0031623 · 90 347) = 0,0035001) -->
 `lbfgs` es determinista: no usa azar, así que la logística se reporta con una sola corrida y su desviación entre semillas es 0.
 
 ### 4.2 Neurona artificial y perceptrón multicapa
@@ -389,7 +388,7 @@ log-uniforme en $[10^{-4};\ 10^{-2}]$; y lote de 256, 512, 1 024 o 2 048. No se 
 **Por qué TPE y no una rejilla.** Solo la parte discreta del espacio ya tiene
 $(5 + 5^2 + 5^3 + 5^4) \times 3 \times 2 \times 4 = 780 \times 24 = 18\,720$ combinaciones, antes de discretizar las tres
 variables continuas. Con un presupuesto de 40 entrenamientos, una rejilla solo podría cubrir unos pocos valores de cada
-hiperparámetro. <!-- revisar: autor (18 720 es una cuenta propia desde configs/pd/hpo.yaml) --> El *Tree-structured
+hiperparámetro. El *Tree-structured
 Parzen Estimator* (TPE) es una búsqueda secuencial: usa los ensayos ya hechos para proponer el siguiente
 [@bergstra2011]. Con $y$ la pérdida de un ensayo y $y^{*}$ un umbral tal que una fracción $\gamma$ de los ensayos queda por
 debajo, modela
