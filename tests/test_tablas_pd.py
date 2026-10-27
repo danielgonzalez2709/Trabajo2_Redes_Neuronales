@@ -637,3 +637,38 @@ def test_tabla_metricas_sin_nan():
     t = tablas.tabla_metricas(_resumen_sin_busqueda())  # tabla
     assert not pd.isna(t.loc["mlp", "configuraciones"])  # vacío, no NaN
     assert not np.any(pd.isna(t.drop(columns="configuraciones").to_numpy(dtype=float)))  # sin NaN en lo numérico
+
+
+# %% [markdown]
+# ## Infraestructura: constantes copiadas, imports y tipos
+
+# %%
+def test_constantes_del_espacio_iguales_a_las_de_hpo():
+    """Las constantes copiadas de src/pd/hpo.py no se desvían de las originales."""
+    from src.pd import hpo  # importa Optuna (aquí no importa: no es Jupyter)
+    assert tablas.CLAVES_ESPACIO == hpo.CLAVES_ESPACIO  # claves del espacio
+    assert tablas.RANGOS == hpo.RANGOS  # escala de cada rango
+    assert tablas.ESTADO_COMPLETO == hpo.ESTADO_COMPLETO  # estado de un ensayo terminado
+    assert set(tablas.PARAMETROS_ENSAYO) == set(hpo.CLAVES_BUSCADAS)  # parámetros armados del ensayo
+
+
+# %%
+def test_tablas_no_importa_optuna():
+    """Importar tablas no arrastra Optuna (en Jupyter imprime un aviso de tqdm con la ruta local)."""
+    import subprocess  # proceso limpio: este ya pudo importar Optuna
+    import sys  # intérprete actual
+    codigo = "import sys; import src.pd.tablas; print('optuna' in sys.modules, 'tqdm.auto' in sys.modules)"  # chequeo
+    salida = subprocess.run([sys.executable, "-c", codigo], cwd=RAIZ, capture_output=True, text=True,  # ejecuta
+                            check=True).stdout.split()  # ['False', 'False']
+    assert salida == ["False", "False"]  # ni Optuna ni tqdm.auto (el que avisa en Jupyter)
+
+
+# %%
+def test_columnas_enteras_conservan_su_tipo():
+    """Semillas, bins y victorias salen como enteros (no 30.0) al armar la tabla por filas."""
+    assert pd.api.types.is_integer_dtype(tablas.tabla_semillas(_resumen())["semillas"])  # n
+    assert pd.api.types.is_integer_dtype(tablas.victorias_por_semilla(_semillas(), _resumen())["semillas"])  # n
+    calib = {"modelos": {"m": {"pd_media": [0.1], "tasa_observada": [0.2], "pd_media_global": 0.1,  # un bin
+                               "tasa_global": 0.2}}}  # global
+    assert pd.api.types.is_integer_dtype(tablas.resumen_calibracion(calib)["bins"])  # bins
+    assert pd.api.types.is_integer_dtype(tablas.tabla_particion(_resumen_datos())["n"])  # n por split

@@ -4,6 +4,9 @@
 # Funciones **puras**: reciben la config o los JSON ya cargados (resultados de B3–B5, `pd-calibracion.json` de B7 y
 # los resúmenes de la Parte A) y devuelven un `DataFrame`, un dict o un texto. No leen archivos, no entrenan y no
 # imprimen; el notebook las llama y muestra lo que devuelven.
+#
+# Las constantes del espacio de la búsqueda se copian de `src/pd/hpo.py` (una prueba exige que sean iguales) para no
+# importar Optuna: en Jupyter su import imprime un aviso de tqdm con la ruta local del entorno.
 
 # %%
 from __future__ import annotations  # anotaciones como texto
@@ -16,7 +19,6 @@ import pandas as pd  # tablas
 import yaml  # valores del --set en YAML de flujo, como config_notebook
 
 from src.pd.experimento import SENTIDO, SPLITS, SPLITS_MEDIDOS  # sentido de cada métrica y splits (B5)
-from src.pd.hpo import CLAVES_ESPACIO, ESTADO_COMPLETO, RANGOS  # espacio de la búsqueda y su escala (B4)
 
 CLAVES_FIJADAS = ("salida", "modelos", "busqueda")  # las fija el notebook o la demo: no van en los moldes
 GRUPOS_MOLDES = {"comunes": ("base_seed", "datos", "semillas"), "logistica": ("logistica",),  # bloque → molde
@@ -34,11 +36,26 @@ VACIO = ""  # celda sin dato (p. ej. configuraciones de un MLP fijado a mano): n
 SI, NO = "sí", "no"  # booleanos en texto
 EMPATE = "empate"  # comparación sin ganador
 FUERA = "fuera"  # año de originación fuera del modelado (posterior a test_hasta)
+CLAVES_ESPACIO = ("n_capas", "neuronas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # = hpo.py
+RANGOS = {"n_capas": "entero", "dropout": "lineal", "l2": "log", "lr": "log"}  # = hpo.RANGOS (B-pd §3.3)
+ESTADO_COMPLETO = "COMPLETE"  # = hpo.ESTADO_COMPLETO (estado de Optuna de un ensayo terminado)
 ESCALA_OPCIONES = "opciones"  # escala de una lista de valores del espacio (no un rango)
 PARAMETROS_ENSAYO = ("capas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # buscados (§3.3)
 COLUMNAS_ENSAYO = {"logloss_val": "log-loss val", "auc_val": "AUC val", "epocas": "épocas",  # métricas del ensayo
                    "mejor_epoca": "mejor época", "n_parametros": "parámetros"}  # → título
 K_ENSAYOS = 5  # mejores ensayos que muestra la sección 3.4 por defecto
+
+
+# %% [markdown]
+# ## Tabla por filas
+#
+# `{fila: {columna: valor}}` → `DataFrame` con una fila por clave; cada columna conserva su tipo (con `.T` de un
+# `DataFrame` mixto los enteros saldrían como `30.0`).
+
+# %%
+def _por_filas(filas: dict) -> pd.DataFrame:
+    """DataFrame con una fila por clave de ``filas`` y el tipo propio de cada columna."""
+    return pd.DataFrame.from_dict(filas, orient="index")  # filas = claves externas
 
 
 # %% [markdown]
@@ -130,7 +147,7 @@ def tabla_metricas(resumen: dict) -> pd.DataFrame:
                      "configuraciones": VACIO if configs is None else configs,  # presupuesto
                      "tiempo (s)": entrada["tiempo_total_s"]})  # tiempo
         filas[modelo] = fila  # fila lista
-    return pd.DataFrame.from_dict(filas, orient="index")[list(COLUMNAS_METRICAS)]  # orden fijo
+    return _por_filas(filas)[list(COLUMNAS_METRICAS)]  # orden fijo
 
 
 # %%
@@ -163,10 +180,10 @@ def filas_por_particion(semillas: list[dict]) -> dict:
 # %%
 def tabla_particion(resumen_datos: dict) -> pd.DataFrame:
     """Filas train, val, test: fecha de corte, n y tasa de malos."""
-    return pd.DataFrame({s: {"hasta": resumen_datos["particion"][f"{s}_hasta"],  # corte (inclusive)
-                             "n": resumen_datos["n_por_split"][s],  # filas modeladas
-                             "tasa de malos": resumen_datos["tasa_malos_por_split"][s]}  # tasa
-                         for s in SPLITS}).T  # una fila por split
+    return _por_filas({s: {"hasta": resumen_datos["particion"][f"{s}_hasta"],  # corte (inclusive)
+                           "n": resumen_datos["n_por_split"][s],  # filas modeladas
+                           "tasa de malos": resumen_datos["tasa_malos_por_split"][s]}  # tasa
+                       for s in SPLITS})  # una fila por split
 
 
 # %%
@@ -201,10 +218,10 @@ def tabla_variables(features_cfg: dict) -> pd.DataFrame:
     posteriores = [f["nombre"] for f in features_cfg["features"] if f["disponible_en_originacion"] is not True]  # §5.7
     if posteriores:  # fuga de información
         raise ValueError(f"variables no disponibles en la originación: {posteriores}")  # núcleo §5.7
-    return pd.DataFrame({f["nombre"]: {"tipo": f["tipo"], "etiqueta": f["etiqueta_es"],  # descripción
-                                       "transformación": f["transformacion"],  # preprocesamiento de A
-                                       "cita del diccionario": f["cita_diccionario"]}  # literal de Kaggle
-                         for f in features_cfg["features"]}).T  # una fila por variable
+    return _por_filas({f["nombre"]: {"tipo": f["tipo"], "etiqueta": f["etiqueta_es"],  # descripción
+                                     "transformación": f["transformacion"],  # preprocesamiento de A
+                                     "cita del diccionario": f["cita_diccionario"]}  # literal de Kaggle
+                       for f in features_cfg["features"]})  # una fila por variable
 
 
 # %%
@@ -221,7 +238,7 @@ def tabla_psi(post: dict, por: str = "test") -> pd.DataFrame:
 # ## Búsqueda de hiperparámetros
 #
 # La rejilla de C de la logística (con exactamente un C elegido), el espacio de la búsqueda del MLP con la escala de
-# `src/pd/hpo.py`, los mejores ensayos completos (orden por log-loss de val; empate → menor número, como B-pd §3.3) y
+# `RANGOS` (copia de `src/pd/hpo.py`), los mejores ensayos completos (orden por log-loss de val; empate → menor número, como B-pd §3.3) y
 # el resumen de las dos búsquedas.
 
 # %%
@@ -247,7 +264,7 @@ def tabla_espacio(hpo: dict) -> pd.DataFrame:
             filas[clave] = {"rango o valores": f"[{valores[0]}, {valores[1]}]", "escala": RANGOS[clave]}  # rango
         else:  # lista de opciones
             filas[clave] = {"rango o valores": ", ".join(map(str, valores)), "escala": ESCALA_OPCIONES}  # lista
-    return pd.DataFrame(filas).T  # una fila por parámetro
+    return _por_filas(filas)  # una fila por parámetro
 
 
 # %%
@@ -272,7 +289,7 @@ def tabla_mejores_ensayos(hpo: dict, k: int = K_ENSAYOS) -> pd.DataFrame:
         fila["capas"] = str(fila["capas"])  # lista como texto (una celda)
         fila.update({titulo: e[clave] for clave, titulo in COLUMNAS_ENSAYO.items()})  # métricas
         filas[e["numero"]] = fila  # fila lista
-    return pd.DataFrame.from_dict(filas, orient="index").rename_axis("ensayo")  # índice = número del ensayo
+    return _por_filas(filas).rename_axis("ensayo")  # índice = número del ensayo
 
 
 # %%
@@ -288,14 +305,14 @@ def tabla_resumen_busquedas(busqueda: dict, hpo: dict) -> pd.DataFrame:
     m = hpo["muestreador"]  # TPE
     metodo_mlp = (f"{m['nombre']} de Optuna · {m['n_startup_trials']} ensayos aleatorios al inicio · "
                   f"multivariado: {SI if m['multivariate'] else NO}")  # muestreador registrado
-    return pd.DataFrame({
+    return _por_filas({
         "logistica": {"método": "rejilla de C", "configuraciones": len(busqueda["filas"]),  # B3
                       "criterio": busqueda["criterio"], "mejor valor": elegida[busqueda["criterio"]],  # elegido
                       "tiempo (s)": busqueda["tiempo_total_s"],  # tiempo
                       "en el borde": SI if busqueda["en_borde"] else NO},  # C en un extremo
         "mlp": {"método": metodo_mlp, "configuraciones": hpo["n_ensayos"], "criterio": hpo["criterio"],  # B4
                 "mejor valor": hpo["mejor"][hpo["criterio"]], "tiempo (s)": hpo["tiempo_total_s"],  # mejor y tiempo
-                "en el borde": _texto_borde(hpo["en_borde"])}}).T  # lr, l2, dropout
+                "en el borde": _texto_borde(hpo["en_borde"])}})  # lr, l2, dropout
 
 
 # %% [markdown]
@@ -316,16 +333,16 @@ def tabla_arquitectura(resumen: dict) -> pd.DataFrame:
     filas["ensayo de la búsqueda"] = {"MLP": ensayo, "logística": VACIO}  # ensayo de pd-hpo
     filas["parámetros entrenables"] = {"MLP": mlp["n_parametros"],  # complejidad del MLP
                                        "logística": resumen["logistica"]["n_parametros"]}  # y de la logística
-    return pd.DataFrame(filas).T  # una fila por clave
+    return _por_filas(filas)  # una fila por clave
 
 
 # %%
 def tabla_semillas(resumen: dict) -> pd.DataFrame:
     """Por métrica: media, desv., mejor y peor del MLP, número de semillas y valor de la logística."""
     log, mlp = resumen["logistica"]["metricas"], resumen["mlp"]["metricas"]  # bloques
-    return pd.DataFrame({k: {"MLP media": b["media"], "MLP desv": b["desv"], "MLP mejor": b["mejor"],  # MLP
-                             "MLP peor": b["peor"], "semillas": b["n"], "logística": log[k]["media"]}  # referencia
-                         for k, b in mlp.items()}).T  # una fila por métrica
+    return _por_filas({k: {"MLP media": b["media"], "MLP desv": b["desv"], "MLP mejor": b["mejor"],  # MLP
+                           "MLP peor": b["peor"], "semillas": b["n"], "logística": log[k]["media"]}  # referencia
+                       for k, b in mlp.items()})  # una fila por métrica
 
 
 # %%
@@ -357,7 +374,7 @@ def comparacion(resumen: dict) -> pd.DataFrame:
         s = _sentido(k)  # valida el nombre
         a, b = log[k]["media"], mlp[k]["media"]  # logística y MLP
         filas[k] = {"logística": a, "MLP (media)": b, "MLP − logística": b - a, "mejor": _mejor(b, a, s)}  # fila
-    return pd.DataFrame(filas).T  # una fila por métrica
+    return _por_filas(filas)  # una fila por métrica
 
 
 # %%
@@ -375,7 +392,7 @@ def victorias_por_semilla(semillas: list[dict], resumen: dict) -> pd.DataFrame:
             raise ValueError(f"las semillas {sin} no tienen la métrica {k}")  # cuáles
         gana = sum(_mejor(r["metricas"][k], bloque["media"], s) == "mlp" for r in semillas)  # estrictas
         filas[k] = {"victorias del MLP": gana, "semillas": len(semillas)}  # fila
-    return pd.DataFrame(filas).T  # una fila por métrica
+    return _por_filas(filas)  # una fila por métrica
 
 
 # %%
@@ -393,8 +410,8 @@ def ficha_aprendizaje(semillas: list[dict], resumen: dict) -> dict:
 # %%
 def resumen_calibracion(calib: dict) -> pd.DataFrame:
     """Por modelo (pd-calibracion.json): PD media, tasa observada, bins con tasa > PD media y número de bins."""
-    return pd.DataFrame({m: {"PD media": c["pd_media_global"], "tasa observada": c["tasa_global"],  # globales
-                             "bins con tasa > PD media": sum(t > p for t, p in zip(c["tasa_observada"],  # encima
-                                                                                    c["pd_media"])),  # de la diag.
-                             "bins": len(c["pd_media"])}  # total
-                         for m, c in calib["modelos"].items()}).T  # una fila por modelo
+    return _por_filas({m: {"PD media": c["pd_media_global"], "tasa observada": c["tasa_global"],  # globales
+                           "bins con tasa > PD media": sum(t > p for t, p in zip(c["tasa_observada"],  # encima
+                                                                                  c["pd_media"])),  # de la diag.
+                           "bins": len(c["pd_media"])}  # total
+                       for m, c in calib["modelos"].items()})  # una fila por modelo
