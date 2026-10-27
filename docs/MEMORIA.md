@@ -3,7 +3,7 @@
 > **Para qué:** que cualquier integrante (o sesión de Claude / subagente) sepa en 2 minutos **dónde estamos, qué se decidió
 > y qué sigue**. Se carga automáticamente en cada sesión de Claude Code (vía `CLAUDE.md`).
 >
-> **Reglas:** (1) actualizar al cerrar una tarea, fusionar un PR o tomar una decisión; (2) ≤ 150 líneas: aquí va el *estado*,
+> **Reglas:** (1) actualizar al cerrar una tarea, fusionar un PR o tomar una decisión; (2) ≤ 150 líneas: aquí va el _estado_,
 > el detalle vive en el Spec y el PLAN; (3) bitácora de lo más nuevo a lo más viejo; (4) toda decisión se copia al Spec.
 
 ---
@@ -13,18 +13,19 @@
 |---|---|
 | Última actualización | 2026-10-26 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B8–B10 (PR #19). Spec v0.23 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C6, C8 y C7; PR de Spec de la Parte C (pendiente 9). D: fila V-09. Camila: E1–E4 con los dos JSON reales (`app/public/model/pd_model_{logistica,mlp}.json`) y selector de modelo. Daniel: fusionar PR #15 (blogs 00, 09, 10 y 13 y E[L] con la LGD de D4b); video; notebook 00 (demo pd cuando exista B6); clon limpio |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C6, C8 y C7; PR de Spec de la Parte C (pendiente 9). D: fila V-09. José: app E1–E3c hechas en `dev/jose` (sin PR); faltan Vercel, E4 (paridad en CI) y E9. Daniel: fusionar PR #15 (blogs 00, 09, 10 y 13 y E[L] con la LGD de D4b); video; notebook 00 (demo pd cuando exista B6); clon limpio |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
 ## 👥 Equipo
-| Parte | Spec | Quién |
-|---|---|---|
-| A — Datos y caso de uso | `docs/spec/partes/A-datos.md` | Daniel |
-| B — PD: modelos y evaluación | `docs/spec/partes/B-pd.md` | Andrés |
-| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Juan José |
-| D — LGD | `docs/spec/partes/D-lgd.md` | Camila y José |
-| E — Integración y producto (puente) | `docs/spec/partes/E-producto.md` | Daniel y Camila (Camila: frontend de la app) |
+
+| Parte                               | Spec                              | Quién                                             |
+| ----------------------------------- | --------------------------------- | ------------------------------------------------- |
+| A — Datos y caso de uso             | `docs/spec/partes/A-datos.md`     | Daniel                                            |
+| B — PD: modelos y evaluación        | `docs/spec/partes/B-pd.md`        | Andrés                                            |
+| C — Scorecard y variables de riesgo | `docs/spec/partes/C-scorecard.md` | Juan José                                         |
+| D — LGD                             | `docs/spec/partes/D-lgd.md`       | Camila y José                                     |
+| E — Integración y producto (puente) | `docs/spec/partes/E-producto.md`  | Daniel, Camila y José (José: app desde el 26-oct) |
 
 Ramas personales: `dev/daniel`, `dev/camila`, `dev/andres`, `dev/juanjose`, `dev/jose`.
 
@@ -32,6 +33,11 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+
+- App: arquitectura y UX (José, 26-oct): `app/lib/` es dominio puro (`contrato`, `preprocesar`, `modelo`, `escenarios`), hooks como
+  adaptadores, componentes presentacionales y una sola página contenedora; los casos de paridad solo en pruebas. Un solo panel:
+  perfil base → escenario (+Δ) con deslizadores y el top-3 de cambios; densidad SVG desde los 101 percentiles; entradas en la URL;
+  CSS Modules + `apple-design`. El aviso "no es una oferta de crédito" va como una línea discreta en el pie.
 - B10 (Andrés, 27-oct; Spec v0.23, B-pd §3.8): modos reusar (misma arquitectura) y optuna (buscada con 17 variables), los dos se corren; carpetas `pd_sensibilidad`; tabla 6.6 en B10.
 - B9 (Andrés, 26-oct; Spec v0.22, B-pd §3.7): notebook 02 = moldes (logística, MLP, comunes) + comando de terminal en texto; 1 demo en vivo (carpeta temporal) · 2 datos de A · 3 búsquedas · 4 modelo final; cifras desde los JSON; `src/pd/tablas.py`.
 - Ahorro de tokens (Daniel, 26-oct): blog con 1 verificador (cazador, `model: sonnet`); informes de subagente ≤ 15 líneas; sesiones cortas.
@@ -51,7 +57,7 @@ Juan José González Morales.
 - Datos (Daniel, 23-oct): partición train ≤ 2012 / val 2013 / test 2014 (2015 fuera: 93 % sin desenlace); 15 variables de
   originación; `grade` e `int_rate` solo en un análisis de sensibilidad aparte (B10, `sensibilidad_lc.parquet`).
 - Git: rama personal `dev/<nombre>` con push libre; a `main` solo por PR, **solo Daniel aprueba y fusiona**. Ruleset
-  `proteger-main` activo (24-oct): PR con 1 aprobación de Code Owner, check `pruebas` en verde, solo *merge commit*, sin
+  `proteger-main` activo (24-oct): PR con 1 aprobación de Code Owner, check `pruebas` en verde, solo _merge commit_, sin
   force push ni borrado; Daniel fusiona sus propios PR con el bypass de admin.
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
@@ -71,11 +77,13 @@ Juan José González Morales.
   las pruebas extra (documentadas en `tests/test_mlp.py`) y las funciones auxiliares fuera de las firmas del plan.
 
 ## ⏳ Hitos (núcleo §11)
+
 jue 22 E0 · vie 23 2 p. m. datos reales · vie 23 noche búsquedas · sáb 24 mediodía PD final · sáb 24 tarde grabación ·
 sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de cada parte · lun 26 clon limpio y blog publicado ·
 mar 27 6 p. m. entrega.
 
 ## ⏳ Pendientes (decisiones)
+
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 5. Avisar a D: `iterar_minilotes(n, batch, rng, device)` recibe `device`; `evidencia` (§5.4, v0.14) va en los JSON de la LGD.
 6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`). (Blog 06: `mejor_epoca` = 1 ya va en §6.7, B8.)
@@ -91,6 +99,9 @@ Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, 
 - **2026-10-27** — B10 ✅ (Andrés, Spec v0.23): con `grade` e `int_rate`, ΔAUC test logística +0,0167, MLP +0,0159 (misma arquitectura) / +0,0170 (buscada; no se distingue del ruido); PD media 0,199–0,218 vs 0,262; 2 041 s; analista y cazador OK; H-26 (guarda de rutas); blog 6.6.
 - **2026-10-26** — B9 ✅ (Andrés, Spec v0.22): notebook 02 (moldes + comando, demo 15 s, datos, búsquedas, modelo final), `src/pd/tablas.py` y `espacio.py`; 1 525 pruebas; spec OK, calidad OK en la 2.ª.
 - **2026-10-26** — B6 y B7 (Andrés, PR #16; Spec v0.20–v0.21): demo de PD 13,8–16,0 s en CPU sin red; 7 figuras `pd-*` + JSON de la escena 7 del video; 1 426 pruebas; revisores OK; H-22, H-23; falta medir la demo en otra máquina.
+- **2026-10-26** — App E1–E3c (José, `dev/jose`, sin PR): Next 16 estático; paridad 1000/1000 por modelo (|ΔPD| 2,2e-16); panel
+  único base → escenario, top-3 "¿Y si…?", tarjeta con anillo, 25 barras, tooltips, avatar de José; 104 pruebas; revisores APROBADO.
+  Falta: Vercel (cuenta de José), E4 (paridad en CI), E9, URL del video, decidir ±25 % en el top-3.
 - **2026-10-26** — PR #14 fusionado (Daniel; D4b, LGD semilla 22). E[L] rehecha en `dev/daniel`: 197,03 M USD (antes 196,71), resueltos 1,059 (antes 1,057; PD 0,926 · LGD 0,971 · EAD 1,179); MLP de PD 208,20 / 1,123. Blogs 00, 09, 10, 13; cazador APROBADO.
 - **2026-10-26** — D9/D10/D4b/D7b (José, `dev/jose`; Spec v0.19): D4 rehecho. Mejor ensayo #29 [32,64,64,32] leaky_relu, λ 8,9e-4; MLP MAE test 0,07686 ± 0,00037 (9 953 parám.), lineal 0,07712, mediana 0,06986 (gana); semilla 22; búsqueda casi plana.
 - **2026-10-26** — Blog 10 (discusión): 2 rondas; verificador-matematico y cazador APROBADO. Corregidas la 2.4 y la 09; H-21. Blog 12 (cacería): 21 hallazgos, todos confirmados por Daniel (H-15 pasa a Matemáticas). Blog 00 y 13 al día; Pages activado y publicado.
