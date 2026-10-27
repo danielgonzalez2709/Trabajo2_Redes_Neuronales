@@ -1,6 +1,6 @@
-/* Círculo de 88 px (72 px en móvil) con la ilustración; la insignia del gesto va abajo a la derecha. */
+/* Círculo de 72 px (60 px en móvil) con la ilustración; la insignia del gesto va abajo a la derecha. */
 .avatar {
-  --tam: 5.5rem;
+  --tam: 4.5rem;
   position: relative;
   display: block;
   flex: none;
@@ -10,7 +10,7 @@
 
 @media (max-width: 480px) {
   .avatar {
-    --tam: 4.5rem;
+    --tam: 3.75rem;
   }
 }
 
@@ -28,8 +28,8 @@
   position: absolute;
   right: -0.25rem;
   bottom: -0.125rem;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 2px solid #ffffff;
   border-radius: 50%;
   box-sizing: border-box;

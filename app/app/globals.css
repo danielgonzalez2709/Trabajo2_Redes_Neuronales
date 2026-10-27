@@ -1,17 +1,23 @@
-/* Tokens del Design System del repo (blog/docs/stylesheets/ds.css, skill apple-design) y colores por entidad de
-   src/viz/paleta.py (COLOR_MODELO): la app es de la misma familia que el blog y el video. Solo modo claro. */
+/* Paleta (Camila, 26-oct): página crema, tarjetas crema claro con borde de tinta y acento azul cobalto. Los colores
+   de cada modelo siguen siendo los de src/viz/paleta.py (COLOR_MODELO), como en el blog. Solo modo claro.
+   Contraste: tinta sobre la página 14,0:1, texto suave sobre la página 6,6:1 y sobre las tarjetas 7,5:1, azul sobre
+   la página 7,6:1. */
 :root {
   --ds-fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --ds-fondo: #ffffff;
+  --ds-fondo: #fff8ee; /* crema claro de las tarjetas */
   --ds-texto: #0b0b0b;
   --ds-tinta: #1d1d1f; /* globo, barra y trazos oscuros */
-  --ds-texto-suave: #52514e; /* 8,0:1 sobre blanco */
-  --ds-borde: rgba(0, 0, 0, 0.1);
-  --ds-superficie: #fcfcfb; /* SUPERFICIE de paleta.py */
-  --ds-pagina: #f5f5f3;
-  --ds-relleno: rgba(0, 0, 0, 0.055); /* pista de controles segmentados */
+  --ds-texto-suave: #5c4f3d;
+  --ds-texto-pagina: #5c4f3d; /* texto secundario directo sobre la página */
+  --ds-borde: rgba(29, 29, 31, 0.2); /* contorno de tinta, como en la referencia */
+  --ds-superficie: #fffdf8; /* crema más claro, para filas dentro de una tarjeta */
+  --ds-superficie-activa: #fbeedb; /* hover de esas filas */
+  --ds-pagina: #fbe8cc; /* crema */
+  --ds-acento: #1f33c2; /* azul cobalto */
+  --ds-acento-tinte: #e3e6fa; /* fondo de la tarjeta del resultado */
+  --ds-relleno: rgba(29, 29, 31, 0.08); /* pista de controles segmentados */
   --ds-eje: #c3c2b7; /* EJE de paleta.py */
-  --ds-foco: #2a78d6;
+  --ds-foco: #1f33c2;
   --ds-modelo-logistica: #2a78d6;
   --ds-modelo-mlp: #eb6834;
   --ds-sube: #1a7f37; /* puntaje que sube: 5,1:1 sobre blanco; siempre con signo y texto, nunca solo color */

@@ -13,7 +13,7 @@
 .subtitulo {
   margin: 0.3rem 0 1.25rem;
   font-size: 0.9375rem;
-  color: var(--ds-texto-suave);
+  color: var(--ds-texto-pagina);
 }
 
 .bloque {

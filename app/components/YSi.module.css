@@ -64,8 +64,8 @@
 }
 
 .cambio:hover:not(:disabled) {
-  background: var(--ds-pagina);
-  border-color: rgba(0, 0, 0, 0.18);
+  background: var(--ds-superficie-activa);
+  border-color: rgba(29, 29, 31, 0.24);
 }
 
 .cambio:disabled {
