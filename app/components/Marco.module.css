@@ -1,16 +1,20 @@
-.encabezado {
-  margin-bottom: 2rem;
-}
-
-/* Fijo arriba al desplazarse, con el fondo de la página para tapar lo que pasa por debajo. La altura queda en
+/* Fija arriba al desplazarse, con el fondo de la página para tapar lo que pasa por debajo. Su altura queda en
    --alto-titulo (page.module.css) para que la columna fija del resultado se ubique debajo. */
-.titulo {
+.barra {
   position: sticky;
   top: 0;
   z-index: 10;
-  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
   padding: 0.75rem 0;
   background: var(--ds-pagina);
+}
+
+.titulo {
+  margin: 0;
   color: var(--ds-acento);
   font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 700;
@@ -20,7 +24,7 @@
 }
 
 .detalle {
-  margin: 0;
+  margin: 0 0 2rem;
   font-size: 0.9375rem;
   color: var(--ds-texto-pagina);
 }
@@ -28,18 +32,17 @@
 .enlaces {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.4rem;
 }
 
 .enlace,
 .enlaceInactivo {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  min-height: 2.25rem;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.875rem;
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   border-radius: 999px;
 }

@@ -6,13 +6,9 @@ import estilos from "./Marco.module.css";
 export function Encabezado() {
   return (
     <>
-      {/* Fuera del <header>: así el título queda fijo arriba mientras se recorre toda la página. */}
-      <h1 className={estilos.titulo}>Conoce tu puntaje y tu probabilidad de incumplimiento</h1>
-      <header className={estilos.encabezado}>
-        <p className={estilos.detalle}>
-          Describe tu préstamo y tu historial: dos modelos entrenados con préstamos históricos calculan, en tu
-          navegador, qué tan probable es que no se pague.
-        </p>
+      {/* Barra fija arriba al desplazarse: título y enlaces. La descripción va debajo y se desplaza con la página. */}
+      <header className={estilos.barra}>
+        <h1 className={estilos.titulo}>Conoce tu puntaje y tu probabilidad de incumplimiento</h1>
         <nav className={estilos.enlaces} aria-label="Más sobre el proyecto">
           <a className={estilos.enlace} href={URL_REPORTE_TECNICO} target="_blank" rel="noopener noreferrer">
             Reporte técnico<span aria-hidden="true">↗</span>
@@ -25,11 +21,15 @@ export function Encabezado() {
             </a>
           ) : (
             <span className={estilos.enlaceInactivo} aria-disabled="true">
-              Video promocional (próximamente)
+              Video (próximamente)
             </span>
           )}
         </nav>
       </header>
+      <p className={estilos.detalle}>
+        Describe tu préstamo y tu historial: dos modelos entrenados con préstamos históricos calculan, en tu navegador,
+        qué tan probable es que no se pague.
+      </p>
     </>
   );
 }
