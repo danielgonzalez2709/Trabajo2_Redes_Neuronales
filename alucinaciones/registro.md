@@ -585,3 +585,20 @@ falsas se registran como candidatos.
    y una prueba no lenta de que el fondo sale de train.
 6. **Lección aprendida:** una prueba de formato ("las claves y los tipos son correctos") no prueba una fórmula; cada
    decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
+
+### H-26 — Pruebas de la regla del veredicto que no distinguen `≥ 2` de `≥ 1` ni las desigualdades de borde
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-calidad`, con mutantes sobre C6; el orquestador guardó la evidencia
+1. **Prompt (literal):** `prompts/C6.md`, "1. implementador — fases roja y verde" (pruebas: "juguetes de cada rama").
+2. **Respuesta relevante de la IA:** `tests/test_hipotesis.py` (fase verde, 34 pruebas), presentado como cobertura de cada
+   rama de la regla (confirmada, refutada, no concluyente).
+3. **Cómo sospechamos:** el revisor buscó, para cada desigualdad de `hipotesis.py`, un caso que fallara al invertirla.
+4. **Evidencia:** `evidencias/H-26_mutantes_regla_c6.txt`: sobrevivían `len(contra) >= 2` → `>= 1` (refutar con una sola
+   fuente en contra), `s·ρ ≤ −u` → `< −u` y `a > 0` → `a ≥ 0`.
+5. **Corrección:** ronda 2 de C6: `test_2g` (una en contra y dos nulas → no concluyente) y los casos de borde ρ = −0,5 y
+   a = 0; el revisor comprobó que los tres mutantes ya fallan.
+6. **Lección aprendida:** "un caso por rama" no basta: cada umbral necesita su caso en el borde y cada conteo ("≥ 2") el
+   caso justo por debajo.

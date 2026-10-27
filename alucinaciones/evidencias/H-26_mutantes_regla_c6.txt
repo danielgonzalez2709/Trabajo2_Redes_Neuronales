@@ -1,0 +1,9 @@
+H-26 (candidato, Parte C, C6) — evidencia
+Fuente: informe del subagente revisor-calidad, ronda 1 de C6 (27-oct-2026), sobre tests/test_hipotesis.py de la fase verde
+del implementador (34 pruebas, todas en verde):
+1. "Ninguna prueba cubre una sola fuente en contra + dos nulas (→ no concluyente). El mutante `len(contra) >= 2` → `>= 1`
+   en hipotesis.py:249 sobrevive."
+2. "El borde en_contra de SHAP no se prueba: `<=` → `<` en hipotesis.py:190 sobrevive." Del mismo tipo: `a > 0` → `a >= 0`
+   en la señal de dirección no lo detectaba ningún caso con a = 0.
+Corrección (ronda 2): test_2g (una en contra + dos nulas), borde s·ρ = −0,5 → en_contra, caso a = 0, b > 0 → nula.
+Verificación (revisor-calidad, ronda 2): con los tres mutantes, test_2g, tests/test_hipotesis.py:130 y :111 fallan.

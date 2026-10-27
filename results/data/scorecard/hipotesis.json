@@ -1,0 +1,967 @@
+{
+  "criterio": {
+    "reglas": {
+      "confirmada": "EDA, SHAP y test a favor y permutación del MLP relevante.",
+      "refutada": "Al menos 2 de {EDA, SHAP, test} en contra y ninguna a favor.",
+      "no concluyente": "Todo lo demás (fuentes que discrepan, señal nula o permutación no relevante)."
+    },
+    "senales": {
+      "eda": "Train, efecto marginal (evidencia de A copiada tal cual). Numéricas: a = s·(tasa_alto − tasa_bajo), b = s·ρ de grupos; a favor si a > 0 y b > 0, en contra si a < 0 y b < 0, si no nula. Categóricas: a favor si tasa(mas_riesgosa) > tasa(referencia), en contra si <, nula si = o falta. La no monotonía no quita el voto (la hipótesis afirma una dirección).",
+      "shap": "MLP, efecto condicional. Numéricas: a favor si s·ρ(valor, φ) ≥ u, en contra si ≤ −u, si no nula. Categóricas: Δφ = φ̄(mas_riesgosa) − φ̄(referencia); a favor si > 0, en contra si < 0, nula si = 0 o falta una categoría.",
+      "test": "Test fuera de tiempo, efecto marginal: mismo criterio que el EDA con las tasas de malos observadas en test y los grupos/cortes de TRAIN (deciles de train con extremos ±∞; conteos: valores de train recortados en su p99); vacíos excluidos.",
+      "permutacion": "Compuerta: relevante si caída media de AUC − Z·desv de las k repeticiones > 0 (MLP, test)."
+    },
+    "contraste_sin_voto": "Logística (β y puntos de C3) y PSI de test frente a train (sin umbral, como A).",
+    "umbrales": {
+      "umbral_rho_shap": 0.5,
+      "z_permutacion": 2,
+      "umbral_monotonia": 0.9,
+      "sensibilidad_rho": [
+        0.3,
+        0.7
+      ],
+      "n_min_categoria": 30,
+      "tol_tasas_train": 1e-12
+    },
+    "sensibilidad": "Veredicto con u = 0,3 y u = 0,7 y con la compuerta desactivada; el oficial es el de los umbrales fijados.",
+    "marginal_vs_condicional": "EDA y test miden la tasa de malos por grupo de una sola variable (marginal); SHAP mide cuánto mueve la variable el logit del MLP con las demás presentes (condicional). Pueden discrepar si la variable está correlacionada con otras.",
+    "causalidad": "Es una asociación observada en los datos, no un efecto causal.",
+    "aviso": "Las cifras del EDA, de SHAP y de la permutación ya se conocían (C4) cuando se fijó la regla; la regla solo es ciega frente a las tasas de test, que no se habían calculado."
+  },
+  "hipotesis": [
+    {
+      "id": "H1",
+      "enunciado": "Los créditos a 60 meses son más riesgosos que los de 36.",
+      "variable": "term",
+      "mas_riesgosa": "60 months",
+      "referencia": "36 months",
+      "eda": {
+        "tasa_mas_riesgosa": 0.3194697166623343,
+        "tasa_referencia": 0.13091156498886058,
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "phi_mas_riesgosa": 0.6058582176996907,
+          "phi_referencia": -0.22066624630634113,
+          "n_mas_riesgosa": 281,
+          "n_referencia": 719,
+          "delta_phi": 0.8265244640060319
+        },
+        "media_abs_phi": 0.32890519026787224,
+        "puesto": 1,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.06210258726545208,
+          "caida_auc_desv": 0.0005476315177817581,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta_mas_riesgosa": 0.5013170973229528,
+        "beta_referencia": -0.5012390370002332,
+        "puntos_mas_riesgosa": -14.464953804413478,
+        "puntos_referencia": 14.462701459603922,
+        "coincide": true
+      },
+      "test": {
+        "mas_riesgosa": {
+          "categoria": "60 months",
+          "tasa": 0.37011392653702613,
+          "n": 20364
+        },
+        "referencia": {
+          "categoria": "36 months",
+          "tasa": 0.22130507529280535,
+          "n": 53790
+        },
+        "senal": "a_favor"
+      },
+      "psi_test": 0.06383310258388519,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H2",
+      "enunciado": "A mayor razón deuda/ingreso (dti), mayor riesgo.",
+      "variable": "dti",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 0.9999999999999999,
+        "tasa_grupo_bajo": 0.13135218736190898,
+        "tasa_grupo_alto": 0.20442722744881017,
+        "n_grupos": 10,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.13135218736190898,
+          0.13331117021276595,
+          0.14298342541436465,
+          0.15021078322609274,
+          0.1595674244096226,
+          0.16186891054030114,
+          0.1753067315132088,
+          0.18326869806094181,
+          0.18809682433932934,
+          0.20442722744881017
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.958327170698696,
+          "n": 1000
+        },
+        "media_abs_phi": 0.022705568573624546,
+        "puesto": 15,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.0023453004766351483,
+          "caida_auc_desv": 0.0001480858673448458,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.05388316148113244,
+        "puntos_p1": 3.057192508270111,
+        "puntos_p99": -3.6806341191954095,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": 0.9999999999999999,
+        "tasa_grupo_bajo": 0.16846758349705304,
+        "tasa_grupo_alto": 0.3719758732683767,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.16846758349705304,
+          0.18278217109992811,
+          0.1986000325573824,
+          0.2091103202846975,
+          0.21677823671841617,
+          0.23896393259991644,
+          0.2558296266343173,
+          0.28301362246316375,
+          0.30410848549946295,
+          0.3719758732683767
+        ],
+        "n_por_grupo": [
+          4072,
+          5564,
+          6143,
+          7025,
+          7021,
+          7181,
+          7419,
+          7194,
+          7448,
+          15087
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.11191897841728976,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H3",
+      "enunciado": "A mayor ingreso anual, menor riesgo.",
+      "variable": "annual_inc",
+      "direccion": "-",
+      "eda": {
+        "spearman_grupos": -0.9757575757575757,
+        "tasa_grupo_bajo": 0.1912952281069743,
+        "tasa_grupo_alto": 0.12501416751671768,
+        "n_grupos": 10,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.1912952281069743,
+          0.18827338961489534,
+          0.18402101985208252,
+          0.17439100562148657,
+          0.17485019973368843,
+          0.15948497854077254,
+          0.1562192320315064,
+          0.1467189653344641,
+          0.12092108308261977,
+          0.12501416751671768
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": -0.9967857875910399,
+          "n": 1000
+        },
+        "media_abs_phi": 0.19382773302799955,
+        "puesto": 3,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.038623368017563345,
+          "caida_auc_desv": 0.0011487295728953846,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": -0.3051916118327715,
+        "puntos_p1": -22.899748514959022,
+        "puntos_p99": 22.95703309517645,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": -0.9999999999999999,
+        "tasa_grupo_bajo": 0.38522045125232873,
+        "tasa_grupo_alto": 0.1915651574350724,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.38522045125232873,
+          0.3392409595417114,
+          0.31385816525699417,
+          0.280351048269137,
+          0.27687646598905397,
+          0.2557305162447678,
+          0.23965351299326276,
+          0.2213040525243378,
+          0.2065439672801636,
+          0.1915651574350724
+        ],
+        "n_por_grupo": [
+          4831,
+          5586,
+          7685,
+          6153,
+          10232,
+          5017,
+          8312,
+          8834,
+          8802,
+          8702
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.0377475719567561,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H4",
+      "enunciado": "Más consultas de crédito en los últimos 6 meses indican más riesgo.",
+      "variable": "inq_last_6mths",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 1.0,
+        "tasa_grupo_bajo": 0.14837018161464702,
+        "tasa_grupo_alto": 0.2610975183502272,
+        "n_grupos": 4,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.14837018161464702,
+          0.18894651288799444,
+          0.22040018053257107,
+          0.2610975183502272
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.9250053198217971,
+          "n": 1000
+        },
+        "media_abs_phi": 0.16068465263982826,
+        "puesto": 4,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.011286233871305385,
+          "caida_auc_desv": 0.0003076764704078055,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.23247249919772542,
+        "puntos_p1": 5.412691418428413,
+        "puntos_p99": -23.845091280160318,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": 0.7999999999999999,
+        "tasa_grupo_bajo": 0.2539793720559651,
+        "tasa_grupo_alto": 0.29882733522038013,
+        "monotona": false,
+        "tasas_por_grupo": [
+          0.2539793720559651,
+          0.28308570304044084,
+          0.29947857628655633,
+          0.29882733522038013
+        ],
+        "n_por_grupo": [
+          57107,
+          10163,
+          4411,
+          2473
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.009365647104484941,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "En test (cortes de train) la relación no es monótona (ρ de grupos = 0,80). Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H5",
+      "enunciado": "A mayor uso de los cupos rotativos, mayor riesgo.",
+      "variable": "revol_util",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 0.9999999999999999,
+        "tasa_grupo_bajo": 0.10851602952517352,
+        "tasa_grupo_alto": 0.22001793319883434,
+        "n_grupos": 10,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.10851602952517352,
+          0.11717104533865424,
+          0.13717405839090707,
+          0.15338164251207728,
+          0.15770171149144255,
+          0.16830155406150116,
+          0.17984807864164432,
+          0.18859942106435093,
+          0.19912136188907195,
+          0.22001793319883434
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.994885636618454,
+          "n": 999
+        },
+        "media_abs_phi": 0.21944323604240507,
+        "puesto": 2,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.03666520414973244,
+          "caida_auc_desv": 0.0003733427210165962,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.3430219044843598,
+        "puntos_p1": 20.056840245113776,
+        "puntos_p99": -16.360975762418676,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": 0.9999999999999999,
+        "tasa_grupo_bajo": 0.16560994166878013,
+        "tasa_grupo_alto": 0.33588317107093185,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.16560994166878013,
+          0.18591844762029633,
+          0.2136180157212662,
+          0.24749302181329474,
+          0.2704166206210631,
+          0.28540462427745666,
+          0.29507754551584625,
+          0.3048196166854566,
+          0.3169811320754717,
+          0.33588317107093185
+        ],
+        "n_por_grupo": [
+          3943,
+          7627,
+          9414,
+          9673,
+          9049,
+          8304,
+          7415,
+          7096,
+          5830,
+          5752
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.061565415099003026,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H6",
+      "enunciado": "Un historial crediticio más largo reduce el riesgo.",
+      "variable": "antiguedad_credito_anios",
+      "direccion": "-",
+      "eda": {
+        "spearman_grupos": -0.7333333333333332,
+        "tasa_grupo_bajo": 0.17706259677062597,
+        "tasa_grupo_alto": 0.14823033396205482,
+        "n_grupos": 10,
+        "monotona": false,
+        "tasas_por_grupo": [
+          0.17706259677062597,
+          0.15926459187063904,
+          0.16286284068247286,
+          0.16872518747243054,
+          0.17320044296788484,
+          0.1670549084858569,
+          0.1609144867003737,
+          0.15845776688210386,
+          0.15460489859248586,
+          0.14823033396205482
+        ],
+        "veredicto_eda": "la apoya, pero no es monótona",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": -0.9896423257378837,
+          "n": 1000
+        },
+        "media_abs_phi": 0.03556504714036632,
+        "puesto": 14,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.0017225873073257736,
+          "caida_auc_desv": 0.0002044633489399778,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": -0.010954976723236656,
+        "puntos_p1": -0.5003388728760348,
+        "puntos_p99": 1.0395227755693557,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": -0.9757575757575757,
+        "tasa_grupo_bajo": 0.339303158580267,
+        "tasa_grupo_alto": 0.2479849543256314,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.339303158580267,
+          0.30656506447831183,
+          0.28976073187895846,
+          0.2776520051746442,
+          0.26482958665699785,
+          0.25653726529201704,
+          0.24857430392485744,
+          0.24924224761016553,
+          0.23215375228798046,
+          0.2479849543256314
+        ],
+        "n_por_grupo": [
+          3071,
+          5118,
+          5684,
+          6184,
+          6895,
+          8681,
+          8943,
+          8578,
+          9834,
+          11166
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.11256431584712247,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "En el EDA de train la relación no es monótona (|ρ| de grupos = 0,73 < 0,9). Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H7",
+      "enunciado": "Quien arrienda es más riesgoso que quien paga hipoteca.",
+      "variable": "home_ownership",
+      "mas_riesgosa": "RENT",
+      "referencia": "MORTGAGE",
+      "eda": {
+        "tasa_mas_riesgosa": 0.17066666666666666,
+        "tasa_referencia": 0.15401264172753878,
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "phi_mas_riesgosa": 0.05153119695430427,
+          "phi_referencia": -0.06938025052540146,
+          "n_mas_riesgosa": 372,
+          "n_referencia": 538,
+          "delta_phi": 0.12091144747970572
+        },
+        "media_abs_phi": 0.058181316563347275,
+        "puesto": 11,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.004921271976016417,
+          "caida_auc_desv": 0.00012125360397850755,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta_mas_riesgosa": 0.037681276630678134,
+        "beta_referencia": -0.06693312511595205,
+        "puntos_mas_riesgosa": -1.0872518185888906,
+        "puntos_referencia": 1.9312817535196911,
+        "coincide": true
+      },
+      "test": {
+        "mas_riesgosa": {
+          "categoria": "RENT",
+          "tasa": 0.30407936025913557,
+          "n": 29637
+        },
+        "referencia": {
+          "categoria": "MORTGAGE",
+          "tasa": 0.2272157469394287,
+          "n": 37493
+        },
+        "senal": "a_favor"
+      },
+      "psi_test": 0.03903337940573692,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H8",
+      "enunciado": "Los créditos para pequeña empresa son más riesgosos que los de consolidación de deudas.",
+      "variable": "purpose",
+      "mas_riesgosa": "small_business",
+      "referencia": "debt_consolidation",
+      "eda": {
+        "tasa_mas_riesgosa": 0.2801642451042325,
+        "tasa_referencia": 0.17306920656374733,
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "phi_mas_riesgosa": 0.5288900526335596,
+          "phi_referencia": -0.024495295901734986,
+          "n_mas_riesgosa": 10,
+          "n_referencia": 646,
+          "delta_phi": 0.5533853485352945
+        },
+        "media_abs_phi": 0.08053266177943987,
+        "puesto": 8,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.0070247486857205835,
+          "caida_auc_desv": 0.0006430206594994625,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta_mas_riesgosa": 0.4574265859721092,
+        "beta_referencia": -0.09409393625554503,
+        "puntos_mas_riesgosa": -13.198541343054622,
+        "puntos_referencia": 2.714977104271941,
+        "coincide": true
+      },
+      "test": {
+        "mas_riesgosa": {
+          "categoria": "small_business",
+          "tasa": 0.41009055627425617,
+          "n": 773
+        },
+        "referencia": {
+          "categoria": "debt_consolidation",
+          "tasa": 0.26812078367135805,
+          "n": 46397
+        },
+        "senal": "a_favor"
+      },
+      "psi_test": 0.26959428191185,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "La categoría small_business tiene solo n = 10 clientes entre los explicados de SHAP; su φ medio es poco preciso. Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H9",
+      "enunciado": "Tener registros públicos negativos aumenta el riesgo.",
+      "variable": "pub_rec",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 1.0,
+        "tasa_grupo_bajo": 0.16017820662273058,
+        "tasa_grupo_alto": 0.2306227903181942,
+        "n_grupos": 2,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.16017820662273058,
+          0.2306227903181942
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.6722020575988408,
+          "n": 1000
+        },
+        "media_abs_phi": 0.04381404296983793,
+        "puesto": 13,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": -0.0009682655705370413,
+          "caida_auc_desv": 0.0002871984699265915,
+          "k": 5
+        },
+        "relevante": false,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.06772029287456269,
+        "puntos_p1": 0.4024720992266797,
+        "puntos_p99": -9.486607788951954,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "conteo",
+        "spearman_grupos": -1.0,
+        "tasa_grupo_bajo": 0.2666298138934955,
+        "tasa_grupo_alto": 0.24375734938092275,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.2666298138934955,
+          0.24375734938092275
+        ],
+        "n_por_grupo": [
+          59697,
+          14457
+        ],
+        "grupos": [
+          0,
+          1
+        ],
+        "senal": "en_contra"
+      },
+      "psi_test": 0.2687075300017298,
+      "veredicto": "no concluyente",
+      "motivo": "No concluyente: las fuentes discrepan (a favor: EDA y SHAP; en contra: test); la permutación del MLP en test no es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "no concluyente",
+        "rho_0.7": "no concluyente",
+        "sin_compuerta": "no concluyente"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "En test (cortes de train) la dirección no se sostiene (señal en_contra; ρ de grupos = -1,00). El efecto marginal cambia entre train y test (EDA: a_favor; test: en_contra); SHAP: a_favor. La permutación del MLP en test no es relevante (caída de AUC -0,0010 ± 0,0003, k = 5; se exige media − 2·desv > 0); PSI de test frente a train = 0,269. Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H10",
+      "enunciado": "A mayor monto solicitado, mayor riesgo.",
+      "variable": "loan_amnt",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 0.7575757575757575,
+        "tasa_grupo_bajo": 0.1472474021667035,
+        "tasa_grupo_alto": 0.2219144693108797,
+        "n_grupos": 10,
+        "monotona": false,
+        "tasas_por_grupo": [
+          0.1472474021667035,
+          0.1462446233594353,
+          0.12903545256486432,
+          0.14693313222724988,
+          0.1481448288223696,
+          0.14049046321525885,
+          0.15541309068348672,
+          0.21002566812622678,
+          0.20640318986747977,
+          0.2219144693108797
+        ],
+        "veredicto_eda": "la apoya, pero no es monótona",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.9964247095280581,
+          "n": 1000
+        },
+        "media_abs_phi": 0.10130351839237536,
+        "puesto": 6,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.007235444912263978,
+          "caida_auc_desv": 0.0005636838097218799,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.19722750477908763,
+        "puntos_p1": 15.8333344838819,
+        "puntos_p99": -10.410097808344137,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "deciles",
+        "spearman_grupos": 0.9515151515151514,
+        "tasa_grupo_bajo": 0.19670018045888116,
+        "tasa_grupo_alto": 0.29760993450710216,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.19670018045888116,
+          0.2348649181620982,
+          0.21684475172847265,
+          0.23278072124423174,
+          0.2557541625857003,
+          0.2677623261694058,
+          0.26919097868818537,
+          0.2893137690825552,
+          0.28429241505548564,
+          0.29760993450710216
+        ],
+        "n_por_grupo": [
+          3879,
+          5071,
+          6364,
+          5851,
+          8168,
+          7910,
+          9666,
+          6747,
+          8741,
+          11757
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.08929292094888355,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "En el EDA de train la relación no es monótona (|ρ| de grupos = 0,76 < 0,9). Es una asociación observada en los datos, no un efecto causal."
+    },
+    {
+      "id": "H11",
+      "enunciado": "Haber tenido moras de 30+ días en los últimos 2 años aumenta el riesgo.",
+      "variable": "delinq_2yrs",
+      "direccion": "+",
+      "eda": {
+        "spearman_grupos": 1.0,
+        "tasa_grupo_bajo": 0.16096956202717405,
+        "tasa_grupo_alto": 0.18455366098294884,
+        "n_grupos": 4,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.16096956202717405,
+          0.1761089681774349,
+          0.18039413845376454,
+          0.18455366098294884
+        ],
+        "veredicto_eda": "la apoya",
+        "senal": "a_favor"
+      },
+      "shap": {
+        "direccion": {
+          "spearman": 0.7136603072575648,
+          "n": 1000
+        },
+        "media_abs_phi": 0.04824262022478211,
+        "puesto": 12,
+        "n_variables": 15,
+        "permutacion_mlp": {
+          "caida_auc_media": 0.00402653456789952,
+          "caida_auc_desv": 0.0004158257785772084,
+          "k": 5
+        },
+        "relevante": true,
+        "senal": "a_favor"
+      },
+      "logistica": {
+        "beta": 0.058702341851068346,
+        "puntos_p1": 0.571288420234461,
+        "puntos_p99": -9.585653836818247,
+        "coincide": true
+      },
+      "test": {
+        "agrupacion": "conteo",
+        "spearman_grupos": 1.0,
+        "tasa_grupo_bajo": 0.25551917364299215,
+        "tasa_grupo_alto": 0.32242990654205606,
+        "monotona": true,
+        "tasas_por_grupo": [
+          0.25551917364299215,
+          0.27665000510047943,
+          0.30374620317246037,
+          0.32242990654205606
+        ],
+        "n_por_grupo": [
+          59248,
+          9803,
+          2963,
+          2140
+        ],
+        "grupos": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "senal": "a_favor"
+      },
+      "psi_test": 0.04965016715685589,
+      "veredicto": "confirmada",
+      "motivo": "EDA, SHAP y test a favor y la permutación del MLP en test es relevante.",
+      "sensibilidad": {
+        "rho_0.3": "confirmada",
+        "rho_0.7": "confirmada",
+        "sin_compuerta": "confirmada"
+      },
+      "cambia_con_sensibilidad": false,
+      "matiz": "Es una asociación observada en los datos, no un efecto causal."
+    }
+  ],
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_preprocesador": "971f41251ed125bd2a7d5a145e94d41dd6dd79019327fd7f93ddbe592b7fd03f"
+  }
+}
