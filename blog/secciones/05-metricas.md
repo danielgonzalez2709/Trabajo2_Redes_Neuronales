@@ -52,7 +52,7 @@ para un malo y un bueno tomados al azar. En palabras: la AUC es la probabilidad 
 un bueno (contando la mitad de los empates). @hanley1982 muestran que el área por trapecios coincide con el estadístico de
 Wilcoxon, que cuenta 1, ½ o 0 por cada par malo-bueno. Un modelo que ordena al azar tiene AUC 0,5 y uno perfecto, 1. Solo
 depende del **orden** de $p$: no cambia si se usa el logit en lugar de la PD, ni si todas las PD se multiplican por un
-mismo factor. Por eso la AUC no dice nada de la calibración.
+mismo factor positivo. Por eso la AUC no dice nada de la calibración.
 
 ### 5.3 Índice de Gini
 
@@ -156,7 +156,8 @@ $$
 
 En palabras: $\bar p_k$ es la PD media que el modelo dio en el bin y $\bar y_k$ la fracción de malos que de verdad hubo. Los
 bins vacíos (pueden aparecer si muchos créditos empatan en un borde) se omiten. Con bins por cuantiles, cada punto se apoya
-en aproximadamente $n/10$ créditos, así que todos los puntos tienen la misma precisión.
+en aproximadamente $n/10$ créditos: todos los puntos se apoyan en una cantidad parecida de datos (su precisión no es
+idéntica, porque también depende de la tasa de cada bin).
 
 **Cómo se lee.** Se grafica $\bar y_k$ (tasa observada, eje vertical) contra $\bar p_k$ (PD media, eje horizontal). Un modelo
 bien calibrado queda sobre la diagonal $\bar y_k = \bar p_k$.
