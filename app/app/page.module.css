@@ -1,8 +1,8 @@
 .pagina {
   --alto-titulo: 4.25rem; /* título fijo en escritorio: 1 renglón de 2,5rem × 1,1 + 2 × 0,75rem de relleno */
-  max-width: 72rem;
+  max-width: 90rem;
   margin: 0 auto;
-  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem) 2rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 2.5vw, 2rem) 2rem;
 }
 
 /* Móvil: una columna, la tarjeta del resultado arriba (también primero en el DOM y en el orden de foco). */
@@ -19,9 +19,9 @@
 /* Escritorio: perfil a la izquierda y la tarjeta del resultado fija a la derecha. */
 @media (min-width: 900px) {
   .rejilla {
-    grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+    grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 1fr); /* la derecha crece con la pantalla */
     grid-template-areas: "entradas resultado";
-    gap: 2.5rem;
+    gap: 2rem;
     align-items: start;
   }
 

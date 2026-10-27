@@ -2,9 +2,9 @@
 .tarjeta {
   position: relative;
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
   margin-top: 0.75rem;
-  padding: 1.25rem 1.35rem 1.1rem;
+  padding: 1.1rem 1.25rem 1rem;
   background: var(--ds-acento-tinte);
   border: 1px solid rgba(31, 51, 194, 0.2);
   border-radius: 24px;
@@ -17,33 +17,12 @@
   gap: 0.75rem;
 }
 
-.titulos {
-  display: grid;
-  justify-items: start;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
 .titulo {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.01em;
-}
-
-/* Píldora oscura con el modelo elegido (16:1); el punto conserva el color del modelo. */
-.pildora {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: #ffffff;
-  background: var(--ds-acento); /* 9,1:1 con el texto blanco */
-  border-radius: 999px;
 }
 
 .cifras {
@@ -72,7 +51,7 @@
 
 /* Puntaje grande en semibold. */
 .puntaje {
-  font-size: 4.25rem;
+  font-size: 3.5rem;
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.035em;
@@ -80,7 +59,7 @@
 }
 
 .pd {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -119,7 +98,7 @@
 
 .frase {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
   line-height: 1.4;
   letter-spacing: -0.005em;
 }
@@ -137,10 +116,10 @@
 }
 
 .accion {
-  min-height: 2.25rem;
-  padding: 0.35rem 0.85rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--ds-texto);
   background: rgba(255, 255, 255, 0.75);

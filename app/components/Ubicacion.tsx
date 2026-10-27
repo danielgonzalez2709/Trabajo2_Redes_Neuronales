@@ -5,8 +5,8 @@ import { indiceBarra } from "../lib/densidad";
 import { formatearPercentil, formatearPuntaje } from "../lib/formato";
 import estilos from "./Ubicacion.module.css";
 
-const ANCHO = 320;
-const ALTO = 150;
+const ANCHO = 400; // más ancho que alto: la figura escala con la columna y así no crece de más
+const ALTO = 135;
 const M = { izq: 2, der: 2, arriba: 32, abajo: 20 };
 const SEPARACION = 2.5;
 const ALTO_MIN = 2.5; // las barras casi vacías se siguen viendo, como una raya

@@ -55,15 +55,10 @@ export function TarjetaResultado(p: Props) {
       <section className={estilos.tarjeta} aria-labelledby="titulo-resultado">
         <header className={estilos.cabeza}>
           <Avatar expresion={expresion(r.percentil)} />
-          <div className={estilos.titulos}>
-            <h2 id="titulo-resultado" className={estilos.titulo}>
-              Tu resultado
-            </h2>
-            <span className={estilos.pildora}>
-              <span className={estilos.punto} style={{ background: COLOR_MODELO[modelo] }} aria-hidden="true" />
-              {TITULO_MODELO[modelo]}
-            </span>
-          </div>
+          {/* Sin píldora del modelo: el selector de arriba ya lo muestra. */}
+          <h2 id="titulo-resultado" className={estilos.titulo}>
+            Tu resultado
+          </h2>
         </header>
 
         <div className={estilos.cifras}>
