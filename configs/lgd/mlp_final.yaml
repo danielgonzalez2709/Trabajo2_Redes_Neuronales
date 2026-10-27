@@ -2,15 +2,17 @@
 # Configuración final del MLP de LGD (Parte D §3.3) y su procedencia; la hereda configs/lgd/base.yaml.
 mlp:
   capas:
-  - 128
+  - 32
   - 64
-  activacion: tanh
-  dropout: 0.05426572640095942
-  l2: 0.003340334194956007
+  - 64
+  - 32
+  activacion: leaky_relu
+  dropout: 0.3915788095788214
+  l2: 0.000886503551270592
   optimizador: adam
-  lr: 0.009801607304582592
+  lr: 0.009397991170979513
   momento: 0.9
-  batch: 512
+  batch: 2048
   max_epocas: 200
   paciencia: 10
   device: auto
@@ -20,10 +22,11 @@ busqueda:
   origen: 'lgd-hpo: mejor de 30 ensayos (mínima pérdida de validación del propio MLP
     (media de mlp.perdida en val, mejor época); MAE de val al lado [PROPUESTO por
     el orquestador])'
-  ensayo: 27
+  ensayo: 29
   n_ensayos: 30
-  tiempo_s: 32.5218260831316
-  hash_particion: 40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4
-  hash_preprocesador: 82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da
+  tiempo_s: 126.09463870000764
+  evidencia:
+    sha256_particion: a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3
+    sha256_preprocesador: 36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83
   muestra: null
-  fecha: '2026-10-25T11:05:47'
+  fecha: '2026-10-26T15:40:36'

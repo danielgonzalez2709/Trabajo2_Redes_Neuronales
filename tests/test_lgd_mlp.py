@@ -11,7 +11,7 @@ import torch
 
 from src.common.config import load_config
 from src.lgd.lineal import LinealLGD
-from src.lgd.mlp import CLAVES_MLP, MLPLGD
+from src.lgd.mlp import CLAVES_MLP, MLPLGD, _construir_red, _entrenar_una_epoca, _penalizacion_l2
 from src.lgd.perdidas import PERDIDAS_VALIDAS, obtener_perdida, perdida_bce_fraccional, perdida_mse
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -290,3 +290,58 @@ def test_valores_invalidos_de_cfg(datos, clave, valor):
     X_tr, y_tr, X_val, y_val = datos
     with pytest.raises((ValueError, TypeError), match=clave if clave != "capas" else "capa"):
         MLPLGD().fit(X_tr, y_tr, X_val, y_val, _cfg(**{clave: valor}), seed=0)
+
+
+# 10. L2 = (λ/2)·Σ‖W‖² (tarea D9; misma convención que B, B-pd §3.2, Spec v0.13): gradiente λW, sin sesgos
+def _red_pequena(semilla: int = 0):
+    torch.manual_seed(semilla)
+    return _construir_red(N_FEATURES, [6, 3], "tanh", 0.0).double()
+
+
+def test_penalizacion_l2_gradiente_es_l2_por_w_y_cero_en_sesgos():
+    red = _red_pequena()
+    l2 = 0.37
+    pesos = [m.weight for m in red.modules() if isinstance(m, torch.nn.Linear)]
+    sesgos = [m.bias for m in red.modules() if isinstance(m, torch.nn.Linear)]
+    termino = _penalizacion_l2(pesos, l2)
+    # valor: (λ/2)·Σ‖W‖²
+    esperado = 0.5 * l2 * sum(float((w.detach() ** 2).sum()) for w in pesos)
+    assert float(termino.detach()) == pytest.approx(esperado, rel=1e-12)
+    termino.backward()
+    for w in pesos:
+        torch.testing.assert_close(w.grad, l2 * w.detach(), rtol=0, atol=1e-12)
+    for b in sesgos:
+        assert b.grad is None or torch.count_nonzero(b.grad) == 0
+
+
+def test_paso_sgd_con_penalizacion_igual_a_weight_decay_solo_en_w():
+    """Un paso del bucle de D (pérdida + (λ/2)Σ‖W‖², SGD sin momento) = SGD(weight_decay=λ) solo sobre las W."""
+    rng = np.random.default_rng(5)
+    X = torch.from_numpy(rng.normal(size=(32, N_FEATURES)))
+    y = torch.from_numpy(rng.uniform(size=32))
+    perdida = obtener_perdida("bce_fraccional")
+    l2, lr = 0.05, 0.1
+    orden = torch.arange(32)
+
+    red_d = _red_pequena(3)
+    pesos_d = [m.weight for m in red_d.modules() if isinstance(m, torch.nn.Linear)]
+    opt_d = torch.optim.SGD(red_d.parameters(), lr=lr, momentum=0.0)
+    _entrenar_una_epoca(red_d, opt_d, perdida, X, y, orden, 32, pesos_d, l2)
+
+    red_r = _red_pequena(3)
+    lineales = [m for m in red_r.modules() if isinstance(m, torch.nn.Linear)]
+    opt_r = torch.optim.SGD([{"params": [m.weight for m in lineales], "weight_decay": l2},
+                             {"params": [m.bias for m in lineales], "weight_decay": 0.0}], lr=lr, momentum=0.0)
+    red_r.train()
+    opt_r.zero_grad()
+    perdida(red_r(X).squeeze(-1), y).backward()
+    opt_r.step()
+
+    for (k, a), (_, b) in zip(red_d.state_dict().items(), red_r.state_dict().items()):
+        torch.testing.assert_close(a, b, rtol=0, atol=1e-7, msg=k)
+    # control: con l2 > 0 los pesos sí difieren de un paso sin L2 (la prueba no es trivial)
+    red_0 = _red_pequena(3)
+    opt_0 = torch.optim.SGD(red_0.parameters(), lr=lr, momentum=0.0)
+    _entrenar_una_epoca(red_0, opt_0, perdida, X, y, orden, 32,
+                        [m.weight for m in red_0.modules() if isinstance(m, torch.nn.Linear)], 0.0)
+    assert not torch.allclose(red_0[0].weight, red_d[0].weight, rtol=0, atol=1e-7)

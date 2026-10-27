@@ -1,4 +1,4 @@
-H-21 — evidencia: blog/docs/figures/pd-calibracion.json (python run.py figures; src/viz/figs_pd.py), prueba, 10 bins por cuantiles.
+H-22 — evidencia: blog/docs/figures/pd-calibracion.json (python run.py figures; src/viz/figs_pd.py), prueba, 10 bins por cuantiles.
 Ejes de pd-calibracion.png: x = PD media del bin, y = tasa observada del bin; diagonal y = x.
 
 logistica: bin, pd_media (x), tasa_observada (y), y - x, ¿por encima de la diagonal?
