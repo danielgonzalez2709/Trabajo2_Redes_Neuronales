@@ -111,7 +111,6 @@ Con la nota de Lending Club, la AUC de prueba sube unas 0,016–0,017 en los dos
 semillas del MLP (0,0030–0,0032); en la logística la Δ viene de una sola corrida, sin variabilidad medida. Ver esa
 evaluación mejora la discriminación, pero la AUC sigue cerca de 0,69. Buscar una arquitectura nueva con las 17 variables no
 se distingue del ruido: gana 0,0010 de AUC frente a la misma arquitectura, con 16 193 parámetros en vez de 2 961.
-<!-- revisar: autor -->
 
 La PD media de prueba sube (logística 0,1868 → 0,1988; MLP 0,2041 → 0,2128 con la misma arquitectura y 0,2179 con la
 buscada), pero sigue por debajo de la tasa observada de 0,2622 (§6.4). Es consistente con la deriva de composición entre
