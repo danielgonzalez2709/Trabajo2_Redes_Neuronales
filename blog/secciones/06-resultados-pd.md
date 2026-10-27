@@ -4,6 +4,11 @@ busqueda_logistica}.json, results/data/pd/semillas/ y results/data/pd/pred_test.
 configs/pd/base.yaml) y data/processed/resumen_datos.json (tasas por split). Figuras: python run.py figures (src/viz/figs_pd.py). El texto completo de la sección es B8. -->
 ## 6. Resultados de la PD
 
+Esta sección compara la regresión logística (el modelo de referencia) con el MLP, con los mismos datos, la misma partición y
+el mismo preprocesador. Primero se muestran la búsqueda de hiperparámetros y el entrenamiento; después, la discriminación, la
+calibración y la variabilidad entre 30 semillas, con la tabla de la comparación justa ([[tab:pd-comparacion]]). Cierran la
+sensibilidad a las variables de Lending Club y las limitaciones.
+
 ### 6.1 Búsqueda de hiperparámetros
 
 La logística eligió su penalización con una rejilla de 13 valores de C ([[fig:pd-busqueda-logistica]]). La log-loss de
@@ -15,6 +20,10 @@ Título: Log-loss y AUC de validación de la regresión logística según la pen
 Fuente: Elaboración propia a partir de results/data/pd/busqueda_logistica.json.
 ![Dos paneles con eje logarítmico de C: la log-loss de validación tiene su mínimo en C = 0,0031623 y la AUC de validación crece hasta aplanarse](figures/pd-busqueda-logistica.png)
 :::
+
+Para el MLP no se usó una rejilla: el espacio tiene 8 hiperparámetros, tres de ellos continuos (tasa de aprendizaje, L2 y
+dropout), y con solo 3 valores por eje ya serían 3⁸ = 6 561 combinaciones. El TPE, en cambio, usa los ensayos ya hechos para
+proponer los siguientes en las zonas que dieron menor pérdida (la teoría está en la sección 4.8).
 
 La búsqueda TPE del MLP probó 40 configuraciones; los 10 primeros ensayos son aleatorios y los demás los propone el TPE
 ([[fig:pd-busqueda-mlp]]). La mejor fue el ensayo 11, con una log-loss de validación de 0,5075, frente a 0,5178 de la logística.
@@ -82,6 +91,27 @@ Fuente: Elaboración propia a partir de results/data/pd/semillas/ y results/data
 ![Tres paneles con cajas y puntos de las 30 semillas, la semilla mediana marcada y la logística como línea horizontal](figures/pd-semillas.png)
 :::
 
+La [[tab:pd-comparacion]] reúne la comparación justa: lo que cuesta cada modelo (parámetros, configuraciones probadas y
+tiempo) y sus métricas de prueba con la variabilidad entre semillas. La logística tiene una sola corrida porque su
+optimizador, `lbfgs`, es determinista: no usa azar, así que con otra semilla da exactamente el mismo modelo y su desviación
+es 0. El MLP gana en las cinco métricas en promedio, pero con un margen pequeño en discriminación (AUC +0,0020, menos que
+una desviación entre semillas, 0,0031) y con un costo mucho mayor: unas 55 veces más parámetros y unas 15 veces más tiempo.
+
+::: tabla pd-comparacion
+Título: Comparación justa de la regresión logística y el MLP: costo y métricas de prueba
+Fuente: Elaboración propia a partir de results/data/pd/summary.json. MLP: 30 semillas (media ± desviación muestral, mejor y peor); logística: una corrida (n = 1), con desviación 0 y mejor = peor = media. En Brier y log-loss, "mejor" es el valor más bajo. Tiempo en CPU: en la logística, el reloj del ajuste completo de la rejilla de 13 valores de C; en el MLP, la suma de los ajustes de los 40 ensayos de la búsqueda más la de las 30 semillas.
+| Concepto | Logística | MLP: media ± desv. | MLP: mejor | MLP: peor |
+|---|---:|---:|---:|---:|
+| Parámetros | 49 | 2 673 | — | — |
+| Configuraciones probadas | 13 | 40 | — | — |
+| Tiempo total (s) | 60,8 | 940,4 (búsqueda 702,4 + semillas 238,0) | — | — |
+| AUC | 0,6696 | 0,6716 ± 0,0031 | 0,6766 | 0,6630 |
+| Gini | 0,3393 | 0,3433 ± 0,0062 | 0,3533 | 0,3261 |
+| KS | 0,2465 | 0,2500 ± 0,0054 | 0,2581 | 0,2340 |
+| Brier | 0,1865 | 0,1832 ± 0,0011 | 0,1808 | 0,1857 |
+| Log-loss | 0,5600 | 0,5490 ± 0,0033 | 0,5417 | 0,5561 |
+:::
+
 ### 6.6 Sensibilidad a la evaluación de Lending Club
 
 <!-- B10 (27-oct): cifras de results/data/pd_sensibilidad/comparacion.json (python run.py pd-sensibilidad --config
@@ -117,3 +147,18 @@ buscada), pero sigue por debajo de la tasa observada de 0,2622 (§6.4). Es consi
 entrenamiento y prueba: la participación del grado A baja de 23,2 % en entrenamiento a 12,2 % en validación y 12,9 % en
 prueba, y la `int_rate` media sube de 12,77 % a 14,69 % y 14,33 %. No basta para afirmar una causa; también puede influir
 el sesgo de selección de los créditos recientes (sección 2.4).
+
+### 6.7 Limitaciones
+
+- **Parada muy temprana.** En la semilla mediana la mejor época es la 1 (§6.2): la pérdida de validación no vuelve a bajar
+  después de la primera pasada por los datos. No es un caso aislado, pero tampoco la regla: la mejor época es 1 en 2 de las
+  30 semillas y va de 1 a 20 entre todas. Una explicación posible es que la validación tiene más malos que el entrenamiento
+  (22,9 % frente a 16,3 %), así que lo que el MLP sigue aprendiendo de train no mejora la pérdida en val; no lo probamos.
+  <!-- revisar: autor -->
+- **Subestimación en prueba.** Los dos modelos predicen menos malos de los que hay en prueba (§6.4): la PD media es 0,187 y
+  0,204 frente a una tasa de 0,262. Ordenan bien el riesgo, pero si se usa la PD como probabilidad (por ejemplo, en la
+  pérdida esperada) hace falta recalibrarla o vigilar la deriva.
+- **Búsqueda casi plana.** Tres ensayos (el 19, el 23 y el 27) quedaron a menos de 0,001 de log-loss de validación del mejor
+  (§6.1). Esa diferencia es menor que la desviación entre semillas de la configuración final (0,0018 en la log-loss de
+  validación), así que el ensayo 11 no se distingue con claridad de esos tres; se eligió por la regla fijada de antemano (la
+  menor log-loss de validación), no porque sea claramente mejor.
