@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Responsables | **Daniel y Camila (Camila: frontend de la app)** |
-| Ramas personales | `dev/daniel`, `dev/camila` |
+| Responsables | **Daniel, Camila y José (José: app, desde el 26-oct; antes Camila)** |
+| Ramas personales | `dev/daniel`, `dev/camila`, `dev/jose` |
 | Carpetas propias | raíz del repo, `.github/`, `src/common/` (menos `preprocesamiento.py` y `metricas.py`), `src/datos/sintetico.py`, `src/el/`, `src/viz/theme.py`, `src/viz/style.py`, `src/viz/figs_el.py`, `app/`, `video/`, `blog/` (estructura y secciones 00, 09–13), `notebooks/` (infraestructura, `00_sustentacion`, `05_perdida_esperada`) |
 | Lee del núcleo | Todo, incluido el **Anexo (enunciado)** completo |
 
@@ -90,17 +90,17 @@ equipo → enlace. 2–3 min. YouTube no listado; enlace en la app y el blog.
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
 | E0 | Infraestructura (§3.1) + primer push + ruleset | — | `pip install` limpio; pruebas portadas pasan; un push directo a `main` de otra cuenta es rechazado | auditor-reproducibilidad | **jue 22** | Daniel |
-| E1 | Esqueleto de la app + Vercel enlazado | E0 | `npm --prefix app run dev` levanta; URL de vista previa | implementador-web | vie 23 | Camila |
-| E2 | App: formulario, PD, score, percentil (con el JSON de juguete) | C2 | R-APP-1 a R-APP-3 | implementador-web | sáb 24 | Camila |
-| E3 | App: "¿y si…?" + enlaces | E2 | R-APP-4, R-APP-6 | implementador-web | dom 25 | Camila |
-| E4 | Paridad en CI + modelos reales (los dos, v0.17) | C5, E3 | 1 000/1 000 dentro de la tolerancia en cada modelo | revisor-spec | dom 25 | Camila |
+| E1 | Esqueleto de la app + Vercel enlazado | E0 | `npm --prefix app run dev` levanta; URL de vista previa | implementador-web | vie 23 | José |
+| E2 | App: formulario, PD, score, percentil (con el JSON de juguete) | C2 | R-APP-1 a R-APP-3 | implementador-web | sáb 24 | José |
+| E3 | App: "¿y si…?" + enlaces | E2 | R-APP-4, R-APP-6 | implementador-web | dom 25 | José |
+| E4 | Paridad en CI + modelos reales (los dos, v0.17) | C5, E3 | 1 000/1 000 dentro de la tolerancia en cada modelo | revisor-spec | dom 25 | José |
 | E5 | E[L] | B5, D4 | Por crédito y por banda; contraste con lo observado | verificador-matematico | dom 25 | Daniel |
 | E6 | Video: guion (vie 23), grabación (sáb 24), edición en Remotion (dom 25) | E2 | 2–3 min, aparecen los 5 | — | dom 25 | Daniel |
 | E7 | Blog 00, 09–13 + publicación en GitHub Pages | todas | `mkdocs build --strict`; enlaces a repo, app y video | redactor-tecnico + cazador | lun 26 | Daniel |
 | E8 | `run.py figures` integra todas las figuras | B7, C7, D6 | Clon limpio regenera todo | auditor-reproducibilidad | lun 26 | Daniel |
 | E10 | `run.py notebooks` (.py → .ipynb + ejecución) + plantilla con la celda de parámetros | E0 | La plantilla corre con los sintéticos; `test_notebooks.py` | revisor-spec | vie 23 | Daniel |
 | E11 | Notebooks `00_sustentacion` y `05_perdida_esperada` | E5, B9, C8, D8 | Cada uno en < 2 min; `00` trae la celda de predicción escrita antes de ejecutar | revisor-spec | lun 26 | Daniel |
-| E9 | Usabilidad con 2 personas + despliegue final | E4 | R-APP-5, R-APP-8 | — | lun 26 | Camila |
+| E9 | Usabilidad con 2 personas + despliegue final | E4 | R-APP-5, R-APP-8 | — | lun 26 | José |
 
 ## 5. Puntos calientes de alucinación
 - Límites y precios de Vercel, licencia de Remotion, mantenimiento de MkDocs Material (V-01…V-10 del registro).

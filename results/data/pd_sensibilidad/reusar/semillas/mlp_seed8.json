@@ -1,0 +1,144 @@
+{
+  "modelo": "mlp",
+  "seed": 8,
+  "config": {
+    "capas": [
+      32,
+      16,
+      32
+    ],
+    "activacion": "relu",
+    "dropout": 0.09416553239584849,
+    "l2": 4.451065531349953e-05,
+    "optimizador": "adam",
+    "lr": 0.004965184800549709,
+    "momento": 0.9,
+    "batch": 512,
+    "max_epocas": 100,
+    "paciencia": 10,
+    "device": "cpu",
+    "pos_weight": 1.0
+  },
+  "metricas": {
+    "auc_val": 0.6874743027848561,
+    "gini_val": 0.3749486055697122,
+    "ks_val": 0.2710679163040267,
+    "brier_val": 0.16397980075183535,
+    "logloss_val": 0.5014939956926062,
+    "auc_test": 0.6872678256168769,
+    "gini_test": 0.3745356512337539,
+    "ks_test": 0.2729925999898505,
+    "brier_test": 0.17988198963820282,
+    "logloss_test": 0.5402335545266223
+  },
+  "n_parametros": 2961,
+  "tiempo_s": 10.250175019988092,
+  "device": "cpu",
+  "epocas": 17,
+  "evidencia": {
+    "sha256_particion": "d2216fb16cb8e2ddf82480cc754f6333556b0d2a5e5dbf4f144b42b53448ff99",
+    "sha256_preprocesador": "d58d839a2161db8e53a61163ea003597ccc3eb7e923cb2fcab75b3bb63b78376"
+  },
+  "mejor_epoca": 7,
+  "mejor_perdida_val": 0.5014939904212952,
+  "historial": [
+    {
+      "epoca": 1,
+      "perdida_train": 0.42468045943694865,
+      "perdida_val": 0.5070041418075562
+    },
+    {
+      "epoca": 2,
+      "perdida_train": 0.40781060625975407,
+      "perdida_val": 0.5087418556213379
+    },
+    {
+      "epoca": 3,
+      "perdida_train": 0.40763165213012054,
+      "perdida_val": 0.5031989216804504
+    },
+    {
+      "epoca": 4,
+      "perdida_train": 0.40637918940307927,
+      "perdida_val": 0.5087151527404785
+    },
+    {
+      "epoca": 5,
+      "perdida_train": 0.4059468286163348,
+      "perdida_val": 0.5098828673362732
+    },
+    {
+      "epoca": 6,
+      "perdida_train": 0.40535017073062746,
+      "perdida_val": 0.5071771740913391
+    },
+    {
+      "epoca": 7,
+      "perdida_train": 0.40484461126268717,
+      "perdida_val": 0.5014939904212952
+    },
+    {
+      "epoca": 8,
+      "perdida_train": 0.40495516591585773,
+      "perdida_val": 0.5077382922172546
+    },
+    {
+      "epoca": 9,
+      "perdida_train": 0.40392126156651575,
+      "perdida_val": 0.5062355399131775
+    },
+    {
+      "epoca": 10,
+      "perdida_train": 0.4040377395624647,
+      "perdida_val": 0.5032474994659424
+    },
+    {
+      "epoca": 11,
+      "perdida_train": 0.40347147664006555,
+      "perdida_val": 0.5033362507820129
+    },
+    {
+      "epoca": 12,
+      "perdida_train": 0.4030657925138632,
+      "perdida_val": 0.5026858448982239
+    },
+    {
+      "epoca": 13,
+      "perdida_train": 0.4027655179474692,
+      "perdida_val": 0.5113252997398376
+    },
+    {
+      "epoca": 14,
+      "perdida_train": 0.4022628552968001,
+      "perdida_val": 0.5067020058631897
+    },
+    {
+      "epoca": 15,
+      "perdida_train": 0.4028800070837991,
+      "perdida_val": 0.5070526599884033
+    },
+    {
+      "epoca": 16,
+      "perdida_train": 0.40219186165561666,
+      "perdida_val": 0.506805956363678
+    },
+    {
+      "epoca": 17,
+      "perdida_train": 0.40138481701107953,
+      "perdida_val": 0.506175696849823
+    }
+  ],
+  "hilos_torch": 4,
+  "version_torch": "2.14.1+cpu",
+  "calibracion_global": {
+    "pd_media_val": 0.20697648423070875,
+    "tasa_val": 0.22949968576659288,
+    "pd_media_test": 0.2128378305091799,
+    "tasa_test": 0.26217061790328233
+  },
+  "n": {
+    "train": 90347,
+    "val": 73194,
+    "test": 74154
+  }
+}

@@ -56,6 +56,7 @@ from src.common.metricas import auc  # AUC de validación (B1)
 from src.common.results import save_json, to_jsonable  # JSON sin NaN y escritura atómica (núcleo §5.4)
 from src.common.seeds import validar_entero  # enteros de la config (regla única del proyecto)
 from src.pd.entrenar import OPTIMIZADORES  # adam | sgd
+from src.pd.espacio import CLAVES_BUSCADAS, CLAVES_ESPACIO, ESTADO_COMPLETO, RANGOS  # espacio (B9: una sola fuente)
 from src.pd.experimento import RUTAS_PD, cargar_datos, evidencia  # datos de A y huellas (núcleo §6)
 from src.pd.logistica import logloss  # criterio de la búsqueda (el mismo de B3)
 from src.pd.mlp import ACTIVACIONES, CLAVES_MLP, MLPPD, validar_cfg_mlp  # modelo y reglas del bloque mlp (B2)
@@ -71,16 +72,12 @@ __all__ = [  # interfaz pública acordada (tarea B4); lo demás es interno
 ]
 
 CLAVES_HPO = ("n_ensayos", "destino", "salida", "espacio")  # claves exactas del bloque hpo
-CLAVES_ESPACIO = ("n_capas", "neuronas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # del espacio
-RANGOS = {"n_capas": "entero", "dropout": "lineal", "l2": "log", "lr": "log"}  # claves [mín, máx] y su escala
-CLAVES_BUSCADAS = ("capas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # claves mlp que se buscan
 CLAVES_PROHIBIDAS = ("pos_weight", "device")  # nunca se buscan (calibración y dispositivo)
 CLAVES_METRICAS = ("logloss_val", "auc_val", "perdida_val_entrenar", "epocas", "mejor_epoca", "n_parametros")  # ensayo
 CLAVES_MEJOR = ("numero", "parametros", "logloss_val", "auc_val", "n_parametros")  # bloque mejor del JSON
 CRITERIO = "logloss_val"  # criterio de la búsqueda (Parte B §3.3)
 ARCHIVO_HPO = "hpo_ensayos.json"  # resultados de la búsqueda (núcleo §5.4)
 ATRIBUTO_SEMILLA = "semilla_muestreador"  # user_attr del estudio con la semilla del TPE
-ESTADO_COMPLETO = optuna.trial.TrialState.COMPLETE.name  # "COMPLETE"
 TIPO_BUSQUEDA = "optuna"  # busqueda.tipo de mlp_final.yaml
 FRACCION_BORDE = 0.05  # 5 % del ancho del rango (decisión de Andrés, 25-oct)
 PARAMS_BORDE = {"lr": "log", "l2": "log", "dropout": "lineal"}  # parámetros revisados en el borde y su escala

@@ -1,0 +1,219 @@
+/* Tinte del azul cobalto de la paleta (no es el color de ningún modelo). */
+.tarjeta {
+  position: relative;
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 1.1rem 1.25rem 1rem;
+  background: var(--ds-acento-tinte);
+  border: 1px solid rgba(31, 51, 194, 0.2);
+  border-radius: 24px;
+  box-shadow: var(--ds-sombra);
+}
+
+.cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.cifras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.columna {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.cifra {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.rotulo {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-suave); /* 6,5:1 sobre el tinte */
+}
+
+/* Puntaje grande en semibold. */
+.puntaje {
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd {
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.comparacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  margin: -0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ds-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.comparacion strong {
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* Verde y rojo más oscuros que los tokens para seguir en AA sobre el tinte (5,0:1 y 6,1:1); siempre con ▲/▼ y texto. */
+.sube {
+  color: #17702f;
+}
+
+.baja {
+  color: #a51f15;
+}
+
+.igual {
+  color: var(--ds-texto);
+}
+
+.frase {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+.frase strong {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.accion {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ds-texto);
+  background: rgba(255, 255, 255, 0.75);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.accion:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+.accion:disabled {
+  color: var(--ds-texto-suave);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(31, 51, 194, 0.25);
+  cursor: default;
+}
+
+.explicaciones {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.pregunta {
+  margin: 0 0 0.1rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.respuesta {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-texto-suave);
+}
+
+/* Fila del otro modelo en una píldora clara. */
+.otro {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.65rem 0.95rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ds-texto);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.otro strong {
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.punto {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.otro .punto {
+  transform: translateY(-0.05rem);
+}
+
+.desempeno {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ds-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Móvil: la tarjeta va arriba y compacta. */
+@media (max-width: 899px) {
+  .tarjeta {
+    gap: 0.85rem;
+    padding: 1.1rem 1rem 1rem;
+    border-radius: 20px;
+  }
+
+  .puntaje {
+    font-size: 3.5rem;
+  }
+
+  .pd {
+    font-size: 1.5rem;
+  }
+
+  .otro {
+    border-radius: 14px;
+  }
+}

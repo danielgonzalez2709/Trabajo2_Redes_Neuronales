@@ -23,7 +23,7 @@
 
 # %% tags=["parameters"]
 CONFIG = "configs/sustentacion.yaml"
-SET = {}            # p. ej. {"demo": "pd"} para mostrar otra demo
+SET = {}            # p. ej. {"demo": "eda"} para mostrar otra demo (por defecto, la de PD)
 CAMBIO = {}         # lo que pide el profesor, con las claves de --set, p. ej. {"mlp.dropout": 0.5}
 PREDICCION = ""     # se escribe ANTES de correr la celda 2: qué esperamos que pase y por qué
 
@@ -60,8 +60,9 @@ else:
 
 # %% [markdown]
 # ### Predicciones de referencia
-# Verificadas corriendo el cambio (24-oct-2026, demo `eda`, Parte A). Las de B, C y D las agrega el `tutor-sustentacion`
-# (tarea T5.4) cuando sus demos estén conectadas; una predicción sin correr se marca "no verificada".
+# Verificadas corriendo el cambio (24-oct-2026) con la demo `eda` de la Parte A: se corren con `SET = {"demo": "eda"}`,
+# porque la demo por defecto es la de PD (B6). Las de B, C y D las agrega el `tutor-sustentacion` (tarea T5.4); una
+# predicción sin correr se marca "no verificada".
 #
 # | Cambio (`CAMBIO`) | Predicción | Por qué | ¿Se cumplió? |
 # |---|---|---|---|

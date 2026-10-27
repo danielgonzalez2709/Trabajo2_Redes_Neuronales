@@ -55,8 +55,9 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
     [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"],
      ["pd-hpo", "--config", "configs/pd/hpo.yaml"], ["pd", "--config", "configs/pd/base.yaml"],
      ["scorecard", "--config", "configs/scorecard/base.yaml"],
-     ["scorecard", "--config", "configs/scorecard/mlp.yaml"]],
-    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard", "scorecard-mlp"],
+     ["scorecard", "--config", "configs/scorecard/mlp.yaml"],
+     ["pd-sensibilidad", "--config", "configs/pd/sensibilidad.yaml"]],
+    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard", "scorecard-mlp", "pd-sensibilidad"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -92,6 +93,14 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
                 "--set", "semillas.n=1", "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
     if argv[0] == "scorecard":  # scorecard.json: a un directorio temporal, nunca a results/data/scorecard/
         argv = [*argv, "--set", f"salida={tmp_path.as_posix()}"]
+    if argv[0] == "pd-sensibilidad":  # B10: unión, preprocesador, resultados y modelos a tmp_path; muestra pequeña
+        sens = tmp_path / "sens"
+        argv = [*argv, "--set", f"sensibilidad.union={(sens / 'res' / 'union.parquet').as_posix()}",
+                "--set", f"sensibilidad.preprocesador={(sens / 'models' / 'pre.json').as_posix()}",
+                "--set", f"sensibilidad.salida={(sens / 'res').as_posix()}",
+                "--set", f"sensibilidad.modelos={(sens / 'models').as_posix()}",
+                "--set", "datos.muestra=5000", "--set", "semillas.n=1", "--set", "hpo.n_ensayos=1",
+                "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
     es_mlp = argv[0] == "scorecard" and argv[2] == CONFIG_SCORECARD_MLP
     if es_mlp:  # SHAP del MLP con tamaños pequeños (la config aprobada tarda minutos)
         argv = [*argv, *(x for clave in SHAP_PEQUENO for x in ("--set", clave))]

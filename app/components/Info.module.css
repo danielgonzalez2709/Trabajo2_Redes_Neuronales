@@ -1,0 +1,95 @@
+/* Botón "i": círculo visible de 20 px dentro de un área táctil de 28 px. */
+.boton {
+  anchor-name: var(--ancla);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.25rem 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ds-texto-suave);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boton span {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.8125rem;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.boton:hover span,
+.boton[aria-expanded="true"] span {
+  color: var(--ds-fondo);
+  background: var(--ds-texto);
+  border-color: var(--ds-texto);
+}
+
+/* Globo: en el top layer (popover). Oculto mientras React no lo abre, también donde no hay Popover API. */
+.globo {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #ffffff;
+  background: var(--ds-tinta); /* 16:1 con el texto blanco */
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  overflow: visible;
+}
+
+.globo:not([data-abierto]) {
+  display: none;
+}
+
+/* Con anchor positioning: encima del botón; si no cabe, debajo. */
+@supports (position-area: top) {
+  .globo {
+    position-anchor: var(--ancla);
+    position-area: top;
+    position-try-fallbacks: flip-block;
+    margin-bottom: 6px;
+  }
+}
+
+/* Sin anchor positioning, Info.tsx escribe top y left (getBoundingClientRect). */
+@supports not (position-area: top) {
+  .globo {
+    top: 0;
+    left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .globo[data-abierto] {
+    animation: aparecer 140ms ease-out;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}

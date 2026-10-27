@@ -1,4 +1,4 @@
-"""H-27: ¿cambia el factor al usar log10 en vez de ln? Reproducible sin datos: .venv/Scripts/python -I alucinaciones/evidencias/C7_log10.py"""
+"""H-28 (antes H-27): ¿cambia el factor al usar log10 en vez de ln? Reproducible sin datos: .venv/Scripts/python -I alucinaciones/evidencias/C7_log10.py"""
 import math
 
 base, odds_base, pdo = 600.0, 50.0, 20.0
