@@ -67,14 +67,14 @@ entradas. Receta del JSON frente al modelo en todo el test: |ΔPD| ≤ 1,5e-8 (l
 | ✅ C1 | `scorecard.py` (p → score) con `--set scorecard.*` | E0 | `test_scorecard.py`: score(odds_base) = base; duplicar odds suma PDO | **verificador-matematico** | vie 23 | Juan José |
 | ✅ C2 | Exportador + `pd_model.json` (25-oct: con la logística REAL de B3 en vez del de juguete, y con los casos de paridad adelantados de C5; decisión de Juan José) | E0 | `test_export.py` (contrato §5.5); la app lo lee | revisor-spec | **vie 23** | Juan José |
 | ✅ C3 | Scorecard de la logística (26-oct: `src/scorecard/puntos.py`, `run.py scorecard`, `results/data/scorecard/scorecard.json`) | B3, C1 | Suma de puntos = score | verificador-matematico | sáb 24 | Juan José |
-| C4 | SHAP del MLP + permutación + scorecard del MLP | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
+| ✅ C4 | SHAP del MLP + permutación + scorecard del MLP (26-oct: `src/scorecard/shap_pd.py`, `configs/scorecard/mlp.yaml`, `scorecard_mlp.json` y `shap_mlp.json`) | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
 | ✅ C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
 | C6 | Cierre de hipótesis | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
 | C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
 | C7 | Blog 07 | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
 
 ## 5. Pruebas de la parte
-`test_scorecard.py` (base, PDO, monotonía, aditividad), `test_export.py`, `test_shap_aditividad.py`.
+`test_scorecard.py` (base, PDO, monotonía, aditividad), `test_export.py`, `test_shap_pd.py`.
 
 ## 6. Puntos calientes de alucinación
 - Odds malo:bueno en vez de bueno:malo; signo del factor; log10 en vez de ln; "PDO = puntos por cada 1 % de PD".

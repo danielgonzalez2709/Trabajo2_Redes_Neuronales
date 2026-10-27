@@ -1,4 +1,4 @@
-H-24 — Guarda de rutas de escritura de B10 (src/pd/sensibilidad.py), tres versiones y cómo se rompió cada una.
+H-26 (antes H-24) — Guarda de rutas de escritura de B10 (src/pd/sensibilidad.py), tres versiones y cómo se rompió cada una.
 Fuente: informes literales de revisor-spec y revisor-calidad en alucinaciones/prompts/B10.md (secciones 2–9).
 
 Ronda 1 (commit 6ba9afc, `_rechazar_protegidas`, lista negra de resultados/modelos/insumos). Aceptó con un solo --set

@@ -170,7 +170,7 @@ def test_00_constantes_publicas():
     assert CLAVES_RUTAS == ("modelo", "preprocesador", "datos", "features")
     assert CLAVES_DISTRIBUCION == ("percentiles_tabla", "percentiles_rango", "fraccion_min_categoria", "ancho_bin",
                                    "n_bandas")
-    assert MODELOS == ("logistica",)
+    assert MODELOS == ("logistica", "mlp")  # C4: el MLP usa configs/scorecard/mlp.yaml (src/scorecard/shap_pd.py)
     assert ARCHIVO_SCORECARD == "scorecard.json"
     assert SPLITS == ("train", "val", "test")
     assert TOL_ADITIVIDAD == 1e-9
@@ -954,6 +954,32 @@ def test_12b_preparado_de_solo_lectura(preparado):
             assert not arr.flags.writeable, (s, clave)
     for nombre, arr in preparado["crudos_train"].items():
         assert not arr.flags.writeable, nombre
+
+
+TOL_REL_VERSIONADO = 1e-12  # el JSON versionado se generó en Windows; la CI corre en Linux (otra BLAS)
+
+
+def _igual_al_versionado(obtenido, versionado, ruta: str = "$") -> None:
+    """Recorre los dos JSON: mismas claves, mismas longitudes, mismo texto/entero/bool/None y reales con rel 1e-12."""
+    if isinstance(versionado, dict):
+        assert isinstance(obtenido, dict) and set(obtenido) == set(versionado), ruta
+        for clave in versionado:
+            _igual_al_versionado(obtenido[clave], versionado[clave], f"{ruta}.{clave}")
+    elif isinstance(versionado, list):
+        assert isinstance(obtenido, list) and len(obtenido) == len(versionado), ruta
+        for i, (a, b) in enumerate(zip(obtenido, versionado)):
+            _igual_al_versionado(a, b, f"{ruta}[{i}]")
+    elif isinstance(versionado, float):
+        assert obtenido == pytest.approx(versionado, rel=TOL_REL_VERSIONADO, abs=1e-12), ruta
+    else:
+        assert obtenido == versionado and type(obtenido) is type(versionado), ruta
+
+
+def test_12b2_base_yaml_reproduce_el_scorecard_json_versionado(sc):
+    """C4 no cambia la scorecard de la logística: construir_scorecard con configs/scorecard/base.yaml da
+    results/data/scorecard/scorecard.json versionado (mismas claves y valores; reales con rel 1e-12)."""
+    versionado = json.loads((RAIZ / "results" / "data" / "scorecard" / ARCHIVO_SCORECARD).read_text(encoding="utf-8"))
+    _igual_al_versionado(json.loads(json.dumps(to_jsonable(sc), allow_nan=False)), versionado)
 
 
 def test_12c_rutas_distintas_del_preparado_es_error(cfg20, preparado):
