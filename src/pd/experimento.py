@@ -1143,14 +1143,17 @@ def _avisar_muestra(cfg: dict, rutas: RutasPD, contar) -> None:
 #
 # Config que no es un mapeo → `ValueError` (antes de `rutas_de`); luego rutas de la config → pre-chequeo → aviso de la
 # muestra (B6) → logística (semilla `base_seed`) → MLP. Las piezas se inyectan (también el contador de filas).
+#
+# B10: `rutas` se puede inyectar (el análisis de sensibilidad, `src/pd/sensibilidad.py`, pasa el parquet unido y su
+# preprocesador); con `None` son las de `rutas_de(cfg)` y el comportamiento es el de antes.
 
 # %%
 def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, comprobar=comprobar_antes,
-              contar=filas_muestra) -> dict:
+              contar=filas_muestra, rutas: RutasPD | None = None) -> dict:
     """{"logistica", "mlp", "rutas"}: pre-chequeo, aviso de la muestra, logística y MLP con las mismas rutas."""
     if not isinstance(cfg, dict):  # p. ej. None si el subcomando no recibió config
         raise ValueError(f"la config de pd debe ser un mapeo; se recibió {type(cfg).__name__}")  # tipo
-    rutas = rutas_de(cfg)  # salidas de la config
+    rutas = rutas_de(cfg) if rutas is None else rutas  # salidas de la config, o las inyectadas (B10)
     comprobar(cfg, rutas)  # antes de la logística
     _avisar_muestra(cfg, rutas, contar)  # filas por split si hay muestra (B6)
     entrada_log = correr_log(cfg, rutas, seed=cfg["base_seed"])  # logística (B3)

@@ -698,6 +698,51 @@ def test_22_correr_pd_orden(escenario, tmp_path):
     assert orden == []  # ni la logística ni el MLP
 
 
+# %% [markdown]
+# ## 22b. B10: `correr_pd(rutas=…)`
+#
+# Con `rutas=None` las piezas reciben `rutas_de(cfg)` (lo de antes); con rutas inyectadas reciben esas mismas y no
+# se llama a `rutas_de` (la config puede no traer `salida` ni `modelos`). Con las piezas reales, nada se escribe fuera
+# de las rutas inyectadas.
+
+# %%
+def test_22b_correr_pd_con_rutas_inyectadas(escenario, tmp_path, monkeypatch):
+    """rutas=None → rutas_de(cfg); rutas dadas → esas, y ninguna escritura fuera de ellas."""
+    cfg = _cfg(escenario)  # config
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "cfg_r"), str(tmp_path / "cfg_m")  # salidas de la config
+    vistas = []  # rutas recibidas por cada pieza
+
+    def espia(nombre):
+        """Pieza espía que registra las rutas que recibe."""
+        def pieza(c, rutas, **k):
+            """Registra (nombre, rutas)."""
+            vistas.append((nombre, rutas))  # registro
+            return {}  # entrada falsa
+        return pieza  # doble
+
+    piezas = {"correr_log": espia("log"), "correr_red": espia("red"), "comprobar": espia("comprobar")}  # dobles
+    ex.correr_pd(cfg, **piezas)  # sin rutas: como antes
+    assert {r for _, r in vistas} == {ex.rutas_de(cfg)}  # las de la config
+    vistas.clear()  # de nuevo con rutas inyectadas
+    inyectadas = _rutas(escenario, tmp_path / "iny")  # otras rutas
+    sin_salidas = {k: v for k, v in cfg.items() if k not in ("salida", "modelos")}  # sin salida ni modelos
+    res = ex.correr_pd(sin_salidas, rutas=inyectadas, **piezas)  # con rutas
+    assert [n for n, _ in vistas] == ["comprobar", "log", "red"] and {r for _, r in vistas} == {inyectadas}  # esas
+    assert res["rutas"] == inyectadas  # devueltas
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", escenario["ruta_final"])  # mlp_final.yaml del escenario
+    reales = _rutas(escenario, tmp_path / "real")  # rutas para las piezas reales
+    cfg_n1 = _cfg(escenario, n=1)  # una semilla
+    cfg_n1["salida"], cfg_n1["modelos"] = str(tmp_path / "cfg_r"), str(tmp_path / "cfg_m")  # salidas ajenas
+    ex.correr_pd(cfg_n1, rutas=reales)  # piezas reales
+    assert not (tmp_path / "cfg_r").exists() and not (tmp_path / "cfg_m").exists()  # nada en las de la config
+    assert (reales.resultados / ex.ARCHIVO_SUMMARY).is_file()  # resultados en las inyectadas
+    assert (reales.modelos / ex.ARCHIVO_MODELO_MLP).is_file()  # modelos en las inyectadas
+
+
+# %% [markdown]
+# ## 23. Rutas inválidas
+
+# %%
 @pytest.mark.parametrize("cambio", [("salida", ""), ("modelos", "  "), ("salida", 3), ("modelos", None)],
                          ids=["salida_vacia", "modelos_blanco", "salida_numero", "modelos_none"])
 def test_23_rutas_de_invalidas(escenario, cambio):
