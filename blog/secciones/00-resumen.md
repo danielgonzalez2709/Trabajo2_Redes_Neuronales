@@ -15,11 +15,10 @@ Para la **probabilidad de incumplimiento** comparamos una regresión logística 
 condiciones: mismos datos y partición, presupuesto de búsqueda declarado, 30 semillas y número de parámetros. Después
 representamos el modelo como una **scorecard** e identificamos las variables que más pesan en el riesgo. Para la **pérdida
 dado incumplimiento** comparamos una regresión lineal con un perceptrón multicapa con salida sigmoide, y combinamos ambos
-modelos en la **pérdida esperada** de cada crédito. Los dos modelos de probabilidad se publicarán en una aplicación web
-(pendiente: hoy el repositorio solo tiene los modelos exportados para ella) donde cualquier persona podrá ver su puntaje, su
-lugar frente a la población y cómo cambiaría si cambiara alguna de sus características.
-<!-- revisar: autor (Daniel y Camila: pasar a presente cuando la app esté publicada, y confirmar que lleva los dos modelos
-con el selector, como en la sección 10.5) -->
+modelos en la **pérdida esperada** de cada crédito. Los dos modelos de probabilidad están publicados en una aplicación web
+(https://trabajo2-redes-neuronales.vercel.app), con un selector entre la red y la logística, donde cualquier persona puede
+ver su puntaje y su probabilidad de incumplimiento, su lugar frente a la población y cómo cambiaría si cambiara alguna de
+sus características.
 
 **Resultados.** En la probabilidad de incumplimiento, la red discrimina igual o apenas mejor que la logística (AUC de prueba
 0,6716 ± 0,0031 entre 30 semillas frente a 0,6696, una diferencia menor que la variabilidad entre semillas) y mejora en las
@@ -37,6 +36,6 @@ una razón cercana a 1 que en parte sale de errores de la probabilidad y de la e
 |---|---|
 | Reporte publicado (este blog) | https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/ (se actualiza con cada cambio en `blog/` que llega a `main`) |
 | Repositorio (código, datos procesados, modelos) | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
-| Aplicación web | pendiente: se publica en Vercel (Parte E) |
+| Aplicación web | https://trabajo2-redes-neuronales.vercel.app (los dos modelos de probabilidad, con selector; se vuelve a desplegar con cada cambio que llega a `main`) |
 | Video promocional | pendiente: se publica en YouTube (Parte E) |
 | Notebooks (demostración y sustentación) | `notebooks/` en el repositorio |

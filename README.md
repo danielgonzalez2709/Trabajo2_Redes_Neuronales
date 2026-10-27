@@ -6,6 +6,8 @@ app web y video. Curso Redes neuronales y algoritmos bioinspirados, UNAL 2026-02
 - Spec (fuente de verdad, con el enunciado en el Anexo): [`docs/spec/SPEC.md`](docs/spec/SPEC.md) · partes en
   [`docs/spec/partes/`](docs/spec/partes/) · tablero: [`docs/spec/PLAN.md`](docs/spec/PLAN.md)
 - Estado actual: [`docs/MEMORIA.md`](docs/MEMORIA.md)
+- Reporte (blog): https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/
+- Aplicación web: https://trabajo2-redes-neuronales.vercel.app (los dos modelos de PD, con selector)
 
 ## Instalación (Python 3.12)
 
@@ -25,6 +27,14 @@ python scripts/preparar_datos.py
 
 ## Comandos
 Ver núcleo §4.1 del Spec. Cada parte conecta su subcomando de `run.py` (`python run.py --help`).
+
+## Aplicación web en local (Node.js)
+
+```bash
+npm --prefix app ci
+npm --prefix app run dev
+```
+Abre http://localhost:3000. La versión publicada se despliega en Vercel desde `main` (*Root Directory* = `app`).
 
 ## Pruebas
 
