@@ -4,7 +4,7 @@
 |---|---|
 | Responsables | **Andrés** (reparto de la pareja, 24-oct; Juan José hace la Parte C) |
 | Rama personal | `dev/andres` |
-| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
+| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `src/pd/sensibilidad.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
 | Lee del núcleo | §0, §3, §4.1, §5.1, §5.2, §5.3, §5.4, §6, §7.1 · **Anexo (enunciado):** Parte 1, tareas 3–5; Regla de comparación justa; Discusión; Entregables 1 (fundamentación matemática) y 3 |
 | Arranca sin esperar | Sí: métricas y MLP con datos sintéticos (núcleo §5.6) desde el jueves 22 |
 
@@ -168,6 +168,43 @@ corrida y se explica por qué su desviación entre semillas es 0.
   de los JSON ya cargados (puras: no leen archivos ni entrenan), más la que redirige `salida` y `modelos` de la config a
   la carpeta temporal y la que devuelve los moldes desde `demo.yaml`. El notebook solo las llama y muestra el resultado.
 
+### 3.8 Sensibilidad con `grade` e `int_rate` (B10) [DECIDIDO, Andrés, 26/27-oct; Spec v0.23]
+- **Pregunta:** cuánto mejoraría la PD si el modelo viera la evaluación de riesgo de Lending Club (`grade`: "LC assigned
+  loan grade"; `int_rate`: "Interest Rate on the loan", `configs/features_sensibilidad.yaml`). Es un análisis aparte:
+  **no va a la app ni reemplaza al modelo principal**. `sub_grade` (redundante con `grade`) e `installment` (depende de la
+  tasa) no entran (A §3.4).
+- **Datos:** A ya entrega `data/processed/sensibilidad_lc.parquet` (`id`, `grade`, `int_rate`; mismas filas y orden que
+  `loans_pd.parquet`, probado en `test_sensibilidad_aparte_y_alineada`). B los une por `id` (error si los ids difieren
+  en conjunto u orden, hay repetidos o vacíos, o una columna ya existe) y ajusta un **preprocesador propio** (el
+  `Preprocesador` de A con los percentiles de `configs/datos.yaml`) **solo con train**, sobre las 15 variables de
+  `features.yaml` seguidas de las 2 adicionales. Las adicionales se validan como las principales (disponibles en la
+  originación, sin repetidos, ninguna prohibida del núcleo §5.7: constante `PROHIBIDAS` en `src/pd/sensibilidad.py`;
+  una prueba exige que coincida con `tests/test_fuga.py`; `src/` no importa de `tests/`).
+- **Dos modos** (`sensibilidad.modos`, por defecto los dos):
+  - `reusar` = **misma arquitectura que el modelo principal**: la logística con la rejilla de 13 C de §3.1 y el MLP con
+    el bloque `mlp` de `mlp_final.yaml` y `busqueda: {tipo: sin_busqueda}` (la búsqueda del principal se hizo con otros
+    datos: su presupuesto no cuenta aquí);
+  - `optuna` = **arquitectura buscada con las 17 variables**: un TPE nuevo con el mismo presupuesto (40 ensayos) y el
+    mismo espacio de §3.3, y luego la logística y las 30 semillas del ganador.
+- **Mismo código que el principal:** `correr_pd` (con `rutas` inyectadas), `correr_logistica`, `correr_mlp` y
+  `hpo.buscar` reciben un `RutasPD` con el parquet unido y el preprocesador de sensibilidad. Nunca se escribe en
+  `results/data/pd/`, `models/pd_*` ni `configs/pd/mlp_final.yaml`.
+- **Comando y artefactos:** `python run.py pd-sensibilidad --config configs/pd/sensibilidad.yaml` (config completa, sin
+  `hereda`, como `demo.yaml`; pruebas de alarma: su `mlp` = `mlp_final.yaml`, `logistica` = `base.yaml`, `hpo` =
+  `hpo.yaml`). `results/data/pd_sensibilidad/{loans_pd_sensibilidad.parquet, reusar/, optuna/, comparacion.json}` y
+  `models/pd_sensibilidad/{preprocesador_pd_sensibilidad.json, reusar/, optuna/}`; cada modo con los archivos de §3.5
+  (y `optuna/` además `hpo_ensayos.json` y su `mlp_final.yaml`).
+- **`comparacion.json`:** por modelo (logística, MLP) y métrica de test (AUC, Gini, KS, Brier): media ± desv. del
+  principal y de cada modo y Δ = sensibilidad − principal; parámetros, configuraciones y tiempo (núcleo §6);
+  `calibracion_global` por modo y modelo (`pd_media_test` de `pred_test.parquet`, MLP = semilla mediana, frente a
+  `tasa_test`); `misma_particion` (`sha256_particion` igual al del principal).
+- **Blog 06 §6.6:** tabla desde `comparacion.json` y una lectura breve: cuánto de la discriminación ya está en la nota
+  de LC; los modos se nombran "misma arquitectura que el modelo principal" y "arquitectura buscada con las 17
+  variables"; si la PD media de test se acerca a la tasa de prueba, se lee como **consistente con** la deriva de
+  composición entre train y test (participación del grado A e `int_rate` media por partición, medidas desde los
+  datos); si no, también puede deberse al sesgo de selección del blog 02 §2.4. No se afirma una causa ni qué
+  información usa Lending Club.
+
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
@@ -179,13 +216,13 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | B6 | Demo: `configs/pd/demo.yaml` + `datos.muestra` (§3.5, v0.20) | B2, B3, B5 | **< 2 min en CPU medido**: 13,8–15,1 s aquí; **pendiente: otra máquina** | auditor-reproducibilidad | sáb 24 | Andrés |
 | ✅ B7 | Figuras: ROC, KS, calibración, cajas por semilla + aprendizaje y búsquedas; JSON de calibración para el video (§3.6, v0.21) | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 (hecha 26-oct) | Andrés |
 | ✅ B9 | Notebook `02_pd` (núcleo §5.8) con la estructura de §3.7 (v0.22): moldes y comando de terminal, demo en la sección 1, datos, búsqueda y modelo final; `src/pd/tablas.py` | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código; los moldes coinciden con `demo.yaml` (prueba); no escribe en `results/`, `models/` ni `blog/` (`test_notebooks.py`) | revisor-spec | dom 25 (hecha 26-oct) | Andrés |
-| B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | Andrés |
+| B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct; detalle en §3.8, v0.23): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | Andrés |
 | B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Andrés |
 
 (E0 = esqueleto del puente, jue 22.)
 
 ## 5. Pruebas de la parte
-`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta), `test_tablas_pd.py` (B9: tablas del notebook 02 y moldes = `demo.yaml`), `test_notebook_02_pd.py` (B9; las que ejecutan el notebook, lentas), `test_espacio.py` (B9: `espacio.py` sin Optuna, mismo objeto en `hpo` y `tablas`).
+`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta), `test_tablas_pd.py` (B9: tablas del notebook 02 y moldes = `demo.yaml`), `test_notebook_02_pd.py` (B9; las que ejecutan el notebook, lentas), `test_espacio.py` (B9: `espacio.py` sin Optuna, mismo objeto en `hpo` y `tablas`), `test_sensibilidad_pd.py` (B10).
 
 ## 6. Puntos calientes de alucinación
 - L2 vs. `AdamW`; "dropout se aplica también al predecir"; `BCELoss` sobre logits sin sigmoide.
