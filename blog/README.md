@@ -67,6 +67,11 @@ Fuente: Elaboración propia a partir de data/processed/resumen_datos.json.
 | `lgd-semillas` | `lgd-semillas.png` | MAE de test de las 30 semillas del MLP frente a la lineal y las constantes | D |
 | `el-bandas` | `el-bandas.png` | E[L] frente a pérdida realizada por banda de puntaje (solo créditos resueltos de test) | E |
 | `el-pd-vs-tasa` | `el-pd-vs-tasa.png` | PD media predicha frente a tasa de malos observada por banda de puntaje (todo el test) | E |
+| `sc-transformacion` | `sc-transformacion.png` | Puntaje frente a PD con PDO 20 y PDO 40: ancla 600 en odds 50:1 y offset en PD = 0,5 | C |
+| `sc-puntos-variable` | `sc-puntos-variable.png` | Puntos de la logística (curva) y del MLP (media por tramo) según el valor de 3 variables | C |
+| `sc-importancia` | `sc-importancia.png` | Media \|φ\| SHAP del MLP y caída de AUC por permutación de los dos modelos en test | C |
+| `sc-dependencia-shap` | `sc-dependencia-shap.png` | φ SHAP del MLP frente al valor de las 4 numéricas más importantes, con ρ de Spearman | C |
+| `sc-bandas` | `sc-bandas.png` | Histograma del puntaje en test y tasa de malos y PD media por banda (deciles de train) de los dos modelos | C |
 
 ## Bibliografía
 Toda entrada de `references.bib` se copia del BibTeX oficial del DOI (`https://doi.org/<doi>` con
