@@ -6,8 +6,8 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 4 (H-08, H-10, H-14, H-15) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 15 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
+| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-27) | 4 (H-08, H-10, H-14, H-15) |
+| Código | 16 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
 | Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
 | Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
@@ -602,3 +602,24 @@ falsas se registran como candidatos.
    a = 0; el revisor comprobó que los tres mutantes ya fallan.
 6. **Lección aprendida:** "un caso por rama" no basta: cada umbral necesita su caso en el borde y cada conteo ("≥ 2") el
    caso justo por debajo.
+
+### H-27 — "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" (Matemáticas)
+- **Estado:** candidato (pendiente de confirmar por Juan José)
+- **Categoría:** Matemáticas
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 (C1) · **Quién
+  lo cazó:** el subagente `verificador-matematico`, en C7 (27-oct-2026)
+1. **Prompt (literal):** `prompts/C1.md`, sección 3 "implementador — fase verde", ítem de la nota de los puntos calientes:
+   "odds malo:bueno cambia el signo; log10 cambia el factor; PDO no es 'puntos por 1 % de PD'". El encargo repite la idea de
+   C §6 ("log10 en vez de ln"); no dice la frase falsa completa.
+2. **Respuesta relevante de la IA:** comentario de `src/scorecard/scorecard.py` (commit dad6f00, línea 168): "usar
+   $\log_{10}$ en vez de $\ln$ cambia el factor: duplicar las odds ya no sumaría pdo". Se copió al borrador del blog 07
+   (según el encargo de C7; esa versión no está en `HEAD` y no se pudo contrastar el texto literal del borrador).
+3. **Cómo sospechamos:** el verificador-matematico recalculó la fórmula con ambas bases en vez de aceptar la nota.
+4. **Evidencia:** `evidencias/C7_log10.py` (reproducible, sin datos). Con ln: duplicar suma 20,0. Con log10 consistente
+   (factor = PDO/log10 2 = 66,44): duplicar suma 20,0 y el puntaje es idéntico (527,12 en p = 0,2). Solo al mezclar bases
+   (factor = PDO/ln 2 con log10 en el puntaje) duplicar suma PDO·log10 2/ln 2 = 8,6859 (≈ 0,434·PDO).
+5. **Corrección:** comentario de `scorecard.py` y blog 07 (línea ~62) reescritos: el error es mezclar bases; con log10
+   consistente el puntaje no cambia (el factor sí cambia de valor, pero compensa).
+6. **Lección aprendida:** una "nota de punto caliente" suena plausible pero también debe verificarse numéricamente; el
+   error real de las bases es la inconsistencia, no la base elegida.

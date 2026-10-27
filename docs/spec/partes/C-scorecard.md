@@ -71,7 +71,7 @@ entradas. Receta del JSON frente al modelo en todo el test: |ΔPD| ≤ 1,5e-8 (l
 | ✅ C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
 | ✅ C6 | Cierre de hipótesis (27-oct: `src/scorecard/hipotesis.py`, `python -m src.scorecard.hipotesis` y al final de `run.py scorecard` con `mlp.yaml`; `hipotesis.json`: EDA, SHAP, logística, test con cortes de train, veredicto, motivo, matiz y sensibilidad) | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
 | C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
-| C7 | Blog 07 | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
+| ✅ C7 | Blog 07 (27-oct: `blog/secciones/07-scorecard.md`, 5 figuras `sc-*` de `src/viz/figs_scorecard.py` en `run.py figures`, 4 referencias nuevas) | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
 
 ## 5. Pruebas de la parte
 `test_scorecard.py` (base, PDO, monotonía, aditividad), `test_export.py`, `test_shap_pd.py`.
