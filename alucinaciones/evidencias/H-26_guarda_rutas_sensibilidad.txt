@@ -1,0 +1,26 @@
+H-26 (antes H-24) — Guarda de rutas de escritura de B10 (src/pd/sensibilidad.py), tres versiones y cómo se rompió cada una.
+Fuente: informes literales de revisor-spec y revisor-calidad en alucinaciones/prompts/B10.md (secciones 2–9).
+
+Ronda 1 (commit 6ba9afc, `_rechazar_protegidas`, lista negra de resultados/modelos/insumos). Aceptó con un solo --set
+(revisor-spec, validar_cfg_sensibilidad + configs/pd/sensibilidad.yaml):
+  sensibilidad.union=results/data/pd/pred_test.parquet
+  sensibilidad.preprocesador=models/pd_mlp.pt
+  sensibilidad.preprocesador=configs/pd/mlp_final.yaml
+  sensibilidad.union=data/processed/otro.parquet
+  sensibilidad.salida=data/processed
+  sensibilidad.modelos=models/pd_logistica.joblib
+Efecto real observado: en la ronda roja de la ronda 2, la prueba 04d llamó al CLI real y la guarda de la ronda 1 dejó
+escribir la unión sobre results/data/pd/pred_test.parquet (restaurado con git restore; SHA-256 verificado = HEAD,
+90b99329…).
+
+Ronda 2 (commit 223cd9e, "contención" con CARPETAS_PROTEGIDAS = data, configs, blog, app, results/data/pd: seguía
+siendo lista negra). Aceptó (revisor-calidad):
+  salida=src + union=src/pd/experimento.py
+  salida=results/data/lgd + union=results/data/lgd/summary.json
+  modelos=tests + preprocesador=tests/test_fuga.py
+
+Ronda 3 (commit 34d5efa, lista blanca pero con raíz = Path.cwd()). Desde notebooks/ aceptó (revisor-calidad):
+  salida=../src + union=../src/pd/experimento.py (y los otros dos con ../)
+
+Ronda 4 (commit 59cce7b): lista blanca contra RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]. Rechaza todo lo
+anterior, rutas absolutas y un enlace simbólico de fuera del repo a src/ (revisor-calidad, APROBADO).

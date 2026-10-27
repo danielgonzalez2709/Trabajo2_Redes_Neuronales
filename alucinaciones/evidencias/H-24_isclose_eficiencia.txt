@@ -1,0 +1,14 @@
+Nota: registrado primero como H-21 en dev/juanjose; renumerado (en main ya existen H-21…H-23).
+H-24 — evidencia (26-oct-2026). shap 0.54.1, Python 3.12.6, Windows; src/scorecard/shap_pd.py de la fase verde de C4 (sin commit).
+
+1) Comando real con una semilla válida:
+   python run.py scorecard --config configs/scorecard/mlp.yaml --set salida=<temporal> --set shap.base_seed=34
+       raise ValueError(f"Eficiencia rota: {eficiencia:.3e} > {TOL_EFICIENCIA:.0e}")  # aceptación de C4
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ValueError: Eficiencia rota: 2.702e-09 > 1e-09
+   exit 1
+
+2) Caso mínimo (H-24_isclose_eficiencia.py): dos valores transformados de revol_bal distintos que np.isclose da por iguales;
+   el masker de shap (maskers/_tabular.py, np.isclose con rtol 1e-5) no reevalúa la variable y la suma no telescopia:
+   revol_bal transformado: a = np.float64(1.4734606742858887), b = np.float64(1.4734684228897095), b - a = 7.749e-06, np.isclose(a, b) = True (rtol 1e-5 por defecto)
+   f(x) - E_fondo f = 7.748604e+00; phi(revol_bal) = 0.000000e+00; error de eficiencia = 7.749e+00

@@ -21,6 +21,9 @@ RAIZ = Path(__file__).resolve().parents[1]
 FIGURAS_VERSIONADAS = RAIZ / "blog" / "docs" / "figures"
 MODELO_APP_VERSIONADO = RAIZ / "app" / "public" / "model"
 RESULTADOS_SCORECARD = RAIZ / "results" / "data" / "scorecard"
+CONFIG_SCORECARD_MLP = "configs/scorecard/mlp.yaml"
+SHAP_PEQUENO = ["shap.n_explicar=30", "shap.n_estabilidad=10", "shap.n_fondo=20", "shap.max_evals=62",
+                "shap.k_permutacion=2"]  # tamaños pequeños de la scorecard del MLP (C4)
 MODULOS_DE_RED = {"socket", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib"}
 
 
@@ -51,8 +54,10 @@ def test_el_bloqueo_si_detecta_un_acceso_a_la_red(sin_red):
     "argv",
     [["eda", "--config", "configs/datos.yaml"], ["figures"], ["export"],
      ["pd-hpo", "--config", "configs/pd/hpo.yaml"], ["pd", "--config", "configs/pd/base.yaml"],
-     ["scorecard", "--config", "configs/scorecard/base.yaml"]],
-    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard"],
+     ["scorecard", "--config", "configs/scorecard/base.yaml"],
+     ["scorecard", "--config", "configs/scorecard/mlp.yaml"],
+     ["pd-sensibilidad", "--config", "configs/pd/sensibilidad.yaml"]],
+    ids=["eda", "figures", "export", "pd-hpo", "pd", "scorecard", "scorecard-mlp", "pd-sensibilidad"],
 )
 def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv):
     """Cada parte agrega aquí su comando cuando lo conecte. `notebooks` no entra: el kernel de Jupyter se comunica
@@ -70,6 +75,10 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
 
     `scorecard` (Parte C, C3) recibe `--set salida=tmp_path` (como `eda`): se comprueba que escribió
     `tmp_path/scorecard.json` y que `results/data/scorecard/` quedó idéntico (si no existe, huellas vacías).
+
+    `scorecard` con `configs/scorecard/mlp.yaml` (Parte C, C4: SHAP del MLP) recibe además tamaños pequeños por
+    `--set` (`SHAP_PEQUENO`); se comprueba que escribió `scorecard_mlp.json` y `shap_mlp.json` en `tmp_path` (y no
+    `scorecard.json`) y que `results/data/scorecard/` quedó idéntico.
     """
     monkeypatch.chdir(RAIZ)
     if argv[0] == "eda":  # escribe resultados: a un directorio temporal, nunca a results/
@@ -84,6 +93,17 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
                 "--set", "semillas.n=1", "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
     if argv[0] == "scorecard":  # scorecard.json: a un directorio temporal, nunca a results/data/scorecard/
         argv = [*argv, "--set", f"salida={tmp_path.as_posix()}"]
+    if argv[0] == "pd-sensibilidad":  # B10: unión, preprocesador, resultados y modelos a tmp_path; muestra pequeña
+        sens = tmp_path / "sens"
+        argv = [*argv, "--set", f"sensibilidad.union={(sens / 'res' / 'union.parquet').as_posix()}",
+                "--set", f"sensibilidad.preprocesador={(sens / 'models' / 'pre.json').as_posix()}",
+                "--set", f"sensibilidad.salida={(sens / 'res').as_posix()}",
+                "--set", f"sensibilidad.modelos={(sens / 'models').as_posix()}",
+                "--set", "datos.muestra=5000", "--set", "semillas.n=1", "--set", "hpo.n_ensayos=1",
+                "--set", "mlp.max_epocas=1", "--set", "logistica.rejilla_C=[1.0e-2]"]
+    es_mlp = argv[0] == "scorecard" and argv[2] == CONFIG_SCORECARD_MLP
+    if es_mlp:  # SHAP del MLP con tamaños pequeños (la config aprobada tarda minutos)
+        argv = [*argv, *(x for clave in SHAP_PEQUENO for x in ("--set", clave))]
     destinos = _redirigir_figuras(monkeypatch, tmp_path) if argv[0] == "figures" else {}
     destino_app = _redirigir_export(monkeypatch, tmp_path) if argv[0] == "export" else None
     antes = _huellas(FIGURAS_VERSIONADAS)
@@ -92,7 +112,12 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     assert cli.main(argv) == 0
     alterados_scorecard = _diferencias(antes_scorecard, _huellas(RESULTADOS_SCORECARD))
     assert not alterados_scorecard, f"`run.py {argv[0]}` alteró results/data/scorecard/: {alterados_scorecard}"
-    if argv[0] == "scorecard":
+    if es_mlp:
+        from src.scorecard.shap_pd import ARCHIVO_SCORECARD_MLP, ARCHIVO_SHAP
+
+        escritos = sorted(r.name for r in tmp_path.iterdir() if r.is_file())
+        assert escritos == sorted([ARCHIVO_SCORECARD_MLP, ARCHIVO_SHAP]), escritos
+    elif argv[0] == "scorecard":
         from src.scorecard.puntos import ARCHIVO_SCORECARD
 
         assert (tmp_path / ARCHIVO_SCORECARD).is_file(), "`run.py scorecard` no escribió scorecard.json en tmp_path"
@@ -110,6 +135,11 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     sin_figuras = [f"src/viz/{nombre}.py" for nombre, destino in destinos.items() if not any(destino.rglob("*.png"))]
     assert not sin_figuras, (f"`run.py figures` no generó ningún .png de {sin_figuras}: ¿falta conectarlos en "
                              "src/common/cli.py::_figures?")
+    if argv[0] == "figures":  # B7: la Parte B escribe exactamente sus 7 figuras y pd-calibracion.json
+        from src.viz import figs_pd  # import local: si falta el módulo, solo falla el caso figures
+
+        escritos_pd = sorted(r.name for r in destinos["figs_pd"].rglob("*") if r.is_file())  # lo escrito por B
+        assert escritos_pd == sorted(figs_pd.ARCHIVOS), escritos_pd  # ni de más ni de menos
 
 
 def _modulos_de_figuras() -> list[str]:

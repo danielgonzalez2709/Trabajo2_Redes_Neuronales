@@ -24,9 +24,11 @@
 
 import contextlib  # borrar el temporal si la escritura falla
 import copy  # copias de los bloques validados (B5)
+import functools  # lectores por defecto con la muestra de la config (B6)
 import hashlib  # SHA-256 de la evidencia de comparación justa
 import os  # os.replace para la escritura atómica del parquet
 import re  # nombre de los archivos de semilla del MLP (B5)
+import sys  # stderr de los errores de run.py pd (B6)
 import tempfile  # temporal en la misma carpeta del destino
 import time  # reloj por defecto del fit y del subcomando (B5)
 from dataclasses import dataclass  # rutas inyectables e inmutables
@@ -40,7 +42,7 @@ from src.common.config import load_config  # relee mlp_final.yaml (B5)
 from src.common.metricas import auc, brier, gini, ks  # métricas comunes (B1)
 from src.common.preprocesamiento import Preprocesador  # preprocesador común (núcleo §5.2)
 from src.common.results import load_json, save_json  # JSON sin NaN y escritura atómica (núcleo §5.4)
-from src.common.seeds import seeds_for_runs, validar_entero  # semillas efectivas y enteros de la config
+from src.common.seeds import make_rng, seeds_for_runs, validar_entero  # muestreo, semillas y enteros de la config
 from src.common.torch_utils import resolver_device  # device efectivo que se registra (B5)
 from src.pd.logistica import LogisticaPD, bloque_logistica, esta_en_borde, logloss  # modelo de referencia
 from src.pd.mlp import CLAVES_MLP, MLPPD, validar_cfg_mlp  # MLP de PD y reglas del bloque mlp (B2)
@@ -58,6 +60,8 @@ __all__ = [  # interfaz pública acordada (tareas B3 y B4); lo demás es interno
     "registro_semilla_mlp", "semilla_mediana", "entrada_summary_mlp", "correr_mlp",  # B5: MLP
     "rutas_de", "leer_test_rapido", "comprobar_antes", "correr_pd", "manejador",  # B5: run.py pd
     "TIPO_SIN_BUSQUEDA",  # B5 ronda 2: config fijada a mano
+    "validar_datos", "muestra_de", "muestrear", "filas_muestra",  # B6: datos.muestra
+    "escribir_parquet_atomico", "linea_modelo", "una_linea",  # B10: las reutiliza src/pd/sensibilidad.py
 ]
 
 COLUMNA_ID = "id"  # identificador del crédito (núcleo §5.1)
@@ -77,6 +81,13 @@ CRITERIO_LOGISTICA = "logloss_val"  # criterio de la búsqueda de C
 DEVICE_LOGISTICA = "cpu"  # sklearn entrena en CPU
 PREFIJO_PRED = "pred_"  # columna de cada modelo en pred_test.parquet
 PERMISOS_ARCHIVO = 0o644  # rw-r--r--: los mismos que deja save_json en los JSON (src/common/results.py)
+CLAVES_DATOS = ("muestra",)  # claves exactas del bloque datos (B6, núcleo §4.1)
+MINIMO_MUESTRA = len(SPLITS)  # datos.muestra ≥ 3: al menos una fila por split (como src/lgd/experimento.py)
+RUN_ID_MUESTRA = 0  # run_id del generador del muestreo: make_rng(base_seed, 0) (como src/lgd/experimento.py)
+CODIGO_ERROR = 2  # código de salida de run.py pd ante un error esperado (el mismo de argparse en cli.main)
+PREFIJO_ERROR = "run.py pd: error: "  # inicio de la línea de error en stderr (como argparse)
+ERRORES_ESPERADOS = (ValueError, RuntimeError, FloatingPointError, FileNotFoundError)  # config, datos, fit, archivo
+ERRORES_DE_PROGRAMACION = (NotImplementedError, RecursionError)  # subclases de RuntimeError que son bugs: con traza
 
 
 # %% [markdown]
@@ -148,6 +159,111 @@ def evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
 
 
 # %% [markdown]
+# ## B6: validación de `datos.muestra`
+#
+# `datos` (núcleo §4.1) es un mapeo con **exactamente** la clave `muestra`: null (todos los datos, la corrida reportada)
+# o un entero $\ge 3$ (una fila por split como mínimo). bool, flotantes (también `20000.0`), texto, 0, 2 o negativos →
+# `ValueError`. Sin bloque `datos` vale como null (decisión de Andrés, 26-oct: las configs de B3 y B5 no cambian). Se
+# valida **antes** de leer datos.
+#
+# TODO(refactor-post-B5): en el refactor posterior a B5, `pd-hpo` debe rechazar `datos.muestra` (hoy la ignora y busca
+# con todos los datos).
+
+# %%
+def validar_datos(cfg: dict) -> int | None:
+    """datos.muestra validado: sin bloque datos o null → None, entero ≥ 3 → int; otra cosa → ValueError."""
+    if not isinstance(cfg, dict):  # p. ej. run.py pd sin config
+        raise ValueError(f"La config de run.py pd debe ser un mapeo; se recibió {type(cfg).__name__}")  # tipo
+    if "datos" not in cfg:  # configs de B3/B5 sin el bloque
+        return None  # todos los datos
+    datos = cfg["datos"]  # bloque datos
+    if not isinstance(datos, dict) or set(datos) != set(CLAVES_DATOS):  # p. ej. datos: 5 o una clave de más
+        raise ValueError(f"datos debe ser un mapeo con exactamente la clave muestra; se recibió {datos!r}")  # forma
+    if datos["muestra"] is None:  # null
+        return None  # todos los datos
+    return _entero_cfg(datos["muestra"], "datos.muestra", minimo=MINIMO_MUESTRA)  # entero ≥ 3
+
+
+# %% [markdown]
+# ## B6: argumentos del muestreo
+#
+# `{muestra, base_seed}` para `muestrear` (y para los lectores que la reciben). La semilla del sorteo es `base_seed` de
+# la config, y solo se lee y valida (entero $\ge 0$) si hay muestra: sin muestra no hay sorteo y queda en `None`, así
+# que la logística de B3 sigue corriendo con configs sin `base_seed`.
+
+# %%
+def muestra_de(cfg: dict) -> dict:
+    """{"muestra", "base_seed"} para muestrear; base_seed se valida solo si hay muestra (si no, None)."""
+    muestra = validar_datos(cfg)  # null o entero ≥ 3
+    if muestra is None:  # sin muestra no hay sorteo
+        return {"muestra": None, "base_seed": None}  # base_seed no se usa
+    if "base_seed" not in cfg:  # la semilla del sorteo es obligatoria con muestra
+        raise ValueError("datos.muestra necesita base_seed (semilla del muestreo) en la config")  # clave
+    return {"muestra": muestra, "base_seed": _entero_cfg(cfg["base_seed"], "base_seed", minimo=0)}  # validados
+
+
+# %% [markdown]
+# ## B6: reparto de la muestra entre splits
+#
+# Con $N_s$ filas en el split $s$, $N = \sum_s N_s$ y una muestra de $n$ filas, la cuota de cada split es
+#
+# $$\text{cuota}_s = \frac{n\,N_s}{N};$$
+#
+# cada split recibe $\lfloor \text{cuota}_s \rfloor$ y las $n - \sum_s \lfloor \text{cuota}_s \rfloor$ filas que faltan van a
+# los splits con los **restos mayores** $\text{cuota}_s - \lfloor \text{cuota}_s \rfloor$ (empate → orden de `SPLITS`).
+# Así $\sum_s n_s = n$ y las proporciones de la partición se conservan.
+#
+# Copia de `_repartir` de `src/lgd/experimento.py` (Parte D), sin importarla para no acoplar B a D.
+# TODO(refactor-post-B5): unificar con la de la LGD en un módulo común.
+
+# %%
+def _repartir(n_total: int, tamanos: dict[str, int]) -> dict[str, int]:
+    """Reparto proporcional de n_total entre splits por el mayor resto (empate → orden de SPLITS)."""
+    total = sum(tamanos.values())  # N
+    cuotas = {s: n_total * tamanos[s] / total for s in tamanos}  # n·N_s/N
+    n = {s: int(np.floor(c)) for s, c in cuotas.items()}  # ⌊cuota_s⌋
+    faltan = n_total - sum(n.values())  # filas por repartir
+    for s in sorted(tamanos, key=lambda t: (-(cuotas[t] - n[t]), SPLITS.index(t)))[:faltan]:  # restos mayores
+        n[s] += 1  # una fila más
+    return n  # n_s por split
+
+
+# %% [markdown]
+# ## B6: muestra estratificada por split
+#
+# Sin muestra, o con $n \ge$ filas de `df`, devuelve **el mismo** `df` (sin copia ni `reset_index`: todo queda como en
+# B5). Si no, reparte $n$ con `_repartir`, sortea sin reemplazo dentro de cada split con `make_rng(base_seed, 0)` y
+# devuelve las filas en el **orden del parquet** (posiciones ordenadas) con el índice $0, \dots, n-1$. Solo depende de
+# la columna `split` y del orden de las filas: el DataFrame completo y una lectura de `id, split` dan los mismos ids. Un
+# split que queda con 0 filas → `ValueError` que lo nombra; un valor de `split` fuera de `SPLITS` → `ValueError` que lo
+# nombra, antes del reparto. Con muestra, `base_seed` es obligatorio (None → `ValueError`).
+#
+# Copia de `_muestrear` de `src/lgd/experimento.py` (Parte D). TODO(refactor-post-B5): unificar con la de la LGD.
+
+# %%
+def muestrear(df: pd.DataFrame, muestra: int | None, base_seed: int | None) -> pd.DataFrame:
+    """Filas de df sin reemplazo por split con make_rng(base_seed, 0), en el orden del parquet; null o ≥ len → df."""
+    if muestra is None:  # todos los datos
+        return df  # el mismo objeto
+    muestra = _entero_cfg(muestra, "datos.muestra", minimo=MINIMO_MUESTRA)  # entero ≥ 3
+    if muestra >= len(df):  # nada que recortar
+        return df  # el mismo objeto
+    base_seed = _entero_cfg(base_seed, "base_seed", minimo=0)  # semilla del sorteo (None → ValueError)
+    splits = df[COLUMNA_SPLIT].to_numpy()  # split de cada fila, en orden
+    ajenos = sorted(set(splits) - set(SPLITS))  # valores de split desconocidos
+    if ajenos:  # el reparto solo conoce train, val y test
+        raise ValueError(f"datos.muestra: la columna split tiene valores fuera de {list(SPLITS)}: {ajenos}")  # nombra
+    n = _repartir(muestra, {s: int((splits == s).sum()) for s in SPLITS})  # filas por split
+    vacios = [s for s in SPLITS if n[s] == 0]  # splits sin filas
+    if vacios:  # una métrica de ese split no existiría
+        raise ValueError(f"datos.muestra={muestra} deja vacío el split {vacios} (reparto {n}); usa una muestra "
+                         "mayor")  # nombra el split
+    rng = make_rng(base_seed, RUN_ID_MUESTRA)  # generador del sorteo
+    elegidos = [rng.choice(np.flatnonzero(splits == s), size=n[s], replace=False) for s in SPLITS]  # sin reemplazo
+    return df.iloc[np.sort(np.concatenate(elegidos))].reset_index(drop=True)  # orden del parquet
+
+
+# %% [markdown]
 # ## Matrices por split
 #
 # $X_s = \text{pre.transform}(\text{filas de } s)$ con el preprocesador **guardado** (`from_dict`, sin `fit`): fue
@@ -156,6 +272,10 @@ def evidencia(df: pd.DataFrame, ruta_preprocesador) -> dict:
 # `cargar_datos` (pública desde B4, la reutiliza la búsqueda Optuna) lee el parquet **una vez** y devuelve el
 # DataFrame junto con las matrices: el experimento usa el DataFrame para la huella de la partición.
 # `cargar_matrices` conserva su firma pública y solo devuelve las matrices.
+#
+# B6: con `muestra`, el DataFrame se recorta con `muestrear` **antes** de transformar (y por tanto antes de la huella):
+# las matrices y la evidencia describen las mismas filas. El preprocesador no se reajusta nunca. Sin muestra devuelve el
+# DataFrame leído tal cual (lo de B3–B5).
 
 # %%
 def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
@@ -171,9 +291,13 @@ def _matrices(df: pd.DataFrame, pre: Preprocesador) -> dict:
     return matrices  # tres splits
 
 
-def cargar_datos(rutas: RutasPD) -> tuple[pd.DataFrame, dict]:
-    """(DataFrame del parquet, matrices por split) con una sola lectura del parquet."""
-    df = pd.read_parquet(rutas.parquet)  # datos de A
+def cargar_datos(
+    rutas: RutasPD,  # entradas y salidas del experimento
+    muestra: int | None = None,  # datos.muestra (None: todos los datos)
+    base_seed: int | None = None,  # semilla del sorteo (obligatoria con muestra)
+) -> tuple[pd.DataFrame, dict]:
+    """(DataFrame del parquet o de su muestra, matrices por split) con una sola lectura del parquet."""
+    df = muestrear(pd.read_parquet(rutas.parquet), muestra, base_seed)  # datos de A (o su muestra, B6)
     pre = Preprocesador.from_dict(load_json(rutas.preprocesador))  # sin reajustar
     return df, _matrices(df, pre)  # el mismo df sirve para la huella
 
@@ -285,7 +409,7 @@ def actualizar_summary(ruta, modelo: str, entrada: dict) -> None:
 # (`PERMISOS_ARCHIVO`), como hace `save_json` con los JSON: el resultado debe quedar legible (en Windows es inocuo).
 
 # %%
-def _escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
+def escribir_parquet_atomico(ruta: Path, df: pd.DataFrame) -> None:
     """Escribe ``df`` en ``ruta`` vía un temporal de la misma carpeta y ``os.replace``."""
     ruta.parent.mkdir(parents=True, exist_ok=True)  # crea la carpeta si falta
     fd, temporal = tempfile.mkstemp(prefix=f".{ruta.name}.", suffix=".tmp", dir=ruta.parent)  # misma carpeta
@@ -334,7 +458,7 @@ def actualizar_pred_test(ruta, ids, y, columna: str, pred) -> None:
     ruta = Path(ruta)  # acepta texto o Path
     nuevo = _tabla_nueva(ids, y, columna, pred)  # tabla del modelo
     tabla = _combinar(pd.read_parquet(ruta), nuevo, columna) if ruta.exists() else nuevo  # combina si existe
-    _escribir_parquet_atomico(ruta, tabla)  # nunca queda a medias
+    escribir_parquet_atomico(ruta, tabla)  # nunca queda a medias
 
 
 # %% [markdown]
@@ -440,7 +564,8 @@ def _escribir_resultados(rutas: RutasPD, modelo: str, seed: int, registro: dict,
 # %% [markdown]
 # ## Experimento de la logística
 #
-# Valida la semilla y la config **antes** de leer datos o entrenar; carga las matrices, entrena `LogisticaPD`
+# Valida la semilla, la config y `datos.muestra` (B6) **antes** de leer datos o entrenar; carga las matrices (de la
+# muestra, si la hay), entrena `LogisticaPD`
 # (busca $C$ con val), mide val y test una vez y escribe los 5 archivos: semilla, búsqueda, summary,
 # `pred_test.parquet` y `pd_logistica.joblib`. Devuelve la entrada del summary.
 
@@ -449,7 +574,8 @@ def correr_logistica(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=LogisticaP
     """Entrena y evalúa la logística, escribe sus resultados y devuelve su entrada de summary.json."""
     seed = _semilla_valida(seed)  # primero: una semilla inválida no debe costar un entrenamiento
     cfg_log = bloque_logistica(cfg)  # bloque validado (va a la semilla); ValueError si falta
-    df, datos = cargar_datos(rutas)  # una sola lectura del parquet
+    muestra = muestra_de(cfg)  # datos.muestra y su semilla validados antes de leer (B6)
+    df, datos = cargar_datos(rutas, **muestra)  # una sola lectura del parquet
     huellas = evidencia(df, rutas.preprocesador)  # huellas del mismo df y del preprocesador
     X_tr, y_tr, _ = datos["train"]  # entrenamiento
     X_val, y_val, _ = datos["val"]  # validación (elige C)
@@ -721,12 +847,15 @@ def entrenar_semilla(modelo_cls, datos: dict, cfg_mlp: dict, seed: int, reloj) -
 # ## Evidencia rápida
 #
 # Para el pre-chequeo de `correr_pd`, antes de la logística: la misma `evidencia` leyendo del parquet **solo** las
-# columnas `id` y `split` (mismo orden de filas). Una prueba exige que coincida con la del DataFrame completo.
+# columnas `id` y `split` (mismo orden de filas). Una prueba exige que coincida con la del DataFrame completo. B6: con
+# muestra, la huella es la de las filas muestreadas (`muestrear` solo mira `split` y el orden).
 
 # %%
-def evidencia_rapida(ruta_parquet, ruta_preprocesador) -> dict:
-    """``evidencia`` del parquet leyendo solo id y split."""
+def evidencia_rapida(ruta_parquet, ruta_preprocesador, muestra: int | None = None,
+                     base_seed: int | None = None) -> dict:
+    """``evidencia`` del parquet (o de su muestra) leyendo solo id y split."""
     df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # dos columnas
+    df = muestrear(df, muestra, base_seed)  # las mismas filas que cargar_datos (B6)
     return evidencia(df, ruta_preprocesador)  # misma función que correr_mlp
 
 
@@ -884,13 +1013,17 @@ def _escribir_mlp(rutas: RutasPD, entrada: dict, modelo, datos: dict) -> None:
 # salidas previas, borra las semillas viejas, entrena las $n$ semillas, elige la mediana y escribe. `cargar` y
 # `ruta_mlp_final` se resuelven **al llamar** (`cargar_datos`, `RUTA_MLP_FINAL`), como en `hpo.py`. La lectura de
 # `mlp_final.yaml` va antes de leer datos (si falta → `ValueError`). Devuelve la entrada `mlp` del summary.
+#
+# B6: `datos.muestra` se valida al inicio; el `cargar` por defecto es `cargar_datos` con la muestra de la config. Un
+# `cargar` inyectado conserva su firma `cargar(rutas)` y es responsable de su muestra.
 
 # %%
 def correr_mlp(cfg: dict, rutas: RutasPD = RUTAS_PD, modelo_cls=MLPPD, cargar=None, reloj=time.perf_counter,
                ruta_mlp_final=None) -> dict:
     """30 semillas (semillas.n) del MLP final: semillas/, entrada mlp, pred_mlp y pd_mlp.pt."""
+    muestra = muestra_de(cfg)  # datos.muestra validado antes de leer (B6)
     n, base_seed, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # antes de leer datos
-    cargar = cargar_datos if cargar is None else cargar  # al llamar
+    cargar = functools.partial(cargar_datos, **muestra) if cargar is None else cargar  # al llamar
     ruta_mlp_final = RUTA_MLP_FINAL if ruta_mlp_final is None else ruta_mlp_final  # al llamar
     de_busqueda, difieren = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # antes de leer datos (E1)
     df, datos = cargar(rutas)  # una sola lectura
@@ -929,12 +1062,18 @@ def rutas_de(cfg: dict) -> RutasPD:
 # ## Ids e $y$ de test sin preprocesar
 #
 # Para el pre-chequeo de las salidas previas: del parquet se leen solo `id`, `split` y `target`; las filas de test
-# salen en el orden del parquet y con los mismos tipos que `cargar_datos` (ids `object`, $y$ `int64`).
+# salen en el orden del parquet y con los mismos tipos que `cargar_datos` (ids `object`, $y$ `int64`). B6: con muestra,
+# las de test de la muestra.
 
 # %%
-def leer_test_rapido(ruta_parquet) -> tuple[np.ndarray, np.ndarray]:
-    """(ids, y) de test leyendo solo id, split y target."""
+def leer_test_rapido(
+    ruta_parquet,  # data/processed/loans_pd.parquet
+    muestra: int | None = None,  # datos.muestra (None: todos los datos)
+    base_seed: int | None = None,  # semilla del sorteo (obligatoria con muestra)
+) -> tuple[np.ndarray, np.ndarray]:
+    """(ids, y) de test (del parquet o de su muestra) leyendo solo id, split y target."""
     df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT, COLUMNA_OBJETIVO])  # tres columnas
+    df = muestrear(df, muestra, base_seed)  # las mismas filas que cargar_datos (B6)
     parte = df[df[COLUMNA_SPLIT] == "test"]  # filas de test, en el orden del parquet
     return parte[COLUMNA_ID].to_numpy(dtype=object), parte[COLUMNA_OBJETIVO].to_numpy(dtype=np.int64)  # como _matrices
 
@@ -947,15 +1086,20 @@ def leer_test_rapido(ruta_parquet) -> tuple[np.ndarray, np.ndarray]:
 # de test de `leer_test`, por defecto `leer_test_rapido`) y, si la config es la de la búsqueda, la evidencia de la
 # búsqueda frente a la de los datos leyendo solo `id, split` (`leer_particion`, por defecto `evidencia_rapida`).
 # Así una búsqueda hecha con otros datos o una salida ajena no cuestan la corrida de la logística.
+#
+# B6: primero `datos.muestra`; los lectores por defecto reciben la muestra de la config (`functools.partial`), así que
+# la huella y el test del pre-chequeo son los de las filas que se entrenarán. Los inyectados conservan su firma.
 
 # %%
 def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=None, leer_particion=None, leer_test=None) -> None:
     """ValueError si la config, mlp_final.yaml o las salidas previas no sirven, o si la búsqueda usó otros datos."""
+    muestra = muestra_de(cfg)  # datos.muestra validado antes de todo (B6)
     _, _, cfg_mlp, busqueda = validar_cfg_mlp_final(cfg)  # mismas reglas que correr_mlp
     bloque_logistica(cfg)  # bloque logistica validado (E4)
     ruta_mlp_final = RUTA_MLP_FINAL if ruta_mlp_final is None else ruta_mlp_final  # al llamar
-    leer_particion = evidencia_rapida if leer_particion is None else leer_particion  # al llamar
-    leer_test = leer_test_rapido if leer_test is None else leer_test  # al llamar
+    leer_particion = (functools.partial(evidencia_rapida, **muestra) if leer_particion is None
+                      else leer_particion)  # al llamar, con la muestra
+    leer_test = functools.partial(leer_test_rapido, **muestra) if leer_test is None else leer_test  # ídem
     de_busqueda, _ = procedencia(cfg_mlp, busqueda, ruta_mlp_final)  # ¿config de la búsqueda? (E1 si falta)
     ids_test, y_test = leer_test(rutas.parquet)  # solo id, split y target
     _verificar_salidas(rutas, ids_test, y_test)  # summary y pred_test previos (E4)
@@ -964,18 +1108,55 @@ def comprobar_antes(cfg: dict, rutas: RutasPD, ruta_mlp_final=None, leer_partici
 
 
 # %% [markdown]
-# ## `run.py pd`: composición
+# ## B6: filas por split de la corrida
 #
-# Config que no es un mapeo → `ValueError` (antes de `rutas_de`); luego rutas de la config → pre-chequeo →
-# logística (semilla `base_seed`) → MLP. Las tres piezas se inyectan.
+# Cuenta las filas por split que usará la corrida leyendo del parquet solo `id` y `split` y aplicando la misma
+# `muestrear` que `cargar_datos` (sin muestra: todas las filas).
 
 # %%
-def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, comprobar=comprobar_antes) -> dict:
-    """{"logistica", "mlp", "rutas"}: pre-chequeo, logística y MLP con las mismas rutas."""
+def filas_muestra(ruta_parquet, muestra: int | None, base_seed: int | None) -> dict[str, int]:
+    """Filas por split que usará la corrida (lee solo id y split)."""
+    df = pd.read_parquet(ruta_parquet, columns=[COLUMNA_ID, COLUMNA_SPLIT])  # dos columnas
+    splits = muestrear(df, muestra, base_seed)[COLUMNA_SPLIT]  # split de las filas de la corrida
+    return {s: int((splits == s).sum()) for s in SPLITS}  # en el orden de SPLITS
+
+
+# %% [markdown]
+# ## B6: aviso de la muestra
+#
+# Con muestra, la consola dice cuántas filas de cada split entran a la corrida, p. ej.
+# `Muestra: datos.muestra=50000 → train 19005 · val 15397 · test 15598`; sin muestra no imprime nada. `contar` se
+# inyecta (por defecto `filas_muestra`).
+
+# %%
+def _avisar_muestra(cfg: dict, rutas: RutasPD, contar) -> None:
+    """Imprime 'Muestra: datos.muestra=N → train a · val b · test c' si hay muestra; si no, nada."""
+    muestra = muestra_de(cfg)  # {muestra, base_seed} validados
+    if muestra["muestra"] is None:  # todos los datos
+        return  # nada que avisar
+    filas = contar(rutas.parquet, **muestra)  # filas por split de la muestra
+    detalle = " · ".join(f"{s} {filas[s]}" for s in SPLITS)  # train a · val b · test c
+    print(f"Muestra: datos.muestra={muestra['muestra']} → {detalle}")  # consola
+
+
+# %% [markdown]
+# ## `run.py pd`: composición
+#
+# Config que no es un mapeo → `ValueError` (antes de `rutas_de`); luego rutas de la config → pre-chequeo → aviso de la
+# muestra (B6) → logística (semilla `base_seed`) → MLP. Las piezas se inyectan (también el contador de filas).
+#
+# B10: `rutas` se puede inyectar (el análisis de sensibilidad, `src/pd/sensibilidad.py`, pasa el parquet unido y su
+# preprocesador); con `None` son las de `rutas_de(cfg)` y el comportamiento es el de antes.
+
+# %%
+def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, comprobar=comprobar_antes,
+              contar=filas_muestra, rutas: RutasPD | None = None) -> dict:
+    """{"logistica", "mlp", "rutas"}: pre-chequeo, aviso de la muestra, logística y MLP con las mismas rutas."""
     if not isinstance(cfg, dict):  # p. ej. None si el subcomando no recibió config
         raise ValueError(f"la config de pd debe ser un mapeo; se recibió {type(cfg).__name__}")  # tipo
-    rutas = rutas_de(cfg)  # salidas de la config
+    rutas = rutas_de(cfg) if rutas is None else rutas  # salidas de la config, o las inyectadas (B10)
     comprobar(cfg, rutas)  # antes de la logística
+    _avisar_muestra(cfg, rutas, contar)  # filas por split si hay muestra (B6)
     entrada_log = correr_log(cfg, rutas, seed=cfg["base_seed"])  # logística (B3)
     entrada_mlp = correr_red(cfg, rutas)  # MLP (B5)
     return {"logistica": entrada_log, "mlp": entrada_mlp, "rutas": rutas}  # en ese orden
@@ -988,7 +1169,7 @@ def correr_pd(cfg: dict, correr_log=correr_logistica, correr_red=correr_mlp, com
 # búsqueda y tiempo total (núcleo §6).
 
 # %%
-def _linea_modelo(nombre: str, entrada: dict) -> str:
+def linea_modelo(nombre: str, entrada: dict) -> str:
     """Texto de una línea con las métricas de test y el presupuesto de ``entrada``."""
     partes = []  # piezas de la línea
     for metrica, etiqueta in (("auc_test", "AUC"), ("ks_test", "KS"), ("brier_test", "Brier")):  # de test
@@ -1003,21 +1184,58 @@ def _linea_modelo(nombre: str, entrada: dict) -> str:
 
 
 # %% [markdown]
-# ## `run.py pd`
+# ## `run.py pd`: corrida e informe
 #
 # Corre todo e imprime una línea por modelo, la semilla mediana y su criterio, si la config es la de la búsqueda,
 # dónde quedaron los archivos y el tiempo total (núcleo §4.1). La config resuelta ya la imprime el CLI.
 
 # %%
-def manejador(cfg: dict | None) -> int:
-    """`run.py pd`: logística + MLP; imprime métricas, mediana, procedencia, rutas y tiempo."""
+def _correr_e_informar(cfg: dict | None) -> int:
+    """Corre todo e imprime métricas, mediana, procedencia, rutas y tiempo; devuelve 0."""
     inicio = time.perf_counter()  # tiempo total del subcomando
     res = correr_pd(cfg)  # corrida completa (valida la config)
     mlp, rutas = res["mlp"], res["rutas"]  # atajos
-    print(_linea_modelo(MODELO_LOGISTICA, res["logistica"]))  # logística
-    print(_linea_modelo(MODELO_MLP, mlp))  # MLP
+    print(linea_modelo(MODELO_LOGISTICA, res["logistica"]))  # logística
+    print(linea_modelo(MODELO_MLP, mlp))  # MLP
     print(f"Semilla mediana: {mlp['semilla_mediana']} ({mlp['criterio_semilla_mediana']})")  # pd_mlp.pt
     print(f"Config de la búsqueda: {'sí' if mlp['config_de_busqueda'] else 'no'}")  # procedencia
     print(f"Resultados: {rutas.resultados.as_posix()} · Modelos: {rutas.modelos.as_posix()}")  # archivos
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")  # núcleo §4.1
     return 0  # éxito
+
+
+# %% [markdown]
+# ## B6: mensaje de error en una línea
+#
+# El texto de la excepción con sus saltos de línea cambiados por espacios: el error de `run.py pd` ocupa una sola
+# línea de stderr.
+
+# %%
+def una_linea(exc: BaseException) -> str:
+    """Texto de ``exc`` en una sola línea (saltos de línea → espacios)."""
+    return " ".join(str(exc).splitlines())  # sin saltos de línea
+
+
+# %% [markdown]
+# ## `run.py pd`
+#
+# Llama a `_correr_e_informar`. Los errores **esperados** (config inválida, salidas previas incompatibles, búsqueda con
+# otros datos: `ValueError`; fallas del fit: `RuntimeError` y `FloatingPointError`; un archivo de entrada que no
+# existe: `FileNotFoundError`) salen como una línea `run.py pd: error: <Tipo>: <mensaje>` en stderr y código 2,
+# como los errores de argumentos del CLI (argparse), sin traza (B6: en la demo en vivo se lee el mensaje). Cualquier
+# otra excepción (p. ej. `TypeError`, un error de programación)
+# se propaga con su traza; también las demás `OSError` (p. ej. `PermissionError`).
+#
+# `NotImplementedError` y `RecursionError` son subclases de `RuntimeError` pero indican un bug, no una falla esperada:
+# se relanzan **antes** del `except` de los errores esperados (`ERRORES_DE_PROGRAMACION`, decisión de Andrés, 26-oct).
+
+# %%
+def manejador(cfg: dict | None) -> int:
+    """`run.py pd`: _correr_e_informar; ERRORES_ESPERADOS → "run.py pd: error: <Tipo>: <mensaje>" y código 2."""
+    try:  # solo los errores esperados se informan sin traza
+        return _correr_e_informar(cfg)  # corrida completa (0 si termina)
+    except ERRORES_DE_PROGRAMACION:  # bugs que heredan de RuntimeError
+        raise  # se propagan con su traza
+    except ERRORES_ESPERADOS as exc:  # config, datos o fit
+        print(f"{PREFIJO_ERROR}{type(exc).__name__}: {una_linea(exc)}", file=sys.stderr)  # una línea con el tipo
+        return CODIGO_ERROR  # como argparse

@@ -2,7 +2,7 @@
 # `requiere`: archivos que la demo necesita además de su config (entregas de otras partes).
 # `salida_temporal`: la clave de su carpeta de salida; el notebook la apunta a una carpeta temporal para no sobrescribir
 # resultados versionados. Cada parte cambia aquí su entrada cuando conecte su demo.
-demo: eda        # la que se muestra en el bloque de demostración (2 min); al final debería ser pd
+demo: pd         # B6 (propuesta de Andrés; la decide Daniel): demo de PD medida en 13,8–15,1 s; la de A sigue disponible como "eda"
 demos:
   eda:
     parte: A
@@ -13,7 +13,7 @@ demos:
     parte: B
     subcomando: pd
     config: configs/pd/demo.yaml
-    salida_temporal: null
+    salida_temporal: salida  # B6: la demo de PD escribe en una carpeta temporal (no pisa results/data/pd_demo)
   lgd:
     parte: D
     subcomando: lgd

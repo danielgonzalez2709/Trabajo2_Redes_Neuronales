@@ -19,7 +19,11 @@
 #
 # **Datos:** sintéticos, generados aquí con una logística conocida (núcleo §0 regla 8: solo para desarrollar), con un
 # preprocesador ajustado solo con su train. Las únicas excepciones leen los datos reales de A: la prueba 26 (huella del
-# parquet real) y la 27 (marcada `lento`, corre `correr_pd` con 2 semillas).
+# parquet real) y la 27 (marcada `lento`, corre `correr_pd` con 2 semillas). La 55 lee las configs versionadas.
+#
+# **B6 (pruebas 39–56):** la clave `datos.muestra` (núcleo §4.1) y la demo `configs/pd/demo.yaml`: validación antes de
+# leer datos, muestreo estratificado por split (reparto por el mayor resto), la muestra antes de transformar y de la
+# evidencia (sin reajustar el preprocesador), el aviso de filas por split y `run.py pd` con código 2 ante errores.
 #
 # **Nunca** se escribe en `results/`, `models/` ni `configs/` reales: todo va a `tmp_path` (la prueba 24 lo comprueba).
 #
@@ -29,8 +33,11 @@
 """Pruebas de las celdas de B5 en src/pd/experimento.py y del subcomando run.py pd (Parte B §3.5)."""
 
 import copy  # copias profundas de configs y bloques
+import functools  # correr_mlp con el modelo falso como correr_red (B6)
+import hashlib  # SHA-256 de los archivos que no deben cambiar (B6)
 import itertools  # reloj falso que avanza a paso fijo
 import re  # formato de la línea del MLP en la consola
+import subprocess  # git check-ignore de las carpetas de la demo (B6)
 from pathlib import Path  # rutas de los archivos de prueba
 
 import numpy as np  # datos sintéticos y comparaciones
@@ -691,6 +698,51 @@ def test_22_correr_pd_orden(escenario, tmp_path):
     assert orden == []  # ni la logística ni el MLP
 
 
+# %% [markdown]
+# ## 22b. B10: `correr_pd(rutas=…)`
+#
+# Con `rutas=None` las piezas reciben `rutas_de(cfg)` (lo de antes); con rutas inyectadas reciben esas mismas y no
+# se llama a `rutas_de` (la config puede no traer `salida` ni `modelos`). Con las piezas reales, nada se escribe fuera
+# de las rutas inyectadas.
+
+# %%
+def test_22b_correr_pd_con_rutas_inyectadas(escenario, tmp_path, monkeypatch):
+    """rutas=None → rutas_de(cfg); rutas dadas → esas, y ninguna escritura fuera de ellas."""
+    cfg = _cfg(escenario)  # config
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "cfg_r"), str(tmp_path / "cfg_m")  # salidas de la config
+    vistas = []  # rutas recibidas por cada pieza
+
+    def espia(nombre):
+        """Pieza espía que registra las rutas que recibe."""
+        def pieza(c, rutas, **k):
+            """Registra (nombre, rutas)."""
+            vistas.append((nombre, rutas))  # registro
+            return {}  # entrada falsa
+        return pieza  # doble
+
+    piezas = {"correr_log": espia("log"), "correr_red": espia("red"), "comprobar": espia("comprobar")}  # dobles
+    ex.correr_pd(cfg, **piezas)  # sin rutas: como antes
+    assert {r for _, r in vistas} == {ex.rutas_de(cfg)}  # las de la config
+    vistas.clear()  # de nuevo con rutas inyectadas
+    inyectadas = _rutas(escenario, tmp_path / "iny")  # otras rutas
+    sin_salidas = {k: v for k, v in cfg.items() if k not in ("salida", "modelos")}  # sin salida ni modelos
+    res = ex.correr_pd(sin_salidas, rutas=inyectadas, **piezas)  # con rutas
+    assert [n for n, _ in vistas] == ["comprobar", "log", "red"] and {r for _, r in vistas} == {inyectadas}  # esas
+    assert res["rutas"] == inyectadas  # devueltas
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", escenario["ruta_final"])  # mlp_final.yaml del escenario
+    reales = _rutas(escenario, tmp_path / "real")  # rutas para las piezas reales
+    cfg_n1 = _cfg(escenario, n=1)  # una semilla
+    cfg_n1["salida"], cfg_n1["modelos"] = str(tmp_path / "cfg_r"), str(tmp_path / "cfg_m")  # salidas ajenas
+    ex.correr_pd(cfg_n1, rutas=reales)  # piezas reales
+    assert not (tmp_path / "cfg_r").exists() and not (tmp_path / "cfg_m").exists()  # nada en las de la config
+    assert (reales.resultados / ex.ARCHIVO_SUMMARY).is_file()  # resultados en las inyectadas
+    assert (reales.modelos / ex.ARCHIVO_MODELO_MLP).is_file()  # modelos en las inyectadas
+
+
+# %% [markdown]
+# ## 23. Rutas inválidas
+
+# %%
 @pytest.mark.parametrize("cambio", [("salida", ""), ("modelos", "  "), ("salida", 3), ("modelos", None)],
                          ids=["salida_vacia", "modelos_blanco", "salida_numero", "modelos_none"])
 def test_23_rutas_de_invalidas(escenario, cambio):
@@ -934,12 +986,13 @@ def test_36_red_guardada_es_la_mediana_del_medio(escenario, tmp_path):
 
 
 @pytest.mark.parametrize("cfg", [None, [1, 2], "base.yaml"], ids=["none", "lista", "texto"])
-def test_37_config_que_no_es_mapeo(cfg):
-    """correr_pd y manejador con una config que no es mapeo → ValueError antes de rutas_de."""
+def test_37_config_que_no_es_mapeo(cfg, capsys):
+    """correr_pd con una config que no es mapeo → ValueError antes de rutas_de; manejador → código 2 y el mensaje en
+    stderr (B6: run.py pd informa los errores esperados en una línea)."""
     with pytest.raises(ValueError, match="la config de pd debe ser un mapeo"):  # mensaje claro
         ex.correr_pd(cfg)  # orquestación
-    with pytest.raises(ValueError, match="la config de pd debe ser un mapeo"):  # también desde el CLI
-        ex.manejador(cfg)  # run.py pd
+    assert ex.manejador(cfg) == 2  # también desde el CLI: código de error, sin traza
+    assert capsys.readouterr().err.startswith("run.py pd: error: ValueError: la config de pd debe ser un mapeo")  # tipo
 
 
 def test_38_hilos_y_version_de_torch(corrida):
@@ -956,12 +1009,15 @@ def test_38_hilos_y_version_de_torch(corrida):
 # %%
 def test_26_configs_versionadas():
     """base.yaml: semillas.n 30, salida y modelos del proyecto, procedencia True con el mlp_final.yaml real;
-    hpo.yaml sigue válido; y la huella rápida del parquet real es la del DataFrame completo."""
+    hpo.yaml sigue válido; datos.muestra null en ambas (B6); y la huella rápida del parquet real es la del DataFrame
+    completo."""
     base = load_config(ROOT / "configs" / "pd" / "base.yaml")  # config de B5
     assert (base["semillas"]["n"], base["salida"], base["modelos"]) == (30, "results/data/pd", "models")  # claves
     _, _, mlp, busqueda = ex.validar_cfg_mlp_final(base)  # validación completa
     assert ex.procedencia(mlp, busqueda, ROOT / "configs" / "pd" / "mlp_final.yaml") == (True, [])  # de la búsqueda
     hpo.validar_cfg(load_config(ROOT / "configs" / "pd" / "hpo.yaml"))  # pd-hpo sigue válido
+    assert base["datos"] == {"muestra": None}  # B6: sin muestra por defecto (todos los datos)
+    assert load_config(ROOT / "configs" / "pd" / "hpo.yaml")["datos"] == {"muestra": None}  # hpo.yaml lo hereda
     parquet, pre = ROOT / "data" / "processed" / "loans_pd.parquet", ROOT / "models" / "preprocesador_pd.json"  # A
     assert ex.evidencia_rapida(parquet, pre) == ex.evidencia(pd.read_parquet(parquet), pre)  # misma huella
 
@@ -981,3 +1037,513 @@ def test_27_datos_reales(tmp_path, monkeypatch):
     assert res["mlp"]["metricas"]["auc_test"]["n"] == 2  # dos semillas
     assert res["mlp"]["config_de_busqueda"] is True  # la config es la de la búsqueda
     assert (tmp_path / "models" / ex.ARCHIVO_MODELO_MLP).exists()  # modelo guardado
+
+
+# %% [markdown]
+# # B6: `datos.muestra` y la demo de PD (Parte B §4, fila B6)
+#
+# `datos.muestra` (núcleo §4.1) es null (todos los datos) o un entero $n \ge 3$ (uno por split). Con $N_s$ filas en el
+# split $s$ y $N = \sum_s N_s$, el reparto es proporcional por el **mayor resto**:
+#
+# $$\text{cuota}_s = \frac{n\,N_s}{N}, \qquad n_s = \lfloor \text{cuota}_s \rfloor + [s \text{ está entre los }
+# n - \textstyle\sum_s \lfloor \text{cuota}_s \rfloor \text{ restos mayores}],$$
+#
+# con empate de restos → orden de `SPLITS`. Dentro de cada split se sortea sin reemplazo con `make_rng(base_seed, 0)` y
+# las filas quedan en el orden del parquet. Las pruebas usan el escenario sintético (300/150/150).
+
+# %%
+MUESTRA_ESC = 60  # muestra del escenario: 60·300/600 = 30, 60·150/600 = 15 y 15 (cuotas exactas)
+N_MUESTRA_ESC = {"train": 30, "val": 15, "test": 15}  # reparto esperado de MUESTRA_ESC
+MUESTRA_OTRA = 90  # otra muestra (prueba 52): otro conjunto de ids de test
+MUESTRA_IMPAR = 7  # cuotas 3,5 / 1,75 / 1,75: los dos restos mayores (0,75) van a val y test
+N_MUESTRA_IMPAR = {"train": 3, "val": 2, "test": 2}  # reparto esperado de MUESTRA_IMPAR (calculado a mano)
+FILAS_FALSAS = {"train": 1, "val": 2, "test": 3}  # lo que devuelve el contador falso (prueba 53)
+PREFIJO_ERROR = "run.py pd: error: "  # inicio de la línea de error en stderr (B6)
+CODIGO_ERROR = 2  # código de salida de run.py pd ante un error esperado (como argparse en cli.main)
+
+
+def _cfg_muestra(escenario, muestra, n=N_SEMILLAS) -> dict:
+    """Copia de la cfg del escenario con ``datos: {muestra: muestra}``."""
+    cfg = _cfg(escenario, n=n)  # config del escenario (sin bloque datos)
+    cfg["datos"] = {"muestra": muestra}  # bloque datos de B6
+    return cfg  # config con muestra
+
+
+def _ids(df) -> list:
+    """Ids de ``df`` en orden."""
+    return list(df["id"])  # en el orden de las filas
+
+
+def _sha(ruta) -> str | None:
+    """SHA-256 de ``ruta`` o None si no existe."""
+    ruta = Path(ruta)  # acepta texto o Path
+    return hashlib.sha256(ruta.read_bytes()).hexdigest() if ruta.is_file() else None  # huella o ausencia
+
+
+# %% [markdown]
+# ## 39. Validación de `datos`
+
+# %%
+@pytest.mark.parametrize("datos", [  # cada caso rompe una regla de datos.muestra
+    {"muestra": 0}, {"muestra": 2}, {"muestra": -1},  # enteros < 3
+    {"muestra": 2.5}, {"muestra": 20000.0}, {"muestra": True}, {"muestra": "x"},  # no enteros (bool y float también)
+    None, 5, [1], {"muestra": 3, "extra": 1}, {},  # datos que no es mapeo, con clave de más o sin muestra
+], ids=["cero", "dos", "negativo", "flotante", "flotante_entero", "bool", "texto", "datos_none", "datos_5",
+        "datos_lista", "clave_extra", "sin_muestra"])
+def test_39_validar_datos_invalido(datos):
+    """datos.muestra inválido o datos mal formado → ValueError."""
+    with pytest.raises(ValueError):  # toda falla de la config es ValueError
+        ex.validar_datos({"datos": datos})  # validación
+
+
+def test_39b_validar_datos_valido():
+    """null → None; 3 y np.int64(3) → 3 (int nativo); sin clave datos → None; config que no es mapeo → ValueError."""
+    assert ex.validar_datos({"datos": {"muestra": None}}) is None  # todos los datos
+    assert ex.validar_datos({}) is None  # sin bloque datos (decisión de Andrés: como null)
+    for valor in (3, np.int64(3)):  # int de Python y de numpy
+        resultado = ex.validar_datos({"datos": {"muestra": valor}})  # validado
+        assert resultado == 3 and type(resultado) is int  # int nativo (va a los JSON)
+    with pytest.raises(ValueError):  # caso nuevo: la config no es un mapeo
+        ex.validar_datos(None)  # p. ej. run.py pd sin config
+
+
+# %% [markdown]
+# ## 40–45. Muestreo
+
+# %%
+@pytest.mark.parametrize("muestra, esperado", [(MUESTRA_ESC, N_MUESTRA_ESC), (MUESTRA_IMPAR, N_MUESTRA_IMPAR)],
+                         ids=["exacta", "restos"])
+def test_40_muestrear_tamanos(escenario, muestra, esperado):
+    """Filas por split calculadas a mano; suman la muestra; _repartir da lo mismo."""
+    df = escenario["df"]  # 300/150/150
+    m = ex.muestrear(df, muestra, BASE_SEED)  # muestra
+    assert m["split"].value_counts().to_dict() == esperado  # filas por split
+    assert len(m) == muestra  # suman n
+    assert ex._repartir(muestra, N_EXP) == esperado  # el reparto puro coincide
+
+
+def test_41_muestrear_determinista(escenario):
+    """Misma base_seed → mismos ids; otra base_seed → otros ids."""
+    df = escenario["df"]  # parquet sintético
+    a = _ids(ex.muestrear(df, MUESTRA_ESC, BASE_SEED))  # primera
+    assert a == _ids(ex.muestrear(df, MUESTRA_ESC, BASE_SEED))  # repetible
+    assert a != _ids(ex.muestrear(df, MUESTRA_ESC, BASE_SEED + 1))  # otra semilla, otros ids
+
+
+def test_42_muestrear_sin_recorte(escenario):
+    """null, n = len y n > len → el mismo objeto df; n = len − 1 → una muestra."""
+    df = escenario["df"]  # 600 filas
+    for muestra in (None, len(df), len(df) + 1):  # nada que recortar
+        assert ex.muestrear(df, muestra, BASE_SEED) is df  # mismo objeto (sin copia ni reset_index)
+    assert len(ex.muestrear(df, len(df) - 1, BASE_SEED)) == len(df) - 1  # recorta una fila
+
+
+def test_43_split_vacio(escenario):
+    """train 150, val 150, test 1 con n = 3 → reparto 2/1/0 → ValueError que nombra test."""
+    df = escenario["df"]  # parquet sintético
+    chico = pd.concat([df[df["split"] == "train"].iloc[:150], df[df["split"] == "val"],
+                       df[df["split"] == "test"].iloc[:1]], ignore_index=True)  # 150/150/1
+    assert ex._repartir(3, {"train": 150, "val": 150, "test": 1}) == {"train": 2, "val": 1, "test": 0}  # a mano
+    with pytest.raises(ValueError, match="'test'"):  # nombra el split vacío
+        ex.muestrear(chico, 3, BASE_SEED)  # muestra mínima
+
+
+def test_43b_split_fuera_de_splits(escenario):
+    """Un split fuera de SPLITS con muestra → ValueError que lo nombra (no el de numpy); sin muestra, df intacto."""
+    df = pd.DataFrame({"id": [f"i{k}" for k in range(10)],  # 10 filas
+                       "split": ["train"] * 3 + ["val"] * 3 + ["test"] * 2 + ["otro"] * 2})  # 3/3/2/2
+    with pytest.raises(ValueError, match="'otro'"):  # nombra el split desconocido
+        ex.muestrear(df, 9, BASE_SEED)  # muestra < 10 filas
+    assert ex.muestrear(df, None, BASE_SEED) is df  # sin muestra no cambia nada
+
+
+def test_43c_muestra_minima(escenario):
+    """Muestra = 3 con los tres splits llenos → una fila por split."""
+    m = ex.muestrear(escenario["df"], 3, BASE_SEED)  # mínimo permitido
+    assert m["split"].value_counts().to_dict() == {"train": 1, "val": 1, "test": 1}  # una por split
+
+
+def test_43d_muestra_sin_base_seed(escenario, tmp_path):
+    """Con muestra y base_seed por defecto (None) los lectores fallan con un ValueError que nombra base_seed."""
+    rutas = _rutas(escenario, tmp_path)  # entradas del escenario
+    for leer in (lambda: ex.cargar_datos(rutas, muestra=MUESTRA_ESC),  # carga completa
+                 lambda: ex.evidencia_rapida(escenario["parquet"], escenario["pre"], muestra=MUESTRA_ESC),  # huella
+                 lambda: ex.leer_test_rapido(escenario["parquet"], muestra=MUESTRA_ESC)):  # test
+        with pytest.raises(ValueError, match="base_seed"):  # mensaje claro
+            leer()  # sin semilla del sorteo
+    assert ex.cargar_datos(rutas)[0] is not None  # sin muestra no hace falta base_seed
+
+
+def test_44_muestrear_orden_del_parquet(escenario):
+    """Las posiciones elegidas son estrictamente crecientes y el índice queda 0…n−1."""
+    df = escenario["df"].assign(pos=np.arange(len(escenario["df"])))  # posición original de cada fila
+    m = ex.muestrear(df, MUESTRA_ESC, BASE_SEED)  # muestra
+    assert np.all(np.diff(m["pos"].to_numpy()) > 0)  # orden del parquet
+    assert list(m.index) == list(range(MUESTRA_ESC))  # reset_index(drop=True)
+
+
+def test_45_muestrear_solo_depende_de_split(escenario):
+    """Mismos ids con el df completo, con (id, split, target), con (id, split) y con el target permutado."""
+    df = escenario["df"]  # completo
+    esperado = _ids(ex.muestrear(df, MUESTRA_ESC, BASE_SEED))  # ids de la muestra completa
+    permutado = df.assign(target=np.random.default_rng(SEMILLA_DATOS).permutation(df["target"].to_numpy()))  # otra y
+    for variante in (df[["id", "split", "target"]], df[["id", "split"]], permutado):  # lecturas parciales
+        assert _ids(ex.muestrear(variante, MUESTRA_ESC, BASE_SEED)) == esperado  # mismos ids
+
+
+# %% [markdown]
+# ## 46–47. Carga con muestra (sin reajustar el preprocesador)
+
+# %%
+def test_46_cargar_datos_con_y_sin_muestra(escenario, tmp_path):
+    """Sin muestra = lo de hoy (mismo df e índice, mismas matrices); con muestra, cada fila X es la de la carga
+    completa para el mismo id (el preprocesador no se reajusta)."""
+    rutas = _rutas(escenario, tmp_path)  # entradas del escenario
+    df_a, datos_a = ex.cargar_datos(rutas)  # firma de hoy
+    df_b, datos_b = ex.cargar_datos(rutas, muestra=None)  # explícito
+    pre = Preprocesador.from_dict(load_json(escenario["pre"]))  # transformación independiente
+    leido = pd.read_parquet(escenario["parquet"])  # lectura independiente
+    for df in (df_a, df_b):  # ambos
+        pd.testing.assert_frame_equal(df, leido)  # mismo df, mismo índice
+    for split in ("train", "val", "test"):  # cada split
+        parte = leido[leido["split"] == split]  # filas del split
+        for datos in (datos_a, datos_b):  # ambas cargas
+            X, y, ids = datos[split]  # matrices
+            assert np.array_equal(X, pre.transform(parte)) and np.array_equal(y, parte["target"].to_numpy())  # X, y
+            assert list(ids) == list(parte["id"])  # ids
+    df_m, datos_m = ex.cargar_datos(rutas, muestra=MUESTRA_ESC, base_seed=BASE_SEED)  # con muestra
+    pd.testing.assert_frame_equal(df_m, ex.muestrear(leido, MUESTRA_ESC, BASE_SEED))  # el df de la muestra
+    for split in ("train", "val", "test"):  # cada split
+        X_c, _, ids_c = datos_a[split]  # carga completa
+        fila_de = {i: k for k, i in enumerate(ids_c)}  # id → fila en la carga completa
+        X_m, _, ids_m = datos_m[split]  # muestra
+        assert len(ids_m) == N_MUESTRA_ESC[split]  # tamaño del split
+        assert np.array_equal(X_m, X_c[[fila_de[i] for i in ids_m]])  # misma fila X por id (sin reajuste)
+
+
+def test_47_lectores_rapidos_con_muestra(escenario, tmp_path):
+    """evidencia_rapida y leer_test_rapido con muestra = evidencia(muestrear(df)) y los ids/y de test de la muestra;
+    sin muestra, lo de hoy."""
+    parquet, pre = escenario["parquet"], escenario["pre"]  # entradas
+    m = ex.muestrear(escenario["df"], MUESTRA_ESC, BASE_SEED)  # muestra de referencia
+    rapida = ex.evidencia_rapida(parquet, pre, muestra=MUESTRA_ESC, base_seed=BASE_SEED)  # con muestra
+    assert rapida == ex.evidencia(m, pre) != escenario["huellas"]  # la de la muestra, no la completa
+    assert ex.evidencia_rapida(parquet, pre) == escenario["huellas"]  # sin muestra: lo de hoy
+    ids, y = ex.leer_test_rapido(parquet, muestra=MUESTRA_ESC, base_seed=BASE_SEED)  # test de la muestra
+    _, datos_m = ex.cargar_datos(_rutas(escenario, tmp_path), muestra=MUESTRA_ESC, base_seed=BASE_SEED)  # carga
+    assert list(ids) == list(datos_m["test"][2]) and np.array_equal(y, datos_m["test"][1])  # mismos ids e y
+    assert ids.dtype == object and y.dtype == np.int64  # mismos tipos que cargar_datos
+    ids_c, _ = ex.leer_test_rapido(parquet)  # sin muestra
+    assert len(ids_c) == N_EXP["test"]  # todo el test
+
+
+# %% [markdown]
+# ## 48–50. Validación antes de leer y pre-chequeo con muestra
+
+# %%
+@pytest.mark.parametrize("muestra", [2, 2.5, "x"], ids=["dos", "flotante", "texto"])
+def test_48_muestra_invalida_sin_leer_datos(escenario, tmp_path, muestra):
+    """Muestra inválida → ValueError en comprobar_antes, correr_logistica y correr_mlp sin leer datos (parquet
+    inexistente: leerlo daría otro error)."""
+    cfg = _cfg_muestra(escenario, muestra)  # config rota
+    rutas = ex.RutasPD(tmp_path / "no_existe.parquet", escenario["pre"], tmp_path / "res", tmp_path / "m")  # sin datos
+    with pytest.raises(ValueError):  # pre-chequeo
+        ex.comprobar_antes(cfg, rutas, ruta_mlp_final=escenario["ruta_final"])  # antes de leer
+    with pytest.raises(ValueError):  # logística
+        ex.correr_logistica(cfg, rutas, seed=BASE_SEED)  # antes de leer
+    cargar = _CargarContador()  # cuenta las lecturas
+    with pytest.raises(ValueError):  # MLP
+        ex.correr_mlp(cfg, rutas, cargar=cargar, ruta_mlp_final=escenario["ruta_final"])  # antes de leer
+    assert cargar.llamadas == 0  # no leyó datos
+
+
+@pytest.mark.parametrize("base_seed", ["0", None, -1], ids=["texto", "none", "negativo"])
+def test_48b_base_seed_invalida_con_muestra(escenario, tmp_path, base_seed):
+    """Caso nuevo: con muestra, correr_logistica valida base_seed (semilla del muestreo) antes de leer datos; un
+    base_seed ausente también es ValueError (no KeyError)."""
+    cfg = _cfg_muestra(escenario, MUESTRA_ESC)  # muestra válida
+    cfg["base_seed"] = base_seed  # semilla del muestreo inválida
+    rutas = ex.RutasPD(tmp_path / "no_existe.parquet", escenario["pre"], tmp_path / "res", tmp_path / "m")  # sin datos
+    with pytest.raises(ValueError):  # antes de leer
+        ex.correr_logistica(cfg, rutas, seed=BASE_SEED)  # logística
+    del cfg["base_seed"]  # sin la clave
+    with pytest.raises(ValueError, match="base_seed"):  # nombra la clave
+        ex.muestra_de(cfg)  # muestreo sin semilla
+
+
+def test_48c_sin_muestra_no_mira_base_seed():
+    """Sin muestra, muestra_de no exige base_seed (la logística de B3 corre con configs sin base_seed)."""
+    assert ex.muestra_de({"datos": {"muestra": None}})["muestra"] is None  # sin base_seed: no falla
+    assert ex.muestra_de({})["muestra"] is None  # sin bloque datos
+
+
+def test_49_prechequeo_con_muestra_sin_busqueda(escenario, tmp_path, monkeypatch):
+    """Muestra + sin_busqueda en una carpeta nueva: el pre-chequeo no aborta y lee la huella y el test de la muestra."""
+    cfg, ruta = _escenario_sin_busqueda(escenario, tmp_path)  # procedencia a mano
+    cfg["datos"] = {"muestra": MUESTRA_ESC}  # con muestra
+    vistas = {}  # lo que leyeron los lectores por defecto
+    original_ev, original_test = ex.evidencia_rapida, ex.leer_test_rapido  # funciones reales
+
+    def espia_ev(parquet, pre, **kw):
+        """Espía de evidencia_rapida: guarda los argumentos y el resultado."""
+        vistas["ev"] = (kw, original_ev(parquet, pre, **kw))  # argumentos y huella
+        return vistas["ev"][1]  # la huella real
+
+    def espia_test(parquet, **kw):
+        """Espía de leer_test_rapido: guarda los argumentos y el resultado."""
+        vistas["test"] = (kw, original_test(parquet, **kw))  # argumentos y (ids, y)
+        return vistas["test"][1]  # lo real
+
+    monkeypatch.setattr(ex, "evidencia_rapida", espia_ev)  # el valor por defecto se arma al llamar
+    monkeypatch.setattr(ex, "leer_test_rapido", espia_test)  # ídem
+    ex.comprobar_antes(cfg, _rutas(escenario, tmp_path / "nueva"), ruta_mlp_final=ruta)  # no lanza
+    esperado = {"muestra": MUESTRA_ESC, "base_seed": BASE_SEED}  # muestra de la config
+    m = ex.muestrear(escenario["df"], MUESTRA_ESC, BASE_SEED)  # filas muestreadas
+    assert vistas["ev"] == (esperado, ex.evidencia(m, escenario["pre"]))  # huella de la muestra
+    assert vistas["test"][0] == esperado  # test de la muestra
+    assert list(vistas["test"][1][0]) == list(m.loc[m["split"] == "test", "id"])  # ids de test de la muestra
+
+
+def test_50_muestra_con_config_de_la_busqueda(escenario, tmp_path):
+    """Muestra + config de la búsqueda (evidencia de todos los datos) → ValueError "la búsqueda se hizo con otros
+    datos" en comprobar_antes y en correr_mlp, sin ningún fit."""
+    cfg = _cfg_muestra(escenario, MUESTRA_ESC)  # busqueda optuna con la evidencia completa
+    rutas = _rutas(escenario, tmp_path)  # salidas temporales
+    with pytest.raises(ValueError, match="la búsqueda se hizo con otros datos"):  # pre-chequeo
+        ex.comprobar_antes(cfg, rutas, ruta_mlp_final=escenario["ruta_final"])  # antes de la logística
+    modelo_cls, contador = _fabrica_falsa()  # modelo falso
+    with pytest.raises(ValueError, match="la búsqueda se hizo con otros datos"):  # MLP
+        ex.correr_mlp(cfg, rutas, modelo_cls=modelo_cls, ruta_mlp_final=escenario["ruta_final"])  # corrida
+    assert contador["fit"] == 0  # ningún fit
+
+
+# %% [markdown]
+# ## 51–53. `correr_pd` con muestra
+
+# %%
+def _preparar_pd_muestra(escenario, carpeta, monkeypatch, muestra):
+    """(cfg, ruta de mlp_final.yaml) sin_busqueda con muestra, salidas en ``carpeta`` y RUTAS_PD/RUTA_MLP_FINAL del
+    módulo apuntando al escenario."""
+    cfg, ruta = _escenario_sin_busqueda(escenario, carpeta)  # procedencia a mano (como la demo)
+    cfg["datos"] = {"muestra": muestra}  # con muestra
+    cfg["salida"], cfg["modelos"] = (carpeta / "res").as_posix(), (carpeta / "models").as_posix()  # temporales
+    _apuntar_al_escenario(escenario, monkeypatch)  # parquet y preprocesador del escenario
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", ruta)  # mlp_final.yaml sin_busqueda
+    return cfg, ruta  # config y YAML
+
+
+def _correr_pd_falso(cfg, **kw):
+    """correr_pd con la logística real y el MLP con el modelo falso (rápido)."""
+    modelo_cls, _ = _fabrica_falsa()  # modelo falso
+    return ex.correr_pd(cfg, correr_red=functools.partial(ex.correr_mlp, modelo_cls=modelo_cls), **kw)  # corrida
+
+
+def test_51_correr_pd_con_muestra(escenario, tmp_path, monkeypatch):
+    """n de las semillas = 30/15/15, evidencia del summary = la de la muestra, ids de pred_test = los de test de la
+    muestra; una segunda corrida en la misma carpeta pasa el pre-chequeo."""
+    cfg, _ = _preparar_pd_muestra(escenario, tmp_path, monkeypatch, MUESTRA_ESC)  # escenario con muestra
+    res = _correr_pd_falso(cfg)  # corrida completa
+    m = ex.muestrear(escenario["df"], MUESTRA_ESC, BASE_SEED)  # muestra de referencia
+    huellas = ex.evidencia(m, escenario["pre"])  # evidencia de la muestra
+    registro = load_json(tmp_path / "res" / ex.CARPETA_SEMILLAS / f"mlp_seed{BASE_SEED}.json")  # una semilla
+    assert registro["n"] == N_MUESTRA_ESC and registro["evidencia"] == huellas  # filas y evidencia
+    summary = load_json(tmp_path / "res" / ex.ARCHIVO_SUMMARY)  # summary escrito
+    assert summary["logistica"]["evidencia"] == summary["mlp"]["evidencia"] == huellas  # ambos modelos
+    assert res["mlp"]["config_de_busqueda"] is False  # sin_busqueda
+    pred = pd.read_parquet(tmp_path / "res" / ex.ARCHIVO_PRED_TEST)  # predicciones de test
+    assert list(pred["id"]) == list(m.loc[m["split"] == "test", "id"])  # ids de test de la muestra
+    assert {"pred_logistica", "pred_mlp"} <= set(pred.columns)  # ambos modelos
+    _correr_pd_falso(cfg)  # misma muestra, misma carpeta: no lanza
+
+
+def test_52_otra_muestra_en_la_misma_carpeta(escenario, tmp_path, monkeypatch):
+    """Otra muestra en la carpeta de una corrida anterior → ValueError "otro conjunto de ids" antes de la logística;
+    summary, pred_test y modelos intactos."""
+    cfg, _ = _preparar_pd_muestra(escenario, tmp_path, monkeypatch, MUESTRA_ESC)  # primera muestra
+    _correr_pd_falso(cfg)  # corrida que deja archivos
+    archivos = [tmp_path / "res" / ex.ARCHIVO_SUMMARY, tmp_path / "res" / ex.ARCHIVO_PRED_TEST,
+                *sorted((tmp_path / "models").iterdir())]  # summary, pred_test y modelos
+    antes = [_sha(a) for a in archivos]  # huellas previas
+    assert None not in antes  # todos existen
+    cfg["datos"]["muestra"] = MUESTRA_OTRA  # otra muestra
+    llamadas = []  # dobles llamados
+
+    def log(c, rutas, seed):
+        """Logística espía: no debe llamarse."""
+        llamadas.append("logistica")  # registra
+
+    with pytest.raises(ValueError, match="otro conjunto de ids"):  # pre-chequeo
+        ex.correr_pd(cfg, correr_log=log)  # comprobar por defecto
+    assert llamadas == []  # la logística no corrió
+    assert [_sha(a) for a in archivos] == antes  # nada cambió
+
+
+def test_53_aviso_de_filas_por_split(escenario, tmp_path, capsys):
+    """Con muestra, correr_pd imprime las filas por split del contador (llamado con la muestra y base_seed); sin
+    muestra, nada; filas_muestra real = reparto del escenario."""
+    llamadas = []  # llamadas al contador
+
+    def contar(parquet, **kw):
+        """Contador falso: registra y devuelve FILAS_FALSAS."""
+        llamadas.append((parquet, kw))  # registra
+        return dict(FILAS_FALSAS)  # filas por split
+
+    dobles = {"correr_log": lambda c, r, seed: {}, "correr_red": lambda c, r: {},
+              "comprobar": lambda c, r: None}  # piezas sin efecto
+    cfg = _cfg_muestra(escenario, MUESTRA_ESC)  # con muestra
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas
+    ex.correr_pd(cfg, contar=contar, **dobles)  # orquestación
+    salida = capsys.readouterr().out  # consola
+    assert f"Muestra: datos.muestra={MUESTRA_ESC} → train 1 · val 2 · test 3" in salida  # aviso exacto
+    assert llamadas == [(ex.rutas_de(cfg).parquet, {"muestra": MUESTRA_ESC, "base_seed": BASE_SEED})]  # argumentos
+    cfg["datos"]["muestra"] = None  # sin muestra
+    llamadas.clear()  # de nuevo
+    ex.correr_pd(cfg, contar=contar, **dobles)  # orquestación
+    assert "Muestra:" not in capsys.readouterr().out and llamadas == []  # nada
+    assert ex.filas_muestra(escenario["parquet"], MUESTRA_ESC, BASE_SEED) == N_MUESTRA_ESC  # contador real
+    assert ex.filas_muestra(escenario["parquet"], None, BASE_SEED) == N_EXP  # sin muestra: todo
+
+
+# %% [markdown]
+# ## 54. `manejador`: errores esperados → código 2 y una línea en stderr
+
+# %%
+def _lanzar(exc):
+    """correr_pd falso que lanza ``exc``."""
+    def correr(cfg):
+        """Lanza la excepción pedida."""
+        raise exc  # error simulado
+    return correr  # doble
+
+
+def _cfg_rota(escenario, tmp_path, monkeypatch) -> dict:
+    """Config del escenario con muestra inválida (2), salidas en tmp_path y RUTAS_PD del escenario."""
+    cfg = _cfg_muestra(escenario, 2)  # muestra inválida
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas
+    _apuntar_al_escenario(escenario, monkeypatch)  # rutas del escenario
+    return cfg  # config que falla en el pre-chequeo
+
+
+def _una_linea_de_error(capsys) -> str:
+    """La única línea de stderr (falla si hay más o si hay traza) y comprueba que no se imprimió el éxito."""
+    capturado = capsys.readouterr()  # consola
+    lineas = capturado.err.splitlines()  # stderr
+    assert len(lineas) == 1 and "Traceback" not in capturado.err  # una línea, sin traza
+    assert "Tiempo de ejecución" not in capturado.out  # no terminó como éxito
+    return lineas[0]  # la línea de error
+
+
+def test_54a_manejador_config_invalida(escenario, tmp_path, monkeypatch, capsys):
+    """Config inválida → 2 y UNA línea 'run.py pd: error: ValueError: datos.muestra…', sin traza."""
+    assert ex.manejador(_cfg_rota(escenario, tmp_path, monkeypatch)) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys).startswith(PREFIJO_ERROR + "ValueError: datos.muestra")  # tipo y mensaje
+
+
+@pytest.mark.parametrize("exc", [RuntimeError(f"fallo. {AVISO}"), FloatingPointError(f"semilla 3: nan. {AVISO}"),
+                                 FileNotFoundError(f"no existe x.parquet. {AVISO}")],
+                         ids=["runtime", "floating_point", "file_not_found"])
+def test_54b_manejador_errores_esperados(escenario, tmp_path, monkeypatch, capsys, exc):
+    """RuntimeError, FloatingPointError y FileNotFoundError → 2 y una línea con el tipo, conservando el aviso."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config (correr_pd está parcheado)
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(exc))  # correr_pd falso
+    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    linea = _una_linea_de_error(capsys)  # stderr
+    assert linea.startswith(f"{PREFIJO_ERROR}{type(exc).__name__}: ") and AVISO in linea  # tipo y aviso
+
+
+def test_54b_parquet_inexistente(escenario, tmp_path, monkeypatch, capsys):
+    """Config válida con RUTAS_PD apuntando a un parquet inexistente (tmp_path) → 2 y una línea FileNotFoundError."""
+    cfg, ruta = _escenario_sin_busqueda(escenario, tmp_path)  # config válida
+    cfg["salida"], cfg["modelos"] = str(tmp_path / "r"), str(tmp_path / "m")  # salidas temporales
+    monkeypatch.setattr(ex, "RUTAS_PD", ex.RutasPD(tmp_path / "no_existe.parquet", escenario["pre"], Path("x"),
+                                                   Path("y")))  # parquet que no existe (no las rutas reales)
+    monkeypatch.setattr(ex, "RUTA_MLP_FINAL", ruta)  # mlp_final.yaml del escenario
+    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys).startswith(PREFIJO_ERROR + "FileNotFoundError: ")  # tipo
+
+
+def test_54c_mensaje_de_varias_lineas(escenario, tmp_path, monkeypatch, capsys):
+    """Un mensaje con saltos de línea sale en una sola línea, con el tipo."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(ValueError("primera\nsegunda")))  # varias líneas
+    assert ex.manejador(cfg) == CODIGO_ERROR  # error esperado
+    assert _una_linea_de_error(capsys) == PREFIJO_ERROR + "ValueError: primera segunda"  # una línea
+
+
+@pytest.mark.parametrize("bug", [TypeError("bug"), NotImplementedError("bug"), RecursionError("bug"),
+                                 PermissionError("bug")],
+                         ids=["type", "not_implemented", "recursion", "permission"])
+def test_54d_errores_que_se_propagan(escenario, tmp_path, monkeypatch, bug):
+    """TypeError, NotImplementedError y RecursionError (bugs) y otras OSError (PermissionError) se propagan."""
+    cfg = _cfg_rota(escenario, tmp_path, monkeypatch)  # cualquier config
+    monkeypatch.setattr(ex, "correr_pd", _lanzar(bug))  # correr_pd falso
+    with pytest.raises(type(bug)):  # no se traga
+        ex.manejador(cfg)  # se propaga con su traza
+
+
+# %% [markdown]
+# ## 55–56. Configs de la demo
+
+# %%
+RUTA_DEMO = ROOT / "configs" / "pd" / "demo.yaml"  # config de la demo (B6)
+RUTA_BASE = ROOT / "configs" / "pd" / "base.yaml"  # config completa
+RUTA_FINAL_REAL = ROOT / "configs" / "pd" / "mlp_final.yaml"  # la que escribe pd-hpo
+
+
+GIT_SIN_REPOSITORIO = 128  # código de git check-ignore fuera de un repositorio (error fatal de git)
+
+
+def _ignorado_por_git(ruta: str) -> bool:
+    """True si git ignora ``ruta`` (relativa a la raíz); skip si no hay repositorio git."""
+    if not (ROOT / ".git").exists():  # p. ej. un zip del proyecto
+        pytest.skip("no hay repositorio git")  # no se puede consultar .gitignore con git
+    res = subprocess.run(["git", "check-ignore", "-q", ruta], cwd=ROOT, check=False)  # 0 = ignorado
+    if res.returncode == GIT_SIN_REPOSITORIO:  # git no reconoce el repositorio
+        pytest.skip("git check-ignore no encuentra el repositorio")  # ídem
+    return res.returncode == 0  # código de git check-ignore
+
+
+def test_55_demo_yaml():
+    """demo.yaml: completa sin hereda, valida, sin_busqueda, 3 semillas, CPU, muestra 50000, rejilla dentro de la de
+    base.yaml, salidas propias ignoradas por git, y la arquitectura de mlp_final.yaml (alarma si pd-hpo la cambia)."""
+    crudo = yaml.safe_load(RUTA_DEMO.read_text(encoding="utf-8"))  # YAML sin resolver
+    assert "hereda" not in crudo  # completa: no depende de mlp_final.yaml
+    demo = load_config(RUTA_DEMO)  # como el CLI
+    _, _, mlp, busqueda = ex.validar_cfg_mlp_final(demo)  # bloques válidos
+    assert busqueda == {"tipo": ex.TIPO_SIN_BUSQUEDA}  # config fijada a mano
+    assert ex.procedencia(mlp, busqueda, RUTA_FINAL_REAL)[0] is False  # no es la de la búsqueda
+    assert demo["semillas"]["n"] == 3 and mlp["device"] == "cpu"  # 3 semillas en CPU (B-pd §4)
+    assert ex.validar_datos(demo) == 50000  # muestra de la demo
+    rejilla_base = load_config(RUTA_BASE)["logistica"]["rejilla_C"]  # 13 valores
+    assert set(demo["logistica"]["rejilla_C"]) <= set(rejilla_base)  # subconjunto de la rejilla de B3
+    salida, real = Path(demo["salida"]), Path(load_config(RUTA_BASE)["salida"])  # carpetas
+    assert salida != real and real not in salida.parents  # no pisa los resultados reales
+    assert Path(demo["modelos"]) != Path("models")  # no pisa los modelos de C y E
+    assert _ignorado_por_git(f"{demo['salida']}/{ex.ARCHIVO_SUMMARY}")  # resultados de la demo fuera de git
+    assert _ignorado_por_git(f"{demo['modelos']}/{ex.ARCHIVO_MODELO_MLP}")  # modelos de la demo fuera de git
+    final = load_config(RUTA_FINAL_REAL)["mlp"]  # mlp de la búsqueda
+    assert {k: mlp[k] for k in hpo.CLAVES_BUSCADAS} == {k: final[k] for k in hpo.CLAVES_BUSCADAS}  # alarma
+    assert (mlp["max_epocas"], mlp["paciencia"]) == (20, 5)  # menos épocas que la corrida final
+
+
+def test_56_set_datos_muestra():
+    """--set datos.muestra=20000 funciona con demo.yaml y con base.yaml; null también."""
+    for ruta in (RUTA_DEMO, RUTA_BASE):  # ambas configs
+        cfg = apply_overrides(load_config(ruta), ["datos.muestra=20000"])  # como el CLI
+        assert ex.validar_datos(cfg) == 20000  # entero
+        assert ex.validar_datos(apply_overrides(cfg, ["datos.muestra=null"])) is None  # todos los datos
+
+
+# %% [markdown]
+# ## 57. B10 r3: piezas públicas que reutiliza `src/pd/sensibilidad.py`
+#
+# `escribir_parquet_atomico`, `linea_modelo` y `una_linea` son públicas (en `__all__`) y ya no existen con guion bajo:
+# otro módulo de B no debe depender de nombres privados.
+
+# %%
+def test_57_piezas_publicas_para_sensibilidad():
+    """Los tres nombres públicos existen, están en __all__ y los privados ya no."""
+    for nombre in ("escribir_parquet_atomico", "linea_modelo", "una_linea"):  # públicas (B10 r3)
+        assert callable(getattr(ex, nombre)) and nombre in ex.__all__  # existen y se exportan
+        assert not hasattr(ex, "_" + nombre)  # sin el alias privado
+    assert ex.una_linea(ValueError("a\nb")) == "a b"  # mismo comportamiento

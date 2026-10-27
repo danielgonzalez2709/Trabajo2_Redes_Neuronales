@@ -7,10 +7,10 @@
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
 | Matemáticas | 4 (H-08, H-10, H-14, H-15) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
-| Datos del mundo real | 2 (H-02, H-13) | 2 (H-02, H-13) |
+| Código | 16 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
+| Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 2 (H-16, H-21) | 2 (H-16, H-21) |
+| Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -497,3 +497,117 @@ falsas se registran como candidatos.
 5. **Corrección:** ronda 2 del blog 10: las PD medias por conjunto de cada modelo, sin afirmar la causa del nivel del MLP.
 6. **Lección aprendida:** "los dos modelos hacen X" se comprueba con cada modelo por separado; una red con parada temprana
    en otra cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
+
+### H-22 — "En test, los 10 bins de ambos modelos quedan por debajo de la diagonal" (calibración que subestima)
+- **Estado:** candidato
+- **Categoría:** Conceptos
+- **Parte:** B
+- **Nota de numeración:** registrado primero como H-21 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el orquestador, al mirar `pd-calibracion.png` generada por el subagente `implementador`
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" (pide las figuras de B7 y sugerir la curva
+   para el video).
+2. **Respuesta relevante de la IA:** el plan aprobado (copia literal en `prompts/B7.md`, "Hallazgo que hay que contar"): "En
+   test, los 10 bins de ambos modelos quedan **por debajo de la diagonal**"; el mismo texto en el mensaje a Andrés y repetido
+   por el `implementador` en su entrega ("los 10 bins de los dos modelos quedan por debajo de la diagonal").
+3. **Cómo sospechamos:** la figura dibuja la tasa observada (eje y) contra la PD media (eje x), y los puntos se ven arriba de
+   y = x. Si el modelo subestima (PD < tasa), los puntos deben quedar por encima.
+4. **Evidencia:** `evidencias/H-22_calibracion_diagonal.txt`: en los 20 bins (10 por modelo) la tasa observada supera a la
+   PD media (y − x entre +0,012 y +0,109); PD media global 0,187 y 0,204 frente a una tasa de 0,262.
+5. **Corrección:** el blog 06 (§6.4) y la Spec dicen "por encima de la diagonal"; el prompt de la escena 7 del video ya
+   pedía no disimularlo y lo dice bien ("los puntos quedan POR ENCIMA").
+6. **Lección aprendida:** una frase sobre una figura se verifica contra la figura y sus ejes, no contra la conclusión
+   (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
+
+### H-23 — "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" (faltaba el 23, descartado por redondeo)
+- **Estado:** candidato
+- **Categoría:** Datos del mundo real
+- **Parte:** B
+- **Nota de numeración:** registrado primero como H-22 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
+- **Herramienta y modelo:** Claude Code, sesión principal (orquestador, Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `revisor-spec` de B7, recalculando cada cifra del blog 06
+1. **Prompt (literal):** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" y respuesta "Bloques + una frase por figura".
+2. **Respuesta relevante de la IA:** primer borrador del blog 06 (commit 27ca6a7, línea 21): "Dos ensayos posteriores, el 19 y
+   el 27, quedaron a menos de 0,001 de ese valor." El orquestador decidió la frase mirando valores redondeados a 4 decimales.
+3. **Cómo sospechamos:** el `revisor-spec` recalculó las diferencias sin redondear desde `hpo_ensayos.json`.
+4. **Evidencia:** `evidencias/H-23_ensayos_cercanos.txt`: el ensayo 23 tiene Δ = 0,000987 < 0,001 (redondeado se ve 0,5085,
+   igual que el 39, que sí queda fuera con Δ = 0,001013).
+5. **Corrección:** "Tres ensayos posteriores (el 19, el 23 y el 27) quedaron a menos de 0,001 de ese valor."
+6. **Lección aprendida:** una comparación con un umbral se hace con los valores sin redondear; redondear antes de comparar
+   cambia el conteo justo en el borde.
+
+### H-24 — "La eficiencia del explainer de permutaciones de shap es exacta con cualquier número de permutaciones"
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, sesión orquestadora de Juan José y subagente `implementador` (Claude Opus 5.5) ·
+  **Fecha:** 26-oct-2026 · **Quién lo cazó:** el subagente `revisor-calidad` (bloqueante B1 de C4); el orquestador lo reprodujo
+- **Nota de numeración:** registrado primero como H-21 en `dev/juanjose`; renumerado a H-24 porque en `main` ya
+  existen H-21…H-23 (Partes B y E).
+1. **Prompt (literal):** `prompts/C4.md`: el plan del orquestador ("la eficiencia es exacta sin importar cuántas
+   permutaciones se usen") y la fase roja ("Eficiencia exacta por telescopio (verificado en el código de shap)"); el
+   implementador lo repitió en la celda markdown de `src/scorecard/shap_pd.py`.
+2. **Respuesta relevante de la IA:** `src/scorecard/shap_pd.py` (fase verde, sin commit), celda del explainer: "(suma
+   telescópica), así que la eficiencia es **exacta con cualquier número de permutaciones**".
+3. **Cómo sospechamos:** el revisor leyó el masker de shap: decide qué variable "no cambia" frente al fondo con
+   `np.isclose` (rtol 1e-5), no con igualdad, y probó semillas distintas.
+4. **Evidencia:** `evidencias/H-24_isclose_eficiencia.txt` y `.py`: (1) `run.py scorecard --config
+   configs/scorecard/mlp.yaml --set shap.base_seed=34` aborta con `Eficiencia rota: 2.702e-09 > 1e-09`; (2) dos valores
+   transformados de `revol_bal` que difieren en 7,7e-6 (float32 del preprocesador) son "iguales" para `np.isclose`: shap no
+   reevalúa esa variable, φ = 0 y la eficiencia falla por 7,7 con una f sensible. La telescopia es exacta solo si el
+   masker reevalúa todas las variables que difieren.
+5. **Corrección:** ronda 2 de C4: cada jugador se codifica con un índice entero en la tabla de valores únicos (fondo y
+   explicados) antes de pasarlo a shap, de modo que dos valores distintos nunca son "iguales" para `np.isclose`; prueba
+   nueva con un valor que difiere en 1e-6 relativo.
+6. **Lección aprendida:** "verificado en el código" exige leer también lo que el algoritmo **delega** (aquí, el masker y
+   su `np.isclose`) y probar con varias semillas; una garantía matemática solo vale si la implementación evalúa lo que la
+   prueba supone.
+
+### H-25 — Pruebas de SHAP y de la importancia por permutación que no distinguen signo, desviación ni agrupación
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** C
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
+  cazó:** el subagente `verificador-matematico`, con mutantes sobre C4; el orquestador guardó la evidencia
+- **Nota de numeración:** registrado primero como H-22 en `dev/juanjose`; renumerado a H-25 porque en `main` ya
+  existen H-21…H-23 (Partes B y E).
+1. **Prompt (literal):** `prompts/C4.md`, "1. implementador — fase roja" (punto 7, permutación: "caída de AUC y aumento de
+   log-loss (media y desviación muestral)"; jugadores = 15 variables con las categóricas enteras).
+2. **Respuesta relevante de la IA:** `tests/test_shap_pd.py` (ronda 2, sin commit), presentado como el conjunto que prueba
+   la permutación (07a–07c), la agrupación de las categóricas y la fuga.
+3. **Cómo sospechamos:** el verificador aplicó mutantes con sentido sobre una copia del módulo.
+4. **Evidencia:** `evidencias/H-25_mutantes_sobreviven.txt` y `evidencias/H-25_mutantes/`: pasan las 62 pruebas con
+   (a) SHAP con las 48 columnas como jugadores (el 64 % de las filas evaluadas no son one-hot válidas), (b) desviación
+   poblacional (ddof = 0), (c) caída de AUC con el signo cambiado, (d) aumento de log-loss con el signo cambiado; y (e) el
+   fondo sacado de test solo lo mata una prueba marcada `lento`, que la CI no corre.
+5. **Corrección:** ronda 3 de C4: caso a mano de la permutación (media, s con ddof = 1, signos), comparación de
+   `explicados.phi` con `valores_shap` recalculado por la ruta de jugadores agrupados (o registro de las entradas evaluadas)
+   y una prueba no lenta de que el fondo sale de train.
+6. **Lección aprendida:** una prueba de formato ("las claves y los tipos son correctos") no prueba una fórmula; cada
+   decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
+
+### H-26 — "La guarda impide escribir en los archivos del modelo principal" (B10, tres guardas que no lo impedían)
+- **Estado:** candidato
+- **Categoría:** Código
+- **Parte:** B
+- **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
+  cazó:** los subagentes `revisor-spec` (ronda 1) y `revisor-calidad` (rondas 2 y 3) de B10, intentando romper la guarda
+- **Nota de numeración:** registrado primero como H-24 en `dev/andres`; renumerado a H-26 porque en `main` ya existen
+  H-24 y H-25 (Parte C, C4).
+1. **Prompt (literal):** `prompts/B10.md`, "1. implementador" ("NO toques `results/data/pd/`, `models/pd_*`,
+   `configs/pd/mlp_final.yaml`…") y B-pd §3.8 ("Nunca se escribe en `results/data/pd/`, `models/pd_*` ni
+   `configs/pd/mlp_final.yaml`").
+2. **Respuesta relevante de la IA:** el informe de la ronda 1 declaró como caso cubierto que "rutas que pisarían o quedarían
+   dentro de las del modelo principal (`results/data/pd`, `models`, `loans_pd`, el preprocesador de A) dan `ValueError`"; la
+   guarda era una lista negra que no revisaba `sensibilidad.union` ni `sensibilidad.preprocesador`. Las dos correcciones
+   siguientes repitieron el patrón (otra lista negra; luego una lista blanca con raíz = directorio actual).
+3. **Cómo sospechamos:** los revisores llamaron a `validar_cfg_sensibilidad` con la config real y un `--set` por caso, y
+   después desde `notebooks/` con `../`.
+4. **Evidencia:** `evidencias/H-26_guarda_rutas_sensibilidad.txt`: los casos aceptados en cada ronda y el efecto real: en
+   una ronda roja, una prueba que llamaba al CLI sobrescribió `results/data/pd/pred_test.parquet` (restaurado; SHA-256 =
+   HEAD).
+5. **Corrección:** lista blanca evaluada contra la raíz fija del repositorio (`RAIZ_REPOSITORIO`, commit 59cce7b): dentro del
+   repo solo `results/data/pd_sensibilidad*` y `models/pd_sensibilidad*`; las pruebas de la guarda solo validan, nunca
+   escriben.
+6. **Lección aprendida:** una protección de escritura se define por lo permitido, no por lo prohibido, y contra una raíz que
+   no dependa del directorio desde donde se ejecuta; y una prueba de la guarda en rojo no debe poder escribir de verdad.

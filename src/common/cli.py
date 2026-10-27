@@ -3,6 +3,7 @@
     python run.py eda       --config configs/datos.yaml
     python run.py pd        --config configs/pd/demo.yaml [--set clave.subclave=valor ...]
     python run.py pd-hpo    --config configs/pd/hpo.yaml
+    python run.py pd-sensibilidad --config configs/pd/sensibilidad.yaml
     python run.py lgd       --config configs/lgd/demo.yaml
     python run.py lgd-hpo   --config configs/lgd/hpo.yaml
     python run.py scorecard --config configs/scorecard/base.yaml --set scorecard.pdo=40
@@ -77,6 +78,13 @@ def _pd_hpo(cfg: dict | None) -> int:
     return manejador_hpo(cfg)
 
 
+def _pd_sensibilidad(cfg: dict | None) -> int:
+    """Parte B (B10): PD con grade e int_rate (análisis de sensibilidad aparte)."""
+    from src.pd.sensibilidad import manejador
+
+    return manejador(cfg)
+
+
 def _lgd(cfg: dict | None) -> int:
     """Parte D (D4): lineal + MLP de LGD con semillas."""
     from src.lgd.experimento import manejador
@@ -99,13 +107,14 @@ def _el(cfg: dict | None) -> int:
 
 
 def _figures(cfg: dict | None) -> int:
-    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A, la Parte D (D6) y la Parte E (E5)."""
+    """E8: cada parte agrega aquí su módulo de figuras. Por ahora, la Parte A, la Parte B (B7), la Parte D (D6) y la
+    Parte E (E5)."""
     import time
 
-    from src.viz import figs_datos, figs_el, figs_lgd
+    from src.viz import figs_datos, figs_el, figs_lgd, figs_pd
 
     inicio = time.perf_counter()
-    for ruta in [*figs_datos.generar(), *figs_lgd.generar(), *figs_el.generar()]:
+    for ruta in [*figs_datos.generar(), *figs_pd.generar(), *figs_lgd.generar(), *figs_el.generar()]:
         print(ruta.as_posix())
     print(f"Tiempo de ejecución: {time.perf_counter() - inicio:.1f} s")
     return 0
@@ -151,6 +160,7 @@ SUBCOMANDOS: dict[str, Subcomando] = {
     "eda": Subcomando("Parte A: EDA inicial, hipótesis y descriptivo después del preprocesamiento", True, _eda),
     "pd": Subcomando("Parte B: logística + MLP de PD", True, _pd),
     "pd-hpo": Subcomando("Parte B: búsqueda Optuna del MLP de PD", True, _pd_hpo),
+    "pd-sensibilidad": Subcomando("Parte B: PD con grade e int_rate (sensibilidad aparte)", True, _pd_sensibilidad),
     "lgd": Subcomando("Parte D: lineal + MLP de LGD", True, _lgd),
     "lgd-hpo": Subcomando("Parte D: búsqueda Optuna del MLP de LGD", True, _lgd_hpo),
     "scorecard": Subcomando("Parte C: scorecard y SHAP", True, _scorecard),
