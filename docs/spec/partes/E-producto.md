@@ -24,7 +24,7 @@
 
 | Consumo | De | Cuándo |
 |---|---|---|
-| `pd_model.json` de juguete / real | C | vie 23 / sáb 24, noche |
+| `pd_model_{logistica,mlp}.json` y `casos_paridad_{logistica,mlp}.json` reales (v0.17) | C | lun 26 (en `main`, PR #12) |
 | `pred_test` de PD y LGD | B, D | sáb 24 |
 | Secciones del blog | todos | dom 25, 8 p. m. |
 | Clips del video | todos | sáb 24, tarde |

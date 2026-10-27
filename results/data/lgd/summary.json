@@ -1,149 +1,180 @@
 {
-  "modelos": {
-    "lineal": {
-      "n_parametros": 49,
-      "n_configuraciones_busqueda": 1,
-      "tiempo_total_s": 0.013536250044126064,
-      "metricas": {
-        "mae_val": {
-          "media": 0.07586765511393369,
-          "desv": 0.0,
-          "mejor": 0.07586765511393369,
-          "peor": 0.07586765511393369,
-          "n": 1
-        },
-        "rmse_val": {
-          "media": 0.0927625978896879,
-          "desv": 0.0,
-          "mejor": 0.0927625978896879,
-          "peor": 0.0927625978896879,
-          "n": 1
-        },
-        "mae_test": {
-          "media": 0.0771234125677071,
-          "desv": 0.0,
-          "mejor": 0.0771234125677071,
-          "peor": 0.0771234125677071,
-          "n": 1
-        },
-        "rmse_test": {
-          "media": 0.0865914142786151,
-          "desv": 0.0,
-          "mejor": 0.0865914142786151,
-          "peor": 0.0865914142786151,
-          "n": 1
-        }
+  "lineal": {
+    "n_parametros": 49,
+    "n_configuraciones_busqueda": 1,
+    "tiempo_total_s": 0.027252500000031432,
+    "metricas": {
+      "mae_val": {
+        "media": 0.07586765511393369,
+        "desv": 0.0,
+        "mejor": 0.07586765511393369,
+        "peor": 0.07586765511393369,
+        "n": 1
       },
-      "fuera_de_rango": {
-        "val": {
-          "debajo_de_0": 0,
-          "encima_de_1": 0,
-          "total": 0,
-          "n": 14836
-        },
-        "test": {
-          "debajo_de_0": 0,
-          "encima_de_1": 0,
-          "total": 0,
-          "n": 13981
-        },
-        "pd_test": {
-          "debajo_de_0": 0,
-          "encima_de_1": 0,
-          "total": 0,
-          "n": 74154
-        }
+      "rmse_val": {
+        "media": 0.0927625978896879,
+        "desv": 0.0,
+        "mejor": 0.0927625978896879,
+        "peor": 0.0927625978896879,
+        "n": 1
+      },
+      "mae_test": {
+        "media": 0.07712341256770708,
+        "desv": 0.0,
+        "mejor": 0.07712341256770708,
+        "peor": 0.07712341256770708,
+        "n": 1
+      },
+      "rmse_test": {
+        "media": 0.08659141427861505,
+        "desv": 0.0,
+        "mejor": 0.08659141427861505,
+        "peor": 0.08659141427861505,
+        "n": 1
       }
     },
-    "mlp": {
-      "n_parametros": 14593,
-      "n_configuraciones_busqueda": 30,
-      "tiempo_total_s": 45.63988387299469,
-      "tiempo_busqueda_s": 32.5218260831316,
-      "tiempo_semillas_s": 13.118057789863087,
-      "metricas": {
-        "mae_val": {
-          "media": 0.07616603051924299,
-          "desv": 0.00017893594956662148,
-          "mejor": 0.0757358024618922,
-          "peor": 0.07638271038487172,
-          "n": 30
-        },
-        "rmse_val": {
-          "media": 0.09245232357059179,
-          "desv": 7.380437793043593e-05,
-          "mejor": 0.09233277463566379,
-          "peor": 0.09269731817856021,
-          "n": 30
-        },
-        "mae_test": {
-          "media": 0.07708348553690497,
-          "desv": 0.0005889656463495094,
-          "mejor": 0.07579741866456413,
-          "peor": 0.07823314640445786,
-          "n": 30
-        },
-        "rmse_test": {
-          "media": 0.08570400152322862,
-          "desv": 0.0007589633769549717,
-          "mejor": 0.08426321268051074,
-          "peor": 0.08754394440696746,
-          "n": 30
-        }
+    "evidencia": {
+      "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+      "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+    },
+    "fuera_de_rango": {
+      "val": {
+        "debajo_de_0": 0,
+        "encima_de_1": 0,
+        "total": 0,
+        "n": 14836
       },
-      "semillas": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
-        22,
-        23,
-        24,
-        25,
-        26,
-        27,
-        28,
-        29
-      ],
-      "semilla_mediana": 10,
-      "config": {
-        "mlp": {
-          "capas": [
-            128,
-            64
-          ],
-          "activacion": "tanh",
-          "dropout": 0.05426572640095942,
-          "l2": 0.003340334194956007,
-          "optimizador": "adam",
-          "lr": 0.009801607304582592,
-          "momento": 0.9,
-          "batch": 512,
-          "max_epocas": 200,
-          "paciencia": 10,
-          "device": "auto",
-          "perdida": "bce_fraccional"
-        }
+      "test": {
+        "debajo_de_0": 0,
+        "encima_de_1": 0,
+        "total": 0,
+        "n": 13981
+      },
+      "pd_test": {
+        "debajo_de_0": 0,
+        "encima_de_1": 0,
+        "total": 0,
+        "n": 74154
       }
-    }
+    },
+    "nota_pred": "pred_lineal no se recorta: puede salir de [0, 1] (ver lineal.fuera_de_rango)"
+  },
+  "mlp": {
+    "n_parametros": 9953,
+    "n_configuraciones_busqueda": 30,
+    "tiempo_total_s": 165.30345480000688,
+    "tiempo_busqueda_s": 126.09463870000764,
+    "tiempo_semillas_s": 39.20881609999924,
+    "metricas": {
+      "mae_val": {
+        "media": 0.07613739248580353,
+        "desv": 7.928173950507157e-05,
+        "mejor": 0.07596791203472131,
+        "peor": 0.07626859806070506,
+        "n": 30
+      },
+      "rmse_val": {
+        "media": 0.09243977454345784,
+        "desv": 5.096990631560742e-05,
+        "mejor": 0.09233910208074798,
+        "peor": 0.0925831162178154,
+        "n": 30
+      },
+      "mae_test": {
+        "media": 0.07686477159265857,
+        "desv": 0.000374372713824937,
+        "mejor": 0.076098441963487,
+        "peor": 0.07758279646878771,
+        "n": 30
+      },
+      "rmse_test": {
+        "media": 0.08552658251337807,
+        "desv": 0.00039604547730477636,
+        "mejor": 0.08481675565503699,
+        "peor": 0.08636690945739055,
+        "n": 30
+      }
+    },
+    "evidencia": {
+      "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+      "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+    },
+    "semillas": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "semilla_mediana": 22,
+    "criterio_semilla_mediana": "orden ascendente por (mae_val, seed); posición (n - 1) // 2 (n par: mediana inferior; empate: semilla menor)",
+    "config": {
+      "capas": [
+        32,
+        64,
+        64,
+        32
+      ],
+      "activacion": "leaky_relu",
+      "dropout": 0.3915788095788214,
+      "l2": 0.000886503551270592,
+      "optimizador": "adam",
+      "lr": 0.009397991170979513,
+      "momento": 0.9,
+      "batch": 2048,
+      "max_epocas": 200,
+      "paciencia": 10,
+      "device": "auto",
+      "perdida": "bce_fraccional"
+    },
+    "config_de_busqueda": true,
+    "busqueda": {
+      "tipo": "optuna",
+      "origen": "lgd-hpo: mejor de 30 ensayos (mínima pérdida de validación del propio MLP (media de mlp.perdida en val, mejor época); MAE de val al lado [PROPUESTO por el orquestador])",
+      "ensayo": 29,
+      "n_ensayos": 30,
+      "tiempo_s": 126.09463870000764,
+      "evidencia": {
+        "sha256_particion": "a96b5c9deb627dbbfc1f2dd70c657ea267ab88d3385d398afbfd9254717f57d3",
+        "sha256_preprocesador": "36f6d99aa8440a6c9adf4a48687286c733eb6037ffe23fb0f289963e2ccf8b83"
+      },
+      "muestra": null,
+      "fecha": "2026-10-26T15:40:36"
+    },
+    "hilos_torch": 8,
+    "version_torch": "2.14.1+cpu",
+    "base_seed": 0,
+    "n": {
+      "train": 14419,
+      "val": 14836,
+      "test": 13981
+    },
+    "muestra": null
   },
   "referencias": {
     "constante_media": {
@@ -168,27 +199,5 @@
       "n_parametros": 1,
       "n_configuraciones_busqueda": 1
     }
-  },
-  "busqueda": {
-    "tipo": "optuna",
-    "origen": "lgd-hpo: mejor de 30 ensayos (mínima pérdida de validación del propio MLP (media de mlp.perdida en val, mejor época); MAE de val al lado [PROPUESTO por el orquestador])",
-    "ensayo": 27,
-    "n_ensayos": 30,
-    "tiempo_s": 32.5218260831316,
-    "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-    "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da",
-    "muestra": null,
-    "fecha": "2026-10-25T11:05:47"
-  },
-  "base_seed": 0,
-  "n": {
-    "train": 14419,
-    "val": 14836,
-    "test": 13981
-  },
-  "muestra": null,
-  "criterio_semilla_mediana": "MAE de test mediano: posición (n−1)//2 al ordenar por (mae_test, seed)",
-  "nota_pred_lineal": "pred_lineal no se recorta: puede salir de [0, 1] (ver modelos.lineal.fuera_de_rango)",
-  "hash_particion": "40f77da5c37147d2195bc0e4259da6bc09a0493aba6626f1b829c20bdb4939e4",
-  "hash_preprocesador": "82c261ca616b59688ebef35a2e47f6bd9c5ad57bb72a66a55b9abe23c5d942da"
+  }
 }

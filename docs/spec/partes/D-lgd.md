@@ -73,6 +73,11 @@ Créditos con recuperación observable: **`Charged Off`** (incluida la variante 
   (cuasi-verosimilitud Bernoulli; Papke & Wooldridge, 1996 [VERIFICAR]), derivada por máxima verosimilitud en el blog.
   Contraste opcional: MSE (verosimilitud gaussiana).
 - Búsqueda Optuna TPE con **30 ensayos** (demo: 5), mismo espacio que B; **30 semillas** de la configuración final.
+- **Semilla representativa del MLP [DECIDIDO, José, 26-oct]:** la de MAE de **validación** mediano, posición (n − 1) // 2 al
+  ordenar por `(mae_val, seed)`, como B (B-pd §3.5: test nunca decide). De ella salen `lgd_mlp.pt`, `pred_test.parquet` y
+  `pred_pd_test.parquet`. Antes se elegía por MAE de test.
+- `summary.json` por modelo como B (núcleo §5.4): raíz `{lineal, mlp, referencias}`; la entrada `mlp` lleva los campos de
+  la de B (v0.16) y `evidencia`; L2 = (λ/2)‖W‖² ≡ `weight_decay = λ` (B-pd §3.2, v0.13) [DECIDIDO, José, 26-oct].
 - Variables: las de `features.yaml` (información de la originación).
 
 ### 3.4 Evaluación
@@ -94,6 +99,10 @@ MAE y RMSE en val y test; histograma o densidad y gráfico Q-Q de predicha vs. o
 | D6 ✅ | Figuras: distribuciones, Q-Q, error por banda | D4 | `run.py figures` las regenera | revisor-spec | sáb 24 | Camila |
 | D8 ✅ | Notebook `04_lgd` (núcleo §5.8) | D4, D6 | Corre en < 2 min; cero lógica propia | revisor-spec | dom 25 | Camila |
 | D7 ✅ | Blog 08 | D4, D6 | Cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Camila |
+| D9 ✅ | L2 = (λ/2)‖W‖² y `evidencia` con las huellas del núcleo §6 | D3, D4 | Huellas = las de B; gradiente λW | revisor-spec, revisor-calidad + verificador-matematico | lun 26 | José |
+| D10 ✅ | `summary.json` por modelo como B; semilla por MAE de val | D9 | Claves = §5.4 y entrada `mlp` de B | revisor-spec, revisor-calidad | lun 26 | José |
+| D4b ✅ | Rehacer D4 (Optuna 30 + 30 semillas), figuras y notebook 04 | D9, D10 | Reproducible bit a bit; `evidencia` igual en todos los JSON | analista-experimentos | lun 26 | José |
+| D7b ✅ | Blog 08 con las cifras de D4b | D4b | Cifras desde los JSON | redactor-tecnico + verificador-matematico | lun 26 | José |
 
 ## 5. Pruebas de la parte
 `test_lgd.py` (fórmula, recorte, EAD ≤ 0), `test_lgd_mlp.py` (salida en [0, 1], pérdida con objetivo fraccional),

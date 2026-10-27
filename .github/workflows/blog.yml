@@ -1,0 +1,39 @@
+# Publica el blog (MkDocs) en GitHub Pages cada vez que main cambia en blog/ (Parte E, tarea E7).
+# Requiere una sola vez en GitHub: Settings → Pages → Source: "GitHub Actions".
+name: blog
+on:
+  push:
+    branches: [main]
+    paths: ["blog/**", ".github/workflows/blog.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      # Solo lo que usa el blog, con las versiones de requirements.txt (no hace falta torch).
+      - run: pip install mkdocs==1.6.1 mkdocs-material==9.7.7 pypandoc_binary==1.17
+      - run: mkdocs build --strict -f blog/mkdocs.yml
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: blog/site
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4

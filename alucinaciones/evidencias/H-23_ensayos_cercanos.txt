@@ -1,0 +1,6 @@
+H-23 — evidencia: results/data/pd/hpo_ensayos.json. Mejor: ensayo 11, logloss_val = 0.507476
+Ensayos COMPLETE con 0 < logloss_val − mejor < 0,001 (sin redondear):
+  ensayo 19: 0.507935  Δ = 0.000460  redondeado a 4 decimales: 0.5079  < 0,001
+  ensayo 27: 0.508275  Δ = 0.000799  redondeado a 4 decimales: 0.5083  < 0,001
+  ensayo 23: 0.508463  Δ = 0.000987  redondeado a 4 decimales: 0.5085  < 0,001
+  ensayo 39: 0.508488  Δ = 0.001013  redondeado a 4 decimales: 0.5085  ≥ 0,001

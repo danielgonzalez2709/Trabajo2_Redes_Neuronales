@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-26 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10, 26-oct 12:38 p. m.), Parte D: D1–D8 (PR #7), Parte C: C1 scorecard y C2 exportador con la logística real (PR #8); C3 puntos de la logística y C5 export de los dos modelos (PR abierto); C4 SHAP del MLP ✅ en `dev/juanjose` y Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9). Spec v0.16 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 (demo) y B7; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C4; luego C6 (hipótesis con `shap_mlp.json`), C8 y C7; PR de Spec de la Parte C (pendiente 10). D (Camila): detalles del PR #7 (L2 v0.13, `evidencia` v0.14 y rehacer D4; `summary.json` como el de B; demo sin enlace simbólico; fila V-09). Camila: E1–E2 con selector de modelo (R-APP-2, v0.17). Daniel: PR de Spec v0.17 (dos modelos en la app); PR de Spec §5.4 (evidencia y pérdida realizada de la E[L]); blog 10, Pages, video; escribir el blog 12 con los 15 hallazgos |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.); C4 SHAP del MLP ✅ en `dev/juanjose`, Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), Parte D: D9, D10, D4b y D7b (PR #14, José). Spec v0.19 |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): PR #16 de B6 (Spec v0.20; falta medir la demo en otra máquina: Daniel o Juan José) y B7 (Spec v0.21; figuras `pd-*` y escena 7 del video); luego B8–B10; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C4; luego C6, C8 y C7; PR de Spec de la Parte C (pendiente 9). D: fila V-09. Camila: E1–E4 con los dos JSON reales (`app/public/model/pd_model_{logistica,mlp}.json`) y selector de modelo. Daniel: fusionar PR #15 (blogs 00, 09, 10 y 13 y E[L] con la LGD de D4b); video; notebook 00 (demo pd cuando exista B6); clon limpio |
 | Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
 | Sustentación | Posterior al 27-oct, por confirmar |
 
@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- Ahorro de tokens (Daniel, 26-oct): blog con 1 verificador (cazador, `model: sonnet`); informes de subagente ≤ 15 líneas; sesiones cortas.
 - App (Daniel, 26-oct; Spec v0.17): **los dos modelos de PD** (logística y MLP, semilla 20) con selector, por defecto el MLP;
   `pd_model_{logistica,mlp}.json` y `casos_paridad_{logistica,mlp}.json`, paridad para cada uno (núcleo §5.5).
 - Scorecard (Juan José, C1): base 600 en odds 50:1, PDO 20; `{base, odds_base, pdo, factor, offset}` en float; sin redondear.
@@ -40,6 +41,7 @@ Juan José González Morales.
   muestra de 1 000 casos para los dos; min/max = recorte HACIA AFUERA al paso; cat sin OTRA, con `ayuda_es`.
 - SHAP (Juan José, C4): `configs/scorecard/mlp.yaml` → `scorecard_mlp.json` + `shap_mlp.json`; Shapley intervencional del LOGIT
   (forward float64 = app), 15 jugadores, fondo 100 de train, 1 000 de test, max_evals 500; jugadores codificados (H-24).
+- LGD (José, 26-oct; v0.19, D §3.3): L2 (λ/2)‖W‖², `evidencia` §6, summary por modelo y semilla por MAE de **val** (como B).
 - LGD (Camila, 24-oct): población = Charged Off (2 estados); EAD ≤ 0 o NA → excluir y contar; diferencia entre particiones
   (LGD = 1: train 26 %, test 63 %) se acepta y documenta ("consistente con censura"); `preprocesador_lgd.json` = el de A
   ajustado solo con el train de la población LGD (D §3.2).
@@ -51,7 +53,6 @@ Juan José González Morales.
   force push ni borrado; Daniel fusiona sus propios PR con el bypass de admin.
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
-- Para no bloquearse: contratos congelados el jue 22 + datos sintéticos con el mismo esquema (núcleo §5.6).
 - [PROPUESTO] Notebooks por parte (`notebooks/NN_*.py` en formato percent → `.ipynb` ejecutado con `run.py notebooks`):
   celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
 - [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
@@ -75,27 +76,30 @@ mar 27 6 p. m. entrega.
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
 5. Avisar a D: `iterar_minilotes(n, batch, rng, device)` recibe `device`; `evidencia` (§5.4, v0.14) va en los JSON de la LGD.
-6. **PR de `dev/andres`** (B4+B5, v0.16): avisar a D (TPE multivariado, `FloatingPointError`), C y E (`pd_mlp.pt` = semilla
-   20; PD media de test 0,204 vs tasa 0,262). Luego refactor `TODO(refactor-post-B5)`; blog 06: `mejor_epoca` = 1 en la
-   mediana (val ruidosa) como limitación.
-7. Para B6: la logística con todo train tarda ~65–90 s; la demo necesita `datos.muestra` o C fijo (`--set logistica.rejilla_C=[...]`).
-10. PR de Spec de la Parte C: §5.4 (`scorecard_mlp.json`, `shap_mlp.json`), §4 (`puntos.py`, `export.yaml`, `mlp.yaml`), C §3.1 [DECIDIDO].
-8. D3 → núcleo §4: añadir `src/lgd/{perdidas,validacion,procedencia,tablas,preparar,descriptivo}.py` al árbol (PR de Spec).
-9. E5 → núcleo §5.4: `evidencia` de la E[L] = {sha256_particion, sha256_pred_pd, sha256_pred_lgd} (no usa preprocesador) y
-   `perdida_observada` = pérdida realizada (NaN en mora); árbol §4 con `src/el/{experimento,tablas}.py` (PR de Spec, Daniel).
+6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`); blog 06: `mejor_epoca` = 1 en la mediana como limitación.
+7. B6: medir la demo en otra máquina y marcar ✅; Daniel decide `demo: pd`; README: instalar torch CPU en Linux (PR aparte).
+9. PR de Spec de la Parte C: §5.4 (`scorecard_mlp.json`, `shap_mlp.json`), §4 (`puntos.py`, `export.yaml`, `mlp.yaml`), C §3.1 [DECIDIDO].
+8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11, H-12), Matemáticas 3 (H-08, H-10, H-14), Datos del mundo real 2 (H-02, H-13), Conceptos 1 (H-15); las 5 partes tienen al menos uno · Afirmaciones por verificar: V-01…V-12 · Meta ≥ 5 en ≥ 3 categorías, ≥ 1 por parte: **cumplida**. Candidatos de B sin confirmar (de `dev/andres`, renumerados al integrar `main`): H-16 Conceptos; H-17, H-18 y H-19 Código. Candidatos de C sin confirmar: H-20 (C3), H-24 y H-25 (C4), Código.
+Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día. Candidatos de B7 sin confirmar (de `dev/andres`): H-22 Conceptos (diagonal al revés), H-23 Datos (redondeo). Candidatos de C sin confirmar: H-24 y H-25 (C4), Código.
 
 ## 📓 Bitácora
+- **2026-10-26** — B6 y B7 (Andrés, PR #16; Spec v0.20–v0.21): demo de PD 13,8–16,0 s en CPU sin red; 7 figuras `pd-*` + JSON de la escena 7 del video; 1 426 pruebas; revisores OK; H-22, H-23; falta medir la demo en otra máquina.
+- **2026-10-26** — PR #14 fusionado (Daniel; D4b, LGD semilla 22). E[L] rehecha en `dev/daniel`: 197,03 M USD (antes 196,71), resueltos
+  1,059 (antes 1,057; PD 0,926 · LGD 0,971 · EAD 1,179); MLP de PD 208,20 / 1,123. Blogs 00, 09, 10, 13; cazador APROBADO.
+- **2026-10-26** — D9/D10/D4b/D7b (José, `dev/jose`; Spec v0.19): D4 rehecho. Mejor ensayo #29 [32,64,64,32] leaky_relu, λ 8,9e-4; MLP
+  MAE test 0,07686 ± 0,00037 (9 953 parám.), lineal 0,07712, mediana 0,06986 (gana); semilla 22; búsqueda casi plana.
+- **2026-10-26** — Blog 10 (discusión): 2 rondas; verificador-matematico y cazador APROBADO. Corregidas la 2.4 y la 09; H-21. Blog 12 (cacería): 21 hallazgos,
+  todos confirmados por Daniel (H-15 pasa a Matemáticas). Blog 00 y 13 al día; Pages activado y publicado.
+- **2026-10-26** — Spec v0.18: §5.4 de la E[L] y `blog.yml` (Pages). Antes, PR #11 (1:12 p. m.): Spec v0.17, dos modelos en la app.
+- **2026-10-26** — PR #12 fusionado (2:46 p. m.; revisado por Daniel): C3 y C5 en `main`; los dos JSON de la app verificados aparte.
 - **2026-10-26** — C4 (Juan José): `shap_pd.py`; eficiencia 6,2e-15, logística = forma cerrada (1,6e-15), estabilidad ρ 0,986; 83 s.
   Top SHAP: term, revol_util, annual_inc. Candidatos H-24 (np.isclose del masker) y H-25. Spec, calidad y verificador APROBADO.
 - **2026-10-26** — C3 y C5 (Juan José): `scorecard.json` (aditividad 1,1e-13; H-20) y los 4 JSON de la app (|ΔPD| ≤ 4,5e-8). Aprobados.
-- **2026-10-26** — Spec v0.17 (Daniel): los dos modelos de PD en la app; el exportador de C ya sirve para el MLP (paridad 6,7e-9).
 - **2026-10-26** — PR #10 fusionado (12:38 p. m., CI en verde; revisado por Daniel): B4 y B5 en `main`. MLP de PD: AUC 0,6716 ±
   0,0031 frente a 0,6697 de la logística; Brier y log-loss mejores en 30/30 semillas. 2 pruebas de permisos fallan en Windows.
-- **2026-10-26** — PR #9 fusionado (10:26 a. m., CI en verde): E5, E11 y blog 09 en `main`. Daniel confirma los 15 hallazgos
-  de la cacería (meta cumplida: 4 categorías, las 5 partes).
+- **2026-10-26** — PR #9 fusionado (10:26 a. m.): E5, E11 y blog 09 en `main`. Daniel confirma los 15 hallazgos (meta cumplida).
 - **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la
   MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
   en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179. H-13–H-15.
@@ -142,9 +146,5 @@ Confirmados: 15 de 15 (Daniel, 26-oct): Código 9 (H-01, H-03–H-07, H-09, H-11
   B, C y D ya pueden usar `loans_pd.parquet` y `preprocesador_pd.json` desde `main`.
 - **2026-10-24** — B1 (Andrés): `src/common/metricas.py` + 63 pruebas contra sklearn/scipy; 3 revisores APROBADO; H-03 y
   H-04. Pendiente: TODO(cita) de Murphy (1973).
-- **2026-10-23** — Parte A: crudo de Kaggle (887 379 × 74, SHA-256 en `data/fuentes.md`); objetivo, 15 variables, partición
-  ≤ 2012 / 2013 / 2014 (2015: 93 % sin resolver) y `loans_pd.parquet` (237 695), aprobados por Daniel (Spec v0.8, con la
-  sensibilidad `grade`/`int_rate`). A6/A6b: 11 hipótesis y PSI (H-01). revisor-spec RECHAZADA → APROBADA (Spec v0.7, H-02).
-  `.venv` 3.12, `requirements.txt` fijado y CI; blog portado del Trabajo 1 con 01–03.
-- **2026-10-19 a 22** — Spec v0.1–v0.4 (historial en la cabecera del núcleo): repo, PLAN, agentes; núcleo + una spec
-  por parte; equipo asignado; enunciado en el Anexo; notebooks como capa delgada (§5.8); descriptivos posteriores (A6b, D1b).
+- **2026-10-23** — Parte A: crudo de Kaggle, objetivo, 15 variables, partición ≤ 2012 / 2013 / 2014 y `loans_pd.parquet` (237 695),
+  aprobados por Daniel (Spec v0.7–v0.8, H-01, H-02); `.venv` 3.12, CI y blog portado del Trabajo 1 con 01–03.

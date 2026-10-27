@@ -10,8 +10,9 @@ dibujan desde este JSON sin recalcular (el histograma va con sus bordes y conteo
   acepta y se documenta ([DECIDIDO, Camila, 24-oct]); aquí queda medida por split y por año.
 - ``preprocesado``: ``src.datos.eda.descriptivo_post`` (Parte A §3.8) con ``objetivo="lgd"`` sobre
   ``loans_lgd.parquet`` y ``models/preprocesador_lgd.json`` tal cual (``Preprocesador.from_dict``; nunca se reajusta).
-- ``fuente``: ``hash_particion`` y ``hash_preprocesador`` de ``src/lgd/procedencia.py`` (la misma definición que usan
-  los JSON de D4) y la ruta de ``resumen_objetivo.json`` (D2), con el que se comprueba que la
+- ``evidencia``: ``{sha256_particion, sha256_preprocesador}`` de ``src/lgd/procedencia.py`` (núcleo §5.4 y §6; la
+  misma definición que usan los JSON de D4).
+- ``fuente``: rutas de los insumos y de ``resumen_objetivo.json`` (D2), con el que se comprueba que la
   masa en 0/1 y los recortes cuadran (no se duplica: si no cuadra, ``ValueError`` y no se escribe nada).
 
 Desviación estándar: poblacional (``ddof=0``), igual que ``descriptivo_post`` y el ``Preprocesador``.
@@ -33,7 +34,7 @@ from src.common.preprocesamiento import DESCONOCIDO, Preprocesador
 from src.common.results import load_json, save_json
 from src.datos.eda import CUANTILES, UMBRAL_MONOTONIA, descriptivo_post
 from src.lgd.preparar import SPLITS
-from src.lgd.procedencia import hash_particion, hash_preprocesador
+from src.lgd.procedencia import evidencia
 
 RAIZ = Path(__file__).resolve().parents[2]
 N_BINS_HISTOGRAMA = 20  # valor por defecto; la config (descriptivo.n_bins_histograma) manda en generar()
@@ -130,7 +131,7 @@ def _cuadrar_con_resumen(observado: dict, resumen: dict) -> None:
 
 
 def generar(cfg: dict, raiz: Path = Path(".")) -> dict:
-    """Lee los insumos de D2, arma ``{observado, preprocesado, fuente}`` y escribe ``descriptivo.salida``."""
+    """Lee los insumos de D2, arma ``{observado, preprocesado, fuente, evidencia}`` y escribe ``descriptivo.salida``."""
     raiz = Path(raiz)
     datos, desc = cfg["datos"], cfg["descriptivo"]
     salida = datos["salida"]
@@ -146,9 +147,9 @@ def generar(cfg: dict, raiz: Path = Path(".")) -> dict:
     out = {
         "observado": observado,
         "preprocesado": descriptivo_preprocesado(df, pre, umbral=umbral),
-        "fuente": {"hash_particion": hash_particion(df), "hash_preprocesador": hash_preprocesador(pre_dict),
-                   "loans_lgd": str(salida["loans_lgd"]), "preprocesador": str(salida["preprocesador"]),
+        "fuente": {"loans_lgd": str(salida["loans_lgd"]), "preprocesador": str(salida["preprocesador"]),
                    "resumen_objetivo": str(salida["resumen"]), "umbral_monotonia": umbral},
+        "evidencia": evidencia(df, raiz / salida["preprocesador"]),
     }
     save_json(raiz / desc["salida"], out)
     return out

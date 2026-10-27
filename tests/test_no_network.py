@@ -126,6 +126,11 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
     sin_figuras = [f"src/viz/{nombre}.py" for nombre, destino in destinos.items() if not any(destino.rglob("*.png"))]
     assert not sin_figuras, (f"`run.py figures` no generó ningún .png de {sin_figuras}: ¿falta conectarlos en "
                              "src/common/cli.py::_figures?")
+    if argv[0] == "figures":  # B7: la Parte B escribe exactamente sus 7 figuras y pd-calibracion.json
+        from src.viz import figs_pd  # import local: si falta el módulo, solo falla el caso figures
+
+        escritos_pd = sorted(r.name for r in destinos["figs_pd"].rglob("*") if r.is_file())  # lo escrito por B
+        assert escritos_pd == sorted(figs_pd.ARCHIVOS), escritos_pd  # ni de más ni de menos
 
 
 def _modulos_de_figuras() -> list[str]:

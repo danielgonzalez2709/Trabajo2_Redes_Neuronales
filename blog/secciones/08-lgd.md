@@ -199,9 +199,18 @@ que ahora $y$ puede tomar cualquier valor del intervalo.
 
 Hay un caso de borde que en estos datos no es marginal: cuando una LGD es exactamente 1 (el 43,6 % de los casos) o 0, el logit
 óptimo para esa observación diverge ($z \to +\infty$ o $-\infty$). Lo contienen la penalización L2 y la parada temprana. La L2
-se suma a la pérdida como $\lambda \sum \lVert W \rVert^2$ sobre las matrices de pesos (sin los sesgos), lo que equivale a un
-`weight_decay` $= 2\lambda$ acoplado aplicado solo a las matrices de pesos (un `weight_decay` sobre todos los parámetros
-también decaería los sesgos); no es el *weight decay* desacoplado de AdamW. La parada temprana
+se suma a la pérdida como
+
+$$
+L_{\lambda} = L + \frac{\lambda}{2} \sum_{l} \lVert W_l \rVert^2
+$$
+
+sobre las matrices de pesos $W_l$ (sin los sesgos). Su gradiente es $\lambda W_l$, así que equivale a un `weight_decay`
+$= \lambda$ acoplado aplicado solo a las matrices de pesos (un `weight_decay` sobre todos los parámetros también decaería los
+sesgos); no es el *weight decay* desacoplado de AdamW. Es la misma convención del MLP de la PD (Parte B). Una primera versión de
+esta parte usaba $\lambda \sum \lVert W \rVert^2$ (equivalente a `weight_decay` $= 2\lambda$); la alineamos con la PD para que
+el mismo rango de $\lambda$ en el espacio de búsqueda signifique la misma penalización en las dos partes, como pide la regla
+de comparación justa. La parada temprana
 mide la pérdida de validación tras cada época y, si no mejora en `paciencia` = 10 épocas seguidas, se detiene y restaura los
 pesos de la mejor época.
 
@@ -214,35 +223,45 @@ la usamos en la búsqueda ni en los resultados.
 **Búsqueda de hiperparámetros.** Optuna con el muestreador TPE [@akiba2019; @bergstra2011], **30 ensayos** (todos
 completados) con semilla 0, sobre el espacio de la [[tab:lgd-busqueda]]. El criterio de selección es la **mínima pérdida de
 validación del propio MLP** (la entropía cruzada media en validación, en la mejor época); el MAE de validación se registra al
-lado pero no decide. Ganó el ensayo 27: dos capas ocultas de 128 y 64 neuronas con tanh, *dropout* 0,054, L2 0,0033, Adam
-con tasa de aprendizaje 0,0098 y lotes de 512, con pérdida de validación 0,2838 y MAE de validación 0,0761 (Fuente:
-`configs/lgd/mlp_final.yaml` y `results/data/lgd/hpo_ensayos.json`). La búsqueda casi no discrimina: los cinco mejores
-ensayos quedan entre 0,28376 y 0,28384 con arquitecturas muy distintas (de 16 a 128 neuronas en la primera capa), y el ensayo
-con menor MAE de validación (el 9, con 0,0755) no es el elegido por el criterio. La tasa de aprendizaje elegida queda cerca
-del límite superior del espacio (0,01): no sabemos si un rango más amplio habría elegido un valor mayor. Lo dejamos como
-limitación, porque ampliar el rango rompería la regla de usar el mismo espacio de búsqueda que la PD (Parte B).
+lado pero no decide. Ganó el ensayo 29: cuatro capas ocultas de 32, 64, 64 y 32 neuronas con Leaky ReLU, *dropout* 0,392,
+L2 0,00089, Adam con tasa de aprendizaje 0,0094 y lotes de 2 048, con pérdida de validación 0,28385 y MAE de validación
+0,0760 (Fuente: `configs/lgd/mlp_final.yaml` y `results/data/lgd/hpo_ensayos.json`, bloque `mejor`).
+
+**La superficie de búsqueda es casi plana.** De los 30 ensayos, **29 quedan a menos de 0,001 de la mejor pérdida de
+validación** (entre 0,28385 y 0,28471), con configuraciones muy distintas: de una a cuatro capas, de 16 a 256 neuronas en la
+primera capa, las tres activaciones y los dos optimizadores. El único que se separa es el ensayo 2 (SGD con tasa de
+aprendizaje 0,00017), con 0,30321. Además, el ensayo con menor MAE de validación (el 9, con 0,0755) es el penúltimo por el
+criterio de selección. Con diferencias de este tamaño, la configuración ganadora es una entre muchas casi equivalentes y no
+conviene leer en ella una preferencia por una arquitectura. La tasa de aprendizaje elegida queda cerca del límite superior del
+espacio (0,01): no sabemos si un rango más amplio habría elegido un valor mayor. Lo dejamos como limitación, porque ampliar el
+rango rompería la regla de usar el mismo espacio de búsqueda que la PD (Parte B).
 
 ::: tabla lgd-busqueda
 Título: Espacio de búsqueda del MLP de LGD y configuración elegida
 Fuente: Elaboración propia a partir de results/data/lgd/hpo_ensayos.json (espacio, mejor) y configs/lgd/mlp_final.yaml. Escala logarítmica en L2 y en la tasa de aprendizaje.
-| Hiperparámetro | Espacio | Elegido (ensayo 27) |
+| Hiperparámetro | Espacio | Elegido (ensayo 29) |
 |---|---|---|
-| Capas ocultas | 1 a 4 | 2 |
-| Neuronas por capa | {16, 32, 64, 128, 256} | 128 y 64 |
-| Activación oculta | ReLU, Leaky ReLU, tanh | tanh |
-| *Dropout* | [0; 0,5] | 0,054 |
-| L2 ($\lambda$) | [10⁻⁶; 10⁻²] | 0,0033 |
+| Capas ocultas | 1 a 4 | 4 |
+| Neuronas por capa | {16, 32, 64, 128, 256} | 32, 64, 64 y 32 |
+| Activación oculta | ReLU, Leaky ReLU, tanh | Leaky ReLU |
+| *Dropout* | [0; 0,5] | 0,392 |
+| L2 ($\lambda$, en $\frac{\lambda}{2}\sum_l \lVert W_l \rVert^2$) | [10⁻⁶; 10⁻²] | 0,00089 |
 | Optimizador | Adam, SGD (momento 0,9) | Adam |
-| Tasa de aprendizaje | [10⁻⁴; 10⁻²] | 0,0098 |
-| Tamaño del lote | {256, 512, 1024, 2048} | 512 |
+| Tasa de aprendizaje | [10⁻⁴; 10⁻²] | 0,0094 |
+| Tamaño del lote | {256, 512, 1024, 2048} | 2048 |
 | Épocas máximas / paciencia | fijas: 200 / 10 | 200 / 10 |
 | Salida y pérdida | fijas: sigmoide y entropía cruzada fraccional | ídem |
 :::
 
 **Treinta semillas.** Con la configuración elegida entrenamos el MLP con 30 semillas (0 a 29); cada una fija los pesos
-iniciales, el *dropout* y el orden de los lotes. Las corridas se detuvieron entre las épocas 12 y 29, con la mejor época
-entre la 2 y la 19 (Fuente: `results/data/lgd/semillas/`). La regresión lineal es determinista y se ajusta una sola vez.
-Para las figuras de predicciones usamos la **semilla mediana**: la semilla 10, la de MAE de prueba mediano.
+iniciales, el *dropout* y el orden de los lotes. Las corridas se detuvieron entre las épocas 17 y 45, con la mejor época
+entre la 7 y la 35 (Fuente: `results/data/lgd/semillas/`). La semilla 0 reproduce el ensayo 29 de la búsqueda: la misma
+pérdida y el mismo MAE de validación. La regresión lineal es determinista y se ajusta una sola vez.
+Para las figuras de predicciones usamos la **semilla mediana**: la semilla 22, la de MAE de **validación** mediano (al ordenar
+las 30 semillas por MAE de validación y, en empate, por semilla, la de la posición $\lfloor (n-1)/2 \rfloor = 14$ contando
+desde 0; Fuente:
+`results/data/lgd/summary.json`, campos `mlp.semilla_mediana` y `mlp.criterio_semilla_mediana`). La elegimos con validación y
+no con prueba, como en la PD, porque el conjunto de prueba solo mide y no puede intervenir en ninguna decisión del modelo.
 
 ### 8.4 Resultados
 
@@ -259,10 +278,10 @@ Fuente: Elaboración propia a partir de results/data/lgd/summary.json. Media, de
 | | RMSE validación | 0,0928 | 0 | 0,0928 | 0,0928 | 1 |
 | | MAE prueba | 0,0771 | 0 | 0,0771 | 0,0771 | 1 |
 | | RMSE prueba | 0,0866 | 0 | 0,0866 | 0,0866 | 1 |
-| MLP | MAE validación | 0,0762 | 0,00018 | 0,0757 | 0,0764 | 30 |
-| | RMSE validación | 0,0925 | 0,00007 | 0,0923 | 0,0927 | 30 |
-| | MAE prueba | 0,0771 | 0,00059 | 0,0758 | 0,0782 | 30 |
-| | RMSE prueba | 0,0857 | 0,00076 | 0,0843 | 0,0875 | 30 |
+| MLP | MAE validación | 0,0761 | 0,00008 | 0,0760 | 0,0763 | 30 |
+| | RMSE validación | 0,0924 | 0,00005 | 0,0923 | 0,0926 | 30 |
+| | MAE prueba | 0,0769 | 0,00037 | 0,0761 | 0,0776 | 30 |
+| | RMSE prueba | 0,0855 | 0,00040 | 0,0848 | 0,0864 | 30 |
 | Constante: media de entrenamiento | MAE validación / prueba | 0,0764 / 0,0775 | — | — | — | — |
 | | RMSE validación / prueba | 0,0925 / 0,0859 | — | — | — | — |
 | Constante: mediana de entrenamiento | MAE validación / prueba | 0,0772 / 0,0699 | — | — | — | — |
@@ -271,34 +290,37 @@ Fuente: Elaboración propia a partir de results/data/lgd/summary.json. Media, de
 
 ::: tabla lgd-presupuesto
 Título: Parámetros entrenables, configuraciones evaluadas y tiempo por familia de modelos de LGD
-Fuente: Elaboración propia a partir de results/data/lgd/summary.json. El tiempo del MLP incluye la búsqueda (32,5 s) y las 30 semillas (13,1 s).
+Fuente: Elaboración propia a partir de results/data/lgd/summary.json (lineal.tiempo_total_s; mlp.tiempo_busqueda_s, mlp.tiempo_semillas_s y mlp.tiempo_total_s). El tiempo del MLP incluye la búsqueda (126,1 s) y las 30 semillas (39,2 s).
 | Modelo | Parámetros entrenables | Configuraciones evaluadas | Tiempo total |
 |---|---:|---:|---:|
-| Regresión lineal | 49 | 1 | 0,01 s |
-| MLP (128-64, tanh) | 14 593 | 30 | 45,6 s |
+| Regresión lineal | 49 | 1 | 0,03 s |
+| MLP (32-64-64-32, Leaky ReLU) | 9 953 | 30 | 165,3 s |
 | Constante: media o mediana | 1 | 1 | — |
 :::
 
 Lo que muestran las dos tablas:
 
-- **El MLP y la regresión lineal empatan.** En MAE de prueba la lineal obtiene 0,07712 y la media del MLP 0,07708: difieren en
-  la quinta cifra decimal, muy por debajo de la desviación entre semillas (0,00059), y el MAE de la lineal cae dentro del rango
-  de las 30 semillas (18 de ellas la mejoran y 12 no). En RMSE de prueba el MLP es algo mejor (0,0857 frente a 0,0866; 25 de
-  30 semillas mejoran a la lineal) y en MAE de validación algo peor (0,0762 frente a 0,0759; solo 3 de 30 semillas la mejoran)
-  (Fuente: `results/data/lgd/semillas/`).
+- **El MLP y la regresión lineal quedan a milésimas, y el orden cambia de validación a prueba.** En MAE de validación la
+  lineal (0,07587) es mejor que **las 30 semillas** del MLP (media 0,07614); en MAE de prueba se invierte: la media del MLP
+  (0,07686) mejora a la lineal (0,07712) y **23 de las 30 semillas** la mejoran. La diferencia de prueba, 0,00026, es menor
+  que la desviación entre semillas (0,00037), y el MAE de la lineal cae dentro del rango de las 30 semillas. En RMSE el MLP es
+  mejor en las 30 semillas tanto en validación (0,0924 frente a 0,0928) como en prueba (0,0855 frente a 0,0866), pero por
+  diferencias de 0,0003 y 0,0011 entre medias (Fuente: `results/data/lgd/semillas/`).
 - **Ninguno de los dos supera con claridad a una constante.** La media de entrenamiento como predicción única obtiene MAE de
-  prueba 0,0775 y RMSE 0,0859, a menos de una milésima de ambos modelos. La mediana de entrenamiento obtiene el **menor MAE y
-  el menor RMSE de prueba** de toda la tabla (0,0699 y 0,0811), y ninguna de las 30 semillas la alcanza; en validación, en
-  cambio, es la peor de las cuatro opciones (0,0772 y 0,0959). La sección 8.5 explica por qué.
-- **Variabilidad.** Entre semillas, el MAE de prueba del MLP va de 0,0758 a 0,0782 ([[fig:lgd-semillas]]). Esa dispersión,
-  de 0,0024, es más grande que cualquiera de las diferencias entre el MLP y la lineal.
-- **Costo.** El MLP tiene 14 593 parámetros, unas 300 veces los 49 de la lineal, y evaluó 30 configuraciones frente a una; aun
-  así, todo su ciclo (búsqueda más semillas) tomó 45,6 s.
+  prueba 0,0775 y RMSE 0,0859, a menos de una milésima de ambos modelos; en RMSE la lineal es incluso algo peor que esa
+  constante en validación (0,0928 frente a 0,0925) y en prueba (0,0866 frente a 0,0859). La mediana de entrenamiento obtiene
+  el **menor MAE y el menor RMSE de prueba** de toda la tabla (0,0699 y 0,0811), y ninguna de las 30 semillas la alcanza en
+  ninguna de las dos métricas; en validación, en cambio, es la peor de las cuatro opciones (0,0772 y 0,0959). La sección 8.5
+  explica por qué.
+- **Variabilidad.** Entre semillas, el MAE de prueba del MLP va de 0,0761 a 0,0776 ([[fig:lgd-semillas]]). Esa dispersión,
+  de 0,0015, es casi seis veces la diferencia entre la media del MLP y la lineal (0,00026).
+- **Costo.** El MLP tiene 9 953 parámetros, unas 200 veces los 49 de la lineal, y evaluó 30 configuraciones frente a una; aun
+  así, todo su ciclo (búsqueda más semillas) tomó 165,3 s, frente a 0,03 s de la lineal.
 
 ::: figura lgd-semillas
 Título: MAE de prueba de cada una de las 30 semillas del MLP frente a la regresión lineal y a las dos constantes
-Fuente: Elaboración propia a partir de results/data/lgd/semillas/ y results/data/lgd/summary.json. El círculo marca la semilla mediana (10).
-![Puntos del MAE de prueba por semilla entre 0,0758 y 0,0782, con líneas horizontales de la lineal, la media y la mediana de entrenamiento](figures/lgd-semillas.png)
+Fuente: Elaboración propia a partir de results/data/lgd/semillas/ y results/data/lgd/summary.json. El círculo marca la semilla mediana por MAE de validación (22).
+![Puntos del MAE de prueba por semilla entre 0,0761 y 0,0776, con líneas horizontales de la lineal, la media y la mediana de entrenamiento](figures/lgd-semillas.png)
 :::
 
 ### 8.5 Distribución de las predicciones
@@ -306,17 +328,19 @@ Fuente: Elaboración propia a partir de results/data/lgd/semillas/ y results/dat
 El enunciado pide comparar la distribución de las predicciones con la observada, y es aquí donde se entiende la tabla anterior.
 La [[fig:lgd-distribucion-predicha]] muestra que **ambos modelos predicen casi lo mismo para todos**: en prueba, la LGD
 observada tiene desviación estándar 0,081 y va de 0 a 1, mientras que las predicciones de la lineal van de 0,863 a 0,981
-(desviación 0,014) y las del MLP de la semilla mediana de 0,863 a 0,944 (desviación 0,009). Las dos se centran en 0,917, la
-media de entrenamiento (Fuente: `results/data/lgd/pred_test.parquet`; desviaciones poblacionales).
+(desviación 0,014) y las del MLP de la semilla mediana (22) en un rango aún más estrecho, **de 0,902 a 0,938** (desviación
+0,006). Las dos se centran en la media de entrenamiento (0,917): sus medias en prueba son 0,917 y 0,918 (Fuente:
+`results/data/lgd/pred_test.parquet`; desviaciones poblacionales). El MLP, en particular, se comporta casi como una constante:
+todas sus predicciones caben en un intervalo de 0,036.
 
 ::: figura lgd-distribucion-predicha
 Título: Distribución de la LGD predicha por la regresión lineal y por el MLP frente a la observada (prueba)
 Fuente: Elaboración propia a partir de results/data/lgd/pred_test.parquet (MLP: semilla mediana) y results/data/lgd/summary.json (constantes). A la derecha, ampliación del intervalo [0,8; 1].
-![Histogramas de la LGD observada y predicha en prueba: las predicciones se concentran entre 0,88 y 0,95 mientras la observada tiene más de la mitad de la masa en 1](figures/lgd-distribucion-predicha.png)
+![Histogramas de la LGD observada y predicha en prueba: las predicciones se concentran entre 0,86 y 0,98 (las del MLP entre 0,90 y 0,94) mientras la observada tiene más de la mitad de la masa en 1](figures/lgd-distribucion-predicha.png)
 :::
 
 El gráfico cuantil-cuantil ([[fig:lgd-qq]]) lo confirma: entre los percentiles 1 y 99, los cuantiles observados recorren de
-0,76 a 1, y los predichos quedan casi planos entre 0,89 y 0,96. Ninguno de los dos modelos reproduce la masa en 1 ni la
+0,76 a 1, y los predichos quedan casi planos: entre 0,889 y 0,956 los de la lineal y entre 0,903 y 0,930 los del MLP. Ninguno de los dos modelos reproduce la masa en 1 ni la
 cola izquierda; ambos predicen, en esencia, una media ligeramente ajustada por las variables.
 
 ::: figura lgd-qq
@@ -326,8 +350,8 @@ Fuente: Elaboración propia a partir de results/data/lgd/pred_test.parquet (MLP:
 :::
 
 La [[fig:lgd-error-por-banda]] descompone el error por banda de LGD observada (las bandas son de presentación, no del modelo).
-Los dos modelos tienen errores casi idénticos en todas las bandas: grandes en las pocas LGD bajas (MAE de 0,758 en las 22 de
-[0; 0,5] y de 0,19 en las 233 de (0,5; 0,8]), pequeños en el grueso intermedio (0,059 en 4 931 créditos) y de 0,082 en los
+Los dos modelos tienen errores casi idénticos en todas las bandas: grandes en las pocas LGD bajas (MAE de 0,758 y 0,759 en las 22 de
+[0; 0,5] y de 0,195 en las 233 de (0,5; 0,8]), pequeños en el grueso intermedio (0,059 en 4 931 créditos) y de 0,082 en los
 8 795 con LGD en (0,99; 1]. La constante mediana es peor en las tres primeras bandas, pero mejor en la última (0,057), que en
 prueba concentra el 63 % de los créditos (Fuente: `results/data/lgd/pred_test.parquet`, función `tabla_error_por_banda` de
 `src/viz/figs_lgd.py`).
@@ -353,11 +377,32 @@ conjunto de prueba se parece más a ese número que al de entrenamiento.
 
 ### 8.6 Qué aportó la red en la LGD
 
-Con las 15 variables de la originación, el MLP no aportó frente a la regresión lineal: métricas equivalentes dentro de la
-variabilidad entre semillas, unas 300 veces más parámetros, 30 configuraciones evaluadas frente a una y una interpretación
+Con las 15 variables de la originación, el MLP no aportó de forma relevante frente a la regresión lineal: métricas a
+milésimas de distancia (en MAE, dentro de la variabilidad entre semillas; en RMSE, mejor en las 30 semillas pero por 0,0003 en
+validación y 0,0011 en prueba), unas 200 veces más parámetros, 30 configuraciones evaluadas frente a una y una interpretación
 más difícil (la lineal se lee coeficiente por coeficiente; el MLP necesitaría herramientas adicionales). Las métricas de ambos modelos
 quedan a menos de una milésima de las de predecir la media de entrenamiento, y una constante (la mediana) los supera en el conjunto de
 prueba por el desplazamiento de su distribución. Lo que sí aportó el diseño de la red es una garantía de forma: la salida
 sigmoide mantiene toda predicción en (0, 1) (en aritmética exacta) y la entropía cruzada fraccional apunta a la media condicional, que es lo que
 necesita la pérdida esperada de la sección 9. La causa del poco poder predictivo (poca señal en las variables de la
 originación, censura en las cosechas recientes o ambas) queda abierta; la discusión de conjunto está en la sección 10.
+
+**Cuatro hallazgos y lo que permiten concluir.** Los resultados de esta sección encajan entre sí y con lo que la sección 8.2
+documenta sobre la masa en LGD = 1 y la censura, aunque ninguno prueba por sí solo una causa:
+
+1. **La constante mediana de entrenamiento gana en MAE y RMSE de prueba** (0,0699 y 0,0811) a la lineal y a las 30 semillas
+   del MLP. Como se vio en la sección 8.5, una explicación posible, no contrastada, tiene dos partes: la mediana es el valor
+   que minimiza el error absoluto, lo que explica la ventaja en MAE; y la prueba está desplazada hacia 1 (62,7 % con LGD = 1
+   frente a 25,9 % en entrenamiento), de modo que la mediana de entrenamiento (0,943) queda más cerca de la media de prueba
+   (0,945) que la media de entrenamiento (0,917), lo que explica también la ventaja en RMSE. Ese desplazamiento es
+   consistente con censura, pero no se atribuye a ella de forma probada.
+2. **La superficie de búsqueda es casi plana**: 29 de 30 ensayos a menos de 0,001 de la mejor pérdida de validación. Si las
+   variables aportan poca señal sobre la LGD (sección 8.2), cabe esperar que arquitecturas muy distintas lleguen a casi la
+   misma pérdida; no comprobamos que esa sea la razón.
+3. **El MLP predice en un rango estrecho** (de 0,902 a 0,938 en prueba), más estrecho que el de la lineal y cercano a una
+   constante. Es coherente con una pérdida que apunta a la media condicional cuando esta varía poco con las variables; no
+   separamos cuánto se debe a la regularización elegida (*dropout* 0,392 y L2) y cuánto a los datos.
+4. **El orden entre el MLP y la lineal cambia entre validación y prueba** en MAE: en validación la lineal es mejor que las 30
+   semillas; en prueba 23 de 30 semillas la mejoran. Con diferencias del orden de 10⁻⁴ y una prueba cuya distribución difiere
+   de la de validación (42,9 % frente a 62,7 % con LGD = 1), este cambio de orden no indica que un modelo generalice mejor que
+   el otro; muestra que, en este caso, validación no anticipa el orden en prueba. <!-- revisar: autor -->
