@@ -4,7 +4,7 @@
 |---|---|
 | Responsables | **Andrés** (reparto de la pareja, 24-oct; Juan José hace la Parte C) |
 | Rama personal | `dev/andres` |
-| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
+| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
 | Lee del núcleo | §0, §3, §4.1, §5.1, §5.2, §5.3, §5.4, §6, §7.1 · **Anexo (enunciado):** Parte 1, tareas 3–5; Regla de comparación justa; Discusión; Entregables 1 (fundamentación matemática) y 3 |
 | Arranca sin esperar | Sí: métricas y MLP con datos sintéticos (núcleo §5.6) desde el jueves 22 |
 
@@ -122,6 +122,52 @@ corrida y se explica por qué su desviación entre semillas es 0.
   supera a la PD media, es decir, los puntos quedan **por encima** de la diagonal (PD media 0,187 y 0,204 frente a una
   tasa de 0,262; hallazgo candidato H-22 por haberlo descrito al revés).
 
+### 3.7 Notebook `02_pd` [DECIDIDO, Andrés, 26-oct; Spec v0.22]
+- **Propósito:** la demo de la PD lo más a la mano posible (sección 1) y, debajo, un recorrido guiado de la Parte B que
+  sirve de repaso para la sustentación. Cumple el núcleo §5.8: fuente `notebooks/02_pd.py` en formato percent, el `.ipynb`
+  lo genera `run.py notebooks`, cero lógica propia, < 2 min en CPU. Solo la sección 1 entrena; las secciones 2–4 **leen**
+  resultados versionados y no cambian con `SET`.
+- **Explicaciones:** de 2 a 4 líneas por subsección con el **qué** y el **por qué**, y el enlace a la sección del blog
+  (04–06, o 01–03 para los datos) donde está el desarrollo completo; las derivaciones viven en el blog (B8), no se
+  duplican. Las cifras salen **siempre impresas** de los JSON (nunca escritas a mano en el texto). La lectura no afirma
+  causas que los resultados no prueben.
+- **Encabezado (celdas de texto, antes de la celda de parámetros):** qué lee, que nunca escribe en `data/processed/`,
+  `models/`, `results/`, `configs/pd/mlp_final.yaml` ni `blog/`, y cómo usar los moldes:
+  - **Molde de la logística**, **molde del MLP** y **molde de las claves comunes** (`base_seed`, `datos.muestra`,
+    `semillas.n`): diccionarios con **todas** las claves de `configs/pd/demo.yaml` que se pueden cambiar en vivo, con su
+    valor actual y un comentario de una línea sobre lo que hace cada una, listos para copiar las claves al `SET`.
+  - **Molde del comando de terminal** equivalente (`python run.py pd --config configs/pd/demo.yaml --set …`, con
+    `--set salida=<carpeta>` para no chocar con una corrida anterior de otra muestra, §3.5), listo para pegar.
+  - Una prueba exige que las claves y los valores de los moldes coincidan con `demo.yaml` (un molde desactualizado
+    daría un error delante del profesor). `salida` y `modelos` no van en los moldes: el notebook los fija.
+- **Secciones** (numeradas; subsecciones `N.M`):
+  1. **Demo en vivo.** 1.0 celda de parámetros (`CONFIG = "configs/pd/demo.yaml"`, `SET = {}`, primera celda de código,
+     etiqueta `parameters`) · 1.1 config resuelta impresa (`config_notebook`) · 1.2 `correr_pd` en una **carpeta
+     temporal** (salida y modelos van siempre ahí aunque `SET` cambie `salida` o `modelos`), con el tiempo, las filas por
+     partición y la tabla logística frente a MLP (AUC, Gini, KS, Brier y log-loss de val y test; parámetros; semilla
+     mediana) · 1.3 figuras de **esta** corrida con `figs_pd.generar(destino=<temporal>, datos=insumos_de_corrida(...))`:
+     `pd-roc`, `pd-ks`, `pd-calibracion`, `pd-aprendizaje`, `pd-semillas` y `pd-busqueda-logistica` (la demo no tiene
+     `hpo_ensayos.json`, así que no dibuja `pd-busqueda-mlp`).
+  2. **Datos que consume la PD (Parte A, solo lectura).** 2.1 partición temporal y tasa de malos por partición y por año
+     (`data/processed/resumen_datos.json`, `results/data/eda/post_preprocesamiento.json`, figura `datos-anio.png`) ·
+     2.2 las 15 variables de originación y su relación con el malo (`eda-tasa-variables.png`); preprocesador de A ajustado
+     solo con train y nunca reajustado por B · 2.3 estabilidad entre particiones (PSI frente a train, del mismo JSON).
+     Remite al notebook 01 para el análisis completo.
+  3. **Búsqueda de hiperparámetros.** 3.1 logística: rejilla de C, criterio, C elegido y `en_borde`
+     (`busqueda_logistica.json`, `pd-busqueda-logistica.png`) · 3.2 MLP con TPE: espacio, muestreador, criterio,
+     presupuesto (ensayos, tiempo) y estados (`hpo_ensayos.json`) · 3.3 trayectoria de la búsqueda (`pd-busqueda-mlp.png`)
+     · 3.4 tabla de los mejores ensayos (arquitectura, log-loss y AUC de val, épocas, mejor época, parámetros) y
+     `en_borde` de lr, l2 y dropout · 3.5 tabla resumen de las dos búsquedas (configuraciones probadas, tiempo, criterio).
+  4. **Modelo final y comparación justa.** 4.1 arquitectura ganadora (`configs/pd/mlp_final.yaml`, ensayo elegido) y
+     parámetros entrenables frente a los de la logística · 4.2 las semillas de `summary.json`: media ± desv., mejor y peor
+     por métrica, y la regla de la semilla mediana (`pd-semillas.png`) · 4.3 MLP − logística por métrica, con signo, y
+     en cuántas semillas el MLP es mejor que la logística (desde `semillas/mlp_seed*.json`) · 4.4 ROC y KS oficiales de
+     prueba (`pd-roc.png`, `pd-ks.png`) · 4.5 calibración (`pd-calibracion.png`) y su lectura de §3.6, ligada a la tasa
+     por año de 2.1 · 4.6 curva de aprendizaje de la semilla mediana y parada temprana (`pd-aprendizaje.png`).
+- **`src/pd/tablas.py`** (con `tests/test_tablas_pd.py`): las funciones que arman las tablas y textos de arriba a partir
+  de los JSON ya cargados (puras: no leen archivos ni entrenan), más la que redirige `salida` y `modelos` de la config a
+  la carpeta temporal y la que devuelve los moldes desde `demo.yaml`. El notebook solo las llama y muestra el resultado.
+
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
@@ -132,14 +178,14 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | ✅ B5 | 30 semillas + `summary.json` + modelos guardados | B4 | Media, desviación, mejor, peor; parámetros | analista-experimentos | **sáb 24, mediodía** | Andrés |
 | B6 | Demo: `configs/pd/demo.yaml` + `datos.muestra` (§3.5, v0.20) | B2, B3, B5 | **< 2 min en CPU medido**: 13,8–15,1 s aquí; **pendiente: otra máquina** | auditor-reproducibilidad | sáb 24 | Andrés |
 | ✅ B7 | Figuras: ROC, KS, calibración, cajas por semilla + aprendizaje y búsquedas; JSON de calibración para el video (§3.6, v0.21) | B5 | `run.py figures` las regenera | revisor-spec | sáb 24 (hecha 26-oct) | Andrés |
-| B9 | Notebook `02_pd` (núcleo §5.8) | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código | revisor-spec | dom 25 | Andrés |
+| B9 | Notebook `02_pd` (núcleo §5.8) con la estructura de §3.7 (v0.22): moldes y comando de terminal, demo en la sección 1, datos, búsqueda y modelo final; `src/pd/tablas.py` | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código; los moldes coinciden con `demo.yaml` (prueba); no escribe en `results/`, `models/` ni `blog/` (`test_notebooks.py`) | revisor-spec | dom 25 | Andrés |
 | B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 | Andrés |
 | B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 | Andrés |
 
 (E0 = esqueleto del puente, jue 22.)
 
 ## 5. Pruebas de la parte
-`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta).
+`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta), `test_tablas_pd.py` (B9: tablas del notebook 02 y moldes = `demo.yaml`).
 
 ## 6. Puntos calientes de alucinación
 - L2 vs. `AdamW`; "dropout se aplica también al predecir"; `BCELoss` sobre logits sin sigmoide.
