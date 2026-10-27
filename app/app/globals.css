@@ -1,0 +1,75 @@
+/* Paleta (Camila, 26-oct): página crema, tarjetas crema claro con borde de tinta y acento azul cobalto. Los colores
+   de cada modelo siguen siendo los de src/viz/paleta.py (COLOR_MODELO), como en el blog. Solo modo claro.
+   Contraste: tinta sobre la página 14,0:1, texto suave sobre la página 6,6:1 y sobre las tarjetas 7,5:1, azul sobre
+   la página 7,6:1. */
+:root {
+  --ds-fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-fondo: #fff8ee; /* crema claro de las tarjetas */
+  --ds-texto: #0b0b0b;
+  --ds-tinta: #1d1d1f; /* globo, barra y trazos oscuros */
+  --ds-texto-suave: #5c4f3d;
+  --ds-texto-pagina: #5c4f3d; /* texto secundario directo sobre la página */
+  --ds-borde: rgba(29, 29, 31, 0.2); /* contorno de tinta, como en la referencia */
+  --ds-superficie: #fffdf8; /* crema más claro, para filas dentro de una tarjeta */
+  --ds-superficie-activa: #fbeedb; /* hover de esas filas */
+  --ds-pagina: #fbe8cc; /* crema */
+  --ds-acento: #1f33c2; /* azul cobalto */
+  --ds-acento-tinte: #e3e6fa; /* fondo de la tarjeta del resultado */
+  --ds-relleno: rgba(29, 29, 31, 0.08); /* pista de controles segmentados */
+  --ds-eje: #c3c2b7; /* EJE de paleta.py */
+  --ds-foco: #1f33c2;
+  --ds-modelo-logistica: #2a78d6;
+  --ds-modelo-mlp: #eb6834;
+  --ds-sube: #1a7f37; /* puntaje que sube: 5,1:1 sobre blanco; siempre con signo y texto, nunca solo color */
+  --ds-baja: #b42318; /* puntaje que baja: 6,3:1 sobre blanco */
+  --ds-radio: 18px;
+  --ds-radio-control: 10px;
+  --ds-sombra: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ds-fuente);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ds-texto);
+  background: var(--ds-pagina);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Solo para lectores de pantalla. */
+.oculta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-foco);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,111 @@
+.bloque {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  background: var(--ds-fondo);
+  border: 1px solid var(--ds-borde);
+  border-radius: var(--ds-radio);
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.explica,
+.nada {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ds-texto-suave);
+}
+
+.explica strong {
+  font-weight: 650;
+  color: var(--ds-texto);
+}
+
+.nada {
+  font-size: 0.875rem;
+  color: var(--ds-texto);
+}
+
+.lista {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity 150ms ease;
+}
+
+.pendiente {
+  opacity: 0.55;
+}
+
+.cambio {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: 2.75rem; /* objetivo táctil */
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  text-align: left;
+  color: var(--ds-texto);
+  background: var(--ds-superficie);
+  border: 1px solid var(--ds-borde);
+  border-radius: var(--ds-radio-control);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.cambio:hover:not(:disabled) {
+  background: var(--ds-superficie-activa);
+  border-color: rgba(29, 29, 31, 0.24);
+}
+
+.cambio:disabled {
+  cursor: progress;
+}
+
+.que {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.valores {
+  font-weight: 400;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.efecto {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sube {
+  font-weight: 650;
+  color: var(--ds-sube);
+}
+
+.pd {
+  color: var(--ds-texto-suave);
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  .bloque {
+    padding: 1rem;
+  }
+}
+
+/* El encabezado recibe el foco al aplicar un cambio (tabIndex -1): sin anillo si no se llegó con el teclado. */
+.titulo:focus:not(:focus-visible) {
+  outline: none;
+}
