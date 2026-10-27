@@ -651,7 +651,8 @@ def test_06_optuna_y_reusar_de_punta_a_punta(entorno, tmp_path):
     pred = [pd.read_parquet(r.resultados / ex.ARCHIVO_PRED_TEST) for r in (r_reu, r_opt)]  # pred_test
     assert pred[0]["pred_logistica"].tolist() == pred[1]["pred_logistica"].tolist()  # idéntica
     for r in (r_reu, r_opt):  # modelos de cada modo
-        assert (r.modelos / ex.ARCHIVO_MODELO_LOGISTICA).is_file() and (r.modelos / ex.ARCHIVO_MODELO_MLP).is_file()
+        assert (r.modelos / ex.ARCHIVO_MODELO_LOGISTICA).is_file()  # joblib de la logística del modo
+        assert (r.modelos / ex.ARCHIVO_MODELO_MLP).is_file()  # red de la semilla mediana del modo
     comp = load_json(Path(cfg["sensibilidad"]["salida"]) / sens.ARCHIVO_COMPARACION)  # comparación escrita
     assert comp == res["comparacion"] and comp["misma_particion"] is True  # misma partición que el principal
     assert comp["modos"] == ["reusar", "optuna"]  # los dos modos
@@ -835,7 +836,8 @@ def test_07c_escribir_comparacion(entorno, tmp_path):
         clave = ruta if ruta.name == ex.ARCHIVO_SUMMARY else ruta.parent / ex.ARCHIVO_SUMMARY  # fuente
         return fuentes[clave]["summary" if ruta.suffix == ".json" else "pred_test"]  # objeto
 
-    comp = sens.escribir_comparacion(cfg, ["reusar"], leer=leer, escribir=lambda p, o: escritos.update({p: o}))
+    comp = sens.escribir_comparacion(cfg, ["reusar"], leer=leer,  # lector falso
+                                     escribir=lambda p, o: escritos.update({p: o}))  # escritor en memoria
     assert set(leidos) == {principal, principal.parent / ex.ARCHIVO_PRED_TEST, r / ex.ARCHIVO_SUMMARY,
                            r / ex.ARCHIVO_PRED_TEST}  # cuatro lecturas
     assert escritos == {Path(cfg["sensibilidad"]["salida"]) / sens.ARCHIVO_COMPARACION: comp}  # una escritura

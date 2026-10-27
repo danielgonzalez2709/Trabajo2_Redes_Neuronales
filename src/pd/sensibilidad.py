@@ -417,7 +417,8 @@ def comparacion(principal: dict, por_modo: dict) -> dict:
         metricas[modelo] = {}  # por métrica
         for k in METRICAS_COMPARADAS:  # métricas de test
             base = entradas[FUENTE_PRINCIPAL]["metricas"][k]["media"]  # media del principal
-            metricas[modelo][k] = {f: {c: e["metricas"][k][c] for c in CLAVES_RESUMEN} for f, e in entradas.items()}
+            metricas[modelo][k] = {f: {c: e["metricas"][k][c] for c in CLAVES_RESUMEN}  # media, desv y n
+                                   for f, e in entradas.items()}  # de cada fuente
             for m in modos:  # Δ = sensibilidad − principal
                 metricas[modelo][k][m]["delta"] = float(entradas[m]["metricas"][k]["media"] - base)  # con signo
         presupuesto[modelo] = {f: {c: e[c] for c in CLAVES_PRESUPUESTO} for f, e in entradas.items()}  # núcleo §6
