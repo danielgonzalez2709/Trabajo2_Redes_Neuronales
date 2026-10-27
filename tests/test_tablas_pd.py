@@ -37,6 +37,9 @@ def _met(media: float, desv: float = 0.0, n: int = 1) -> dict:
     return {"media": media, "desv": desv, "mejor": media + 0.001, "peor": media - 0.001, "n": n}  # mejor ≠ peor
 
 
+# %% [markdown]
+# Las 10 métricas de un modelo en `summary.json`, con cambios puntuales.
+
 # %%
 def _bloque(valores: dict, desv: float, n: int, **cambios) -> dict:
     """Las 10 métricas {m}_{s} de summary.json con los valores de ``valores`` y ``cambios`` encima."""
@@ -44,6 +47,9 @@ def _bloque(valores: dict, desv: float, n: int, **cambios) -> dict:
     planas.update(cambios)  # p. ej. logloss_val distinta
     return {k: _met(v, desv, n) for k, v in planas.items()}  # bloques
 
+
+# %% [markdown]
+# `summary.json` sintético: logística con n = 1 y MLP de 3 semillas que viene de la búsqueda.
 
 # %%
 def _resumen() -> dict:
@@ -59,6 +65,9 @@ def _resumen() -> dict:
                     "busqueda": {"tipo": "optuna", "ensayo": 11, "n_ensayos": 40}}}  # procedencia
 
 
+# %% [markdown]
+# El mismo resumen con un MLP fijado a mano (`sin_busqueda`).
+
 # %%
 def _resumen_sin_busqueda() -> dict:
     """El mismo resumen con un MLP fijado a mano (presupuesto de la búsqueda null)."""
@@ -66,6 +75,9 @@ def _resumen_sin_busqueda() -> dict:
     r["mlp"].update(n_configuraciones_busqueda=None, config_de_busqueda=False, busqueda=None)  # sin_busqueda
     return r  # resumen
 
+
+# %% [markdown]
+# Registro `mlp_seed<k>.json` que empata con la logística salvo los cambios indicados.
 
 # %%
 def _semilla(seed: int, **cambios) -> dict:
@@ -78,6 +90,9 @@ def _semilla(seed: int, **cambios) -> dict:
             "n": {"train": 10, "val": 5, "test": 6}}  # filas por split
 
 
+# %% [markdown]
+# Tres semillas con victorias, derrotas y empates conocidos.
+
 # %%
 def _semillas() -> list[dict]:
     """Tres semillas: AUC test gana 1 (otra empata) y Brier test gana 1 (otra empata)."""
@@ -85,6 +100,9 @@ def _semillas() -> list[dict]:
             _semilla(1, auc_test=0.67, brier_test=0.20),  # gana AUC, pierde Brier
             _semilla(2, auc_test=0.66, brier_test=0.19)]  # empata las dos
 
+
+# %% [markdown]
+# `hpo_ensayos.json` sintético con un FAIL y un empate de log-loss.
 
 # %%
 def _hpo() -> dict:
@@ -109,6 +127,9 @@ def _hpo() -> dict:
             "en_borde": {"lr": None, "l2": "max", "dropout": None}, "ensayos": ensayos}  # borde y ensayos
 
 
+# %% [markdown]
+# `busqueda_logistica.json` sintético con las filas desordenadas por C.
+
 # %%
 def _busqueda() -> dict:
     """busqueda_logistica.json con las filas desordenadas por C."""
@@ -117,6 +138,9 @@ def _busqueda() -> dict:
     return {"criterio": "logloss_val", "filas": filas, "C_elegido": 1e-2, "en_borde": False,  # elegido interno
             "tiempo_total_s": 1.5}  # tiempo
 
+
+# %% [markdown]
+# `resumen_datos.json` sintético con los años como texto y desordenados.
 
 # %%
 def _resumen_datos() -> dict:
@@ -149,6 +173,9 @@ def test_moldes_cubren_la_config_menos_las_fijadas():
     assert not set(tablas.CLAVES_FIJADAS) & {k.split(".")[0] for k in claves}  # ninguna fijada
 
 
+# %% [markdown]
+# Los valores de los moldes conservan su tipo (float, lista, null).
+
 # %%
 def test_moldes_conservan_valor_y_tipo():
     """Los valores salen tal cual de la config (float, lista, None)."""
@@ -162,6 +189,9 @@ def test_moldes_conservan_valor_y_tipo():
     assert moldes["logistica"]["logistica.rejilla_C"] == [1e-3, 1e-2]  # lista de floats
 
 
+# %% [markdown]
+# Una clave nueva en la config sin molde es un error.
+
 # %%
 @pytest.mark.parametrize("extra", [{"nueva": 1}, {"logistica_extra": {"a": 1}}])  # clave suelta o bloque
 def test_moldes_clave_sin_clasificar_es_error(extra):
@@ -170,6 +200,22 @@ def test_moldes_clave_sin_clasificar_es_error(extra):
     with pytest.raises(ValueError, match="molde"):  # no se clasifica
         tablas.moldes_de(cfg)  # error
 
+
+# %% [markdown]
+# Un bloque vacío (p. ej. `datos: {}`) no tiene hojas: se perdería del molde en silencio, y como hoja `{}` no se podría
+# copiar al `SET` (`apply_overrides` no reemplaza un bloque entero). Por eso es un error.
+
+# %%
+@pytest.mark.parametrize("bloque", ["datos", "mlp"])  # común y de modelo
+def test_moldes_bloque_vacio_es_error(bloque):
+    """Un bloque {} en la config → ValueError que lo nombra."""
+    cfg = {**load_config(RAIZ / DEMO), bloque: {}}  # demo con el bloque vacío
+    with pytest.raises(ValueError, match=bloque):  # nombrado
+        tablas.moldes_de(cfg)  # error
+
+
+# %% [markdown]
+# El molde es una copia: mutarlo no cambia la config.
 
 # %%
 def test_moldes_no_mutan_la_config():
@@ -194,6 +240,9 @@ def _config_por_cli(comando: str) -> dict:
     return apply_overrides(load_config(RAIZ / args.config), args.overrides)  # mismo cargador
 
 
+# %% [markdown]
+# Casos del `SET` que pueden romper el comando: espacios, notación científica, null, texto y booleanos.
+
 # %%
 CAMBIOS = [  # cambios con espacios, notación científica, null, texto y booleanos
     {},  # sin cambios
@@ -207,6 +256,9 @@ CAMBIOS = [  # cambios con espacios, notación científica, null, texto y boolea
 ]  # casos
 
 
+# %% [markdown]
+# Cada caso da la misma config por la terminal y por el notebook.
+
 # %%
 @pytest.mark.parametrize("cambios", CAMBIOS)  # cada caso
 def test_comando_terminal_ida_y_vuelta(cambios, monkeypatch):
@@ -216,6 +268,9 @@ def test_comando_terminal_ida_y_vuelta(cambios, monkeypatch):
     assert comando.startswith(f"python run.py pd --config {DEMO}")  # forma
     assert _config_por_cli(comando) == config_notebook(DEMO, cambios, imprimir=False)  # misma config
 
+
+# %% [markdown]
+# Una clave mal escrita falla igual por los dos caminos.
 
 # %%
 def test_comando_terminal_clave_inexistente_falla_como_el_cli(monkeypatch):
@@ -227,6 +282,9 @@ def test_comando_terminal_clave_inexistente_falla_como_el_cli(monkeypatch):
     with pytest.raises(ValueError, match="Clave inexistente"):  # notebook
         config_notebook(DEMO, {"mlp.capaz": [8]}, imprimir=False)  # mismo error
 
+
+# %% [markdown]
+# La ruta de la config también va citada.
 
 # %%
 def test_comando_terminal_cita_la_ruta_de_la_config():
@@ -251,6 +309,9 @@ def test_redirigir_salidas_no_muta_e_ignora_set(tmp_path):
     nueva["mlp"]["capas"].append(4)  # la copia es profunda
     assert cfg["mlp"]["capas"] == [8]  # el original sigue igual
 
+
+# %% [markdown]
+# La carpeta temporal puede llegar como texto.
 
 # %%
 def test_redirigir_salidas_acepta_texto(tmp_path):
@@ -277,6 +338,9 @@ def test_tabla_metricas_columnas_y_valores():
     assert t.loc["mlp", "configuraciones"] == 40 and t.loc["mlp", "parámetros"] == 2673  # presupuesto
 
 
+# %% [markdown]
+# Un MLP fuera de la búsqueda deja las configuraciones vacías.
+
 # %%
 def test_tabla_metricas_sin_busqueda_deja_configuraciones_vacias():
     """MLP sin_busqueda → configuraciones vacías (no 0 ni NaN)."""
@@ -285,12 +349,18 @@ def test_tabla_metricas_sin_busqueda_deja_configuraciones_vacias():
     assert t.loc["logistica", "configuraciones"] == 13  # la logística conserva su rejilla
 
 
+# %% [markdown]
+# El resultado de `correr_pd` trae `rutas`, que no es un modelo.
+
 # %%
 def test_tabla_metricas_ignora_rutas_de_correr_pd():
     """El resultado de correr_pd trae además 'rutas': no es un modelo."""
     r = {**_resumen(), "rutas": object()}  # como lo devuelve correr_pd
     assert list(tablas.tabla_metricas(r).index) == ["logistica", "mlp"]  # solo modelos
 
+
+# %% [markdown]
+# La descripción del MLP cabe en una línea con todos sus datos.
 
 # %%
 def test_describir_mlp():
@@ -301,6 +371,9 @@ def test_describir_mlp():
     assert "búsqueda: no" in tablas.describir_mlp(_resumen_sin_busqueda()["mlp"])  # fijada a mano
     assert "\n" not in texto  # una línea
 
+
+# %% [markdown]
+# Filas por split coherentes entre semillas.
 
 # %%
 def test_filas_por_particion():
@@ -330,6 +403,9 @@ def test_comparacion_signo_y_mejor_segun_sentido():
     assert c.loc["ks_test", "mejor"] == "empate"  # iguales
 
 
+# %% [markdown]
+# Una métrica o un split desconocidos no se comparan a ciegas.
+
 # %%
 def test_comparacion_metrica_desconocida_es_error():
     """Una métrica fuera de SENTIDO o de val/test no se compara a ciegas."""
@@ -341,6 +417,9 @@ def test_comparacion_metrica_desconocida_es_error():
             tablas.comparacion(r)  # error
 
 
+# %% [markdown]
+# Sin las mismas métricas en los dos modelos no hay comparación justa.
+
 # %%
 def test_comparacion_metricas_distintas_es_error():
     """Si los dos modelos no tienen las mismas métricas, no hay comparación justa."""
@@ -349,6 +428,9 @@ def test_comparacion_metricas_distintas_es_error():
     with pytest.raises(ValueError, match="ks_val"):  # nombrada
         tablas.comparacion(r)  # error
 
+
+# %% [markdown]
+# Victorias estrictas: un empate no cuenta.
 
 # %%
 def test_victorias_por_semilla_empate_no_cuenta():
@@ -360,6 +442,9 @@ def test_victorias_por_semilla_empate_no_cuenta():
     assert (v["semillas"] == 3).all()  # n
 
 
+# %% [markdown]
+# Semillas que faltan o se repiten frente a `summary.json` son un error.
+
 # %%
 def test_victorias_por_semilla_semillas_ajenas_es_error():
     """Las semillas deben ser exactamente las de summary.json (no una carpeta vieja)."""
@@ -370,6 +455,9 @@ def test_victorias_por_semilla_semillas_ajenas_es_error():
         tablas.victorias_por_semilla(duplicada, _resumen())  # error
 
 
+# %% [markdown]
+# Una semilla incompleta no se cuenta como derrota.
+
 # %%
 def test_victorias_metrica_que_falta_en_una_semilla_es_error():
     """Una semilla sin una de las métricas no se cuenta como derrota."""
@@ -378,6 +466,9 @@ def test_victorias_metrica_que_falta_en_una_semilla_es_error():
     with pytest.raises(ValueError, match="ks_test"):  # nombrada
         tablas.victorias_por_semilla(semillas, _resumen())  # error
 
+
+# %% [markdown]
+# Resumen de las semillas por métrica.
 
 # %%
 def test_tabla_semillas():
@@ -390,6 +481,9 @@ def test_tabla_semillas():
     assert (t["semillas"] == 3).all()  # n
 
 
+# %% [markdown]
+# Config ganadora, ensayo y parámetros frente a la logística.
+
 # %%
 def test_tabla_arquitectura():
     """Config ganadora, ensayo de la búsqueda y parámetros frente a la logística."""
@@ -400,6 +494,9 @@ def test_tabla_arquitectura():
     assert t.loc["ensayo de la búsqueda", "MLP"] == 11  # procedencia
     assert tablas.tabla_arquitectura(_resumen_sin_busqueda()).loc["ensayo de la búsqueda", "MLP"] == ""  # fijada
 
+
+# %% [markdown]
+# Parada temprana de la semilla mediana; una mediana sin registro es un error.
 
 # %%
 def test_ficha_aprendizaje():
@@ -425,6 +522,9 @@ def test_mejores_ensayos_excluye_fail_y_desempata_por_numero():
     assert t.loc[2, "capas"] == "[32]" and t.loc[2, "log-loss val"] == pytest.approx(0.50)  # contenido
 
 
+# %% [markdown]
+# Límites de `k`.
+
 # %%
 def test_mejores_ensayos_k_mayor_que_n_y_k_invalido():
     """k > n devuelve todos los completos; k < 1 o no entero → error."""
@@ -433,6 +533,9 @@ def test_mejores_ensayos_k_mayor_que_n_y_k_invalido():
         with pytest.raises(ValueError, match="k"):  # nombrado
             tablas.tabla_mejores_ensayos(_hpo(), k=k)  # error
 
+
+# %% [markdown]
+# Sin ensayos completos no hay tabla.
 
 # %%
 def test_mejores_ensayos_sin_completos_es_error():
@@ -443,6 +546,9 @@ def test_mejores_ensayos_sin_completos_es_error():
     with pytest.raises(ValueError, match="COMPLETE"):  # sin completos
         tablas.tabla_mejores_ensayos(hpo)  # error
 
+
+# %% [markdown]
+# Espacio con rango o valores y escala; una clave ajena es un error.
 
 # %%
 def test_tabla_espacio():
@@ -458,6 +564,9 @@ def test_tabla_espacio():
     with pytest.raises(ValueError, match="momento"):  # nombrado
         tablas.tabla_espacio(hpo)  # error
 
+
+# %% [markdown]
+# Resumen de las dos búsquedas.
 
 # %%
 def test_tabla_resumen_busquedas():
@@ -485,6 +594,9 @@ def test_tabla_busqueda_c_ordena_y_marca_un_elegido():
     assert t["elegido"].sum() == 1 and t.loc[t["elegido"], "C"].item() == 1e-2  # un elegido
 
 
+# %% [markdown]
+# Un C elegido fuera de la rejilla (también por poco) es un error.
+
 # %%
 @pytest.mark.parametrize("c", [3e-2, 1.00001e-2])  # fuera de la rejilla (también por poco)
 def test_tabla_busqueda_c_elegido_fuera_de_la_rejilla_es_error(c):
@@ -494,6 +606,9 @@ def test_tabla_busqueda_c_elegido_fuera_de_la_rejilla_es_error(c):
     with pytest.raises(ValueError, match="C_elegido"):  # nombrado
         tablas.tabla_busqueda_c(b)  # error
 
+
+# %% [markdown]
+# Un C repetido haría ambiguo el elegido.
 
 # %%
 def test_tabla_busqueda_c_duplicado_es_error():
@@ -517,6 +632,9 @@ def test_tabla_por_anio_orden_numerico_y_split():
     assert t.loc[2013, "créditos"] == 30 and t.loc[2013, "fracción sin resolver (NA)"] == pytest.approx(0.4)  # n
 
 
+# %% [markdown]
+# Los años se ordenan como números, no como texto.
+
 # %%
 def test_tabla_por_anio_texto_no_ordena_como_texto():
     """'999' va antes que '1000' (como texto iría después)."""
@@ -525,6 +643,9 @@ def test_tabla_por_anio_texto_no_ordena_como_texto():
         r[campo] = {"1000": 1, "999": 1}  # años de 3 y 4 cifras
     assert list(tablas.tabla_por_anio(r).index) == [999, 1000]  # numérico
 
+
+# %% [markdown]
+# Un año con tasa pero sin conteo es un resumen incoherente.
 
 # %%
 def test_tabla_por_anio_anio_de_mas_es_error():
@@ -535,6 +656,9 @@ def test_tabla_por_anio_anio_de_mas_es_error():
         tablas.tabla_por_anio(r)  # error
 
 
+# %% [markdown]
+# Partición en el orden train, val, test.
+
 # %%
 def test_tabla_particion():
     """Corte, n y tasa por split en el orden train, val, test."""
@@ -543,6 +667,9 @@ def test_tabla_particion():
     assert t.loc["val", "hasta"] == "2013-12-31" and t.loc["test", "n"] == 14  # corte y n
     assert t.loc["train", "tasa de malos"] == pytest.approx(0.14)  # tasa
 
+
+# %% [markdown]
+# Variables con su cita literal; una posterior a la originación es un error.
 
 # %%
 def test_tabla_variables():
@@ -600,6 +727,9 @@ REALES = {"summary": "results/data/pd/summary.json", "busqueda": "results/data/p
 FALTAN = [r for r in REALES.values() if not (RAIZ / r).is_file()]  # los que no están
 
 
+# %% [markdown]
+# Todas las funciones sobre los JSON reales (se omite en un clon sin resultados).
+
 # %%
 @pytest.mark.skipif(bool(FALTAN), reason=f"faltan {FALTAN}")  # clon sin resultados
 def test_funciones_aceptan_los_json_reales():
@@ -631,6 +761,9 @@ def test_funciones_aceptan_los_json_reales():
     assert tablas.moldes_de(load_config(RAIZ / DEMO))  # la demo real se clasifica
 
 
+# %% [markdown]
+# Las configuraciones vacías no son NaN.
+
 # %%
 def test_tabla_metricas_sin_nan():
     """Una tabla con configuraciones vacías no lleva NaN (se ve como 'nan' en el notebook)."""
@@ -640,28 +773,7 @@ def test_tabla_metricas_sin_nan():
 
 
 # %% [markdown]
-# ## Infraestructura: constantes copiadas, imports y tipos
-
-# %%
-def test_constantes_del_espacio_iguales_a_las_de_hpo():
-    """Las constantes copiadas de src/pd/hpo.py no se desvían de las originales."""
-    from src.pd import hpo  # importa Optuna (aquí no importa: no es Jupyter)
-    assert tablas.CLAVES_ESPACIO == hpo.CLAVES_ESPACIO  # claves del espacio
-    assert tablas.RANGOS == hpo.RANGOS  # escala de cada rango
-    assert tablas.ESTADO_COMPLETO == hpo.ESTADO_COMPLETO  # estado de un ensayo terminado
-    assert set(tablas.PARAMETROS_ENSAYO) == set(hpo.CLAVES_BUSCADAS)  # parámetros armados del ensayo
-
-
-# %%
-def test_tablas_no_importa_optuna():
-    """Importar tablas no arrastra Optuna (en Jupyter imprime un aviso de tqdm con la ruta local)."""
-    import subprocess  # proceso limpio: este ya pudo importar Optuna
-    import sys  # intérprete actual
-    codigo = "import sys; import src.pd.tablas; print('optuna' in sys.modules, 'tqdm.auto' in sys.modules)"  # chequeo
-    salida = subprocess.run([sys.executable, "-c", codigo], cwd=RAIZ, capture_output=True, text=True,  # ejecuta
-                            check=True).stdout.split()  # ['False', 'False']
-    assert salida == ["False", "False"]  # ni Optuna ni tqdm.auto (el que avisa en Jupyter)
-
+# ## Infraestructura: tipos de las columnas
 
 # %%
 def test_columnas_enteras_conservan_su_tipo():
@@ -672,3 +784,48 @@ def test_columnas_enteras_conservan_su_tipo():
                                "tasa_global": 0.2}}}  # global
     assert pd.api.types.is_integer_dtype(tablas.resumen_calibracion(calib)["bins"])  # bins
     assert pd.api.types.is_integer_dtype(tablas.tabla_particion(_resumen_datos())["n"])  # n por split
+
+
+# %% [markdown]
+# ## Formato percent
+#
+# Cada celda de código (`# %%`) de los archivos de B9 va precedida de una celda `# %% [markdown]` que la explica,
+# como en `src/pd/experimento.py` y `src/pd/hpo.py`.
+
+# %%
+ARCHIVOS_PERCENT = ("src/pd/tablas.py", "src/pd/espacio.py", "tests/test_tablas_pd.py",  # módulos y pruebas
+                    "tests/test_notebook_02_pd.py", "tests/test_espacio.py")  # de B9
+
+
+# %% [markdown]
+# Devuelve los números de línea de las celdas de código cuya celda anterior no es de texto.
+
+# %%
+def _celdas_sin_explicacion(texto: str) -> list[int]:
+    """Líneas (desde 1) de cada '# %%' de código sin '# %% [markdown]' inmediatamente antes."""
+    marcas = [(i, ln) for i, ln in enumerate(texto.splitlines(), start=1) if ln.startswith("# %%")]  # celdas
+    return [i for k, (i, ln) in enumerate(marcas)  # cada celda
+            if "[markdown]" not in ln and (k == 0 or "[markdown]" not in marcas[k - 1][1])]  # código sin texto
+
+
+# %% [markdown]
+# El detector reconoce los dos casos: celda explicada y celda suelta.
+
+# %%
+def test_detector_de_celdas_sin_explicacion():
+    """Código tras texto pasa; código tras código o al inicio falla."""
+    bien = "# %% [markdown]\n# x\n\n# %%\na = 1\n"  # explicada
+    mal = "# %%\na = 1\n# %% [markdown]\n# x\n# %%\nb = 2\n# %%\nc = 3\n"  # al inicio y tras código
+    assert _celdas_sin_explicacion(bien) == []  # sin faltas
+    assert _celdas_sin_explicacion(mal) == [1, 7]  # las dos sueltas
+
+
+# %% [markdown]
+# La regla, sobre los archivos reales de B9.
+
+# %%
+@pytest.mark.parametrize("ruta", ARCHIVOS_PERCENT)  # cada archivo
+def test_cada_celda_de_codigo_tiene_su_explicacion(ruta):
+    """Ningún '# %%' de código sin una celda de texto justo antes."""
+    faltan = _celdas_sin_explicacion((RAIZ / ruta).read_text(encoding="utf-8"))  # líneas en falta
+    assert not faltan, f"{ruta}: celdas sin explicación en las líneas {faltan}"  # ninguna

@@ -5,8 +5,8 @@
 # los resúmenes de la Parte A) y devuelven un `DataFrame`, un dict o un texto. No leen archivos, no entrenan y no
 # imprimen; el notebook las llama y muestra lo que devuelven.
 #
-# Las constantes del espacio de la búsqueda se copian de `src/pd/hpo.py` (una prueba exige que sean iguales) para no
-# importar Optuna: en Jupyter su import imprime un aviso de tqdm con la ruta local del entorno.
+# Las constantes del espacio de la búsqueda vienen de `src/pd/espacio.py` (no de `hpo.py`) para no importar Optuna:
+# en Jupyter su import imprime un aviso de tqdm con la ruta local del entorno.
 
 # %%
 from __future__ import annotations  # anotaciones como texto
@@ -18,6 +18,7 @@ from pathlib import Path  # carpeta de la demo
 import pandas as pd  # tablas
 import yaml  # valores del --set en YAML de flujo, como config_notebook
 
+from src.pd.espacio import CLAVES_BUSCADAS, CLAVES_ESPACIO, ESTADO_COMPLETO, RANGOS  # espacio de la búsqueda (B4)
 from src.pd.experimento import SENTIDO, SPLITS, SPLITS_MEDIDOS  # sentido de cada métrica y splits (B5)
 
 CLAVES_FIJADAS = ("salida", "modelos", "busqueda")  # las fija el notebook o la demo: no van en los moldes
@@ -36,11 +37,7 @@ VACIO = ""  # celda sin dato (p. ej. configuraciones de un MLP fijado a mano): n
 SI, NO = "sí", "no"  # booleanos en texto
 EMPATE = "empate"  # comparación sin ganador
 FUERA = "fuera"  # año de originación fuera del modelado (posterior a test_hasta)
-CLAVES_ESPACIO = ("n_capas", "neuronas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # = hpo.py
-RANGOS = {"n_capas": "entero", "dropout": "lineal", "l2": "log", "lr": "log"}  # = hpo.RANGOS (B-pd §3.3)
-ESTADO_COMPLETO = "COMPLETE"  # = hpo.ESTADO_COMPLETO (estado de Optuna de un ensayo terminado)
 ESCALA_OPCIONES = "opciones"  # escala de una lista de valores del espacio (no un rango)
-PARAMETROS_ENSAYO = ("capas", "activacion", "dropout", "l2", "optimizador", "lr", "batch")  # buscados (§3.3)
 COLUMNAS_ENSAYO = {"logloss_val": "log-loss val", "auc_val": "AUC val", "epocas": "épocas",  # métricas del ensayo
                    "mejor_epoca": "mejor época", "n_parametros": "parámetros"}  # → título
 K_ENSAYOS = 5  # mejores ensayos que muestra la sección 3.4 por defecto
@@ -67,11 +64,16 @@ def _por_filas(filas: dict) -> pd.DataFrame:
 
 # %%
 def _hojas(bloque, prefijo: str) -> dict:
-    """{clave.con.punto: valor} de las hojas de ``bloque`` (los dict se recorren; lo demás es hoja)."""
+    """{clave.con.punto: valor} de las hojas de ``bloque`` (los dict se recorren; lo demás es hoja; {} → error)."""
     if not isinstance(bloque, dict):  # hoja (número, lista, texto o null)
         return {prefijo: copy.deepcopy(bloque)}  # copia: el molde no comparte listas con la config
+    if not bloque:  # {}: sin hojas se perdería en silencio, y un bloque entero no se puede poner en el SET
+        raise ValueError(f"el bloque {prefijo!r} está vacío: no tiene claves para el molde")  # cuál
     return {k: v for clave, sub in bloque.items() for k, v in _hojas(sub, f"{prefijo}.{clave}").items()}  # baja
 
+
+# %% [markdown]
+# Reparte las hojas de la config en los tres moldes de `GRUPOS_MOLDES` y rechaza las claves sin molde.
 
 # %%
 def moldes_de(cfg: dict) -> dict:
@@ -98,6 +100,9 @@ def _valor_set(valor) -> str:
     """Texto YAML de flujo de ``valor`` (como src/common/notebooks.config_notebook)."""
     return yaml.safe_dump(valor, default_flow_style=True).strip().removesuffix("...").strip()  # p. ej. [64, 32]
 
+
+# %% [markdown]
+# Arma el comando con un `--set` por cambio, citado para pegarlo en la terminal.
 
 # %%
 def comando_terminal(config: str, cambios: dict) -> str:
@@ -150,6 +155,9 @@ def tabla_metricas(resumen: dict) -> pd.DataFrame:
     return _por_filas(filas)[list(COLUMNAS_METRICAS)]  # orden fijo
 
 
+# %% [markdown]
+# Una línea con el MLP de una corrida: arquitectura, parámetros, semilla mediana y procedencia.
+
 # %%
 def describir_mlp(entrada: dict) -> str:
     """Una línea con capas, activación, parámetros, semilla mediana y si es la config de la búsqueda."""
@@ -158,6 +166,9 @@ def describir_mlp(entrada: dict) -> str:
             f"semilla mediana {entrada['semilla_mediana']} de {len(entrada['semillas'])} · "
             f"config de la búsqueda: {SI if entrada['config_de_busqueda'] else NO}")  # una línea
 
+
+# %% [markdown]
+# Filas por split que usó la corrida, leídas de `n` de cada semilla; si las semillas no coinciden es un error.
 
 # %%
 def filas_por_particion(semillas: list[dict]) -> dict:
@@ -186,6 +197,9 @@ def tabla_particion(resumen_datos: dict) -> pd.DataFrame:
                        for s in SPLITS})  # una fila por split
 
 
+# %% [markdown]
+# Partición de un año de originación según los cortes de la Parte A (`FUERA` si es posterior a test).
+
 # %%
 def split_de_anio(anio: int, particion: dict) -> str:
     """Partición del año de originación según los cortes (o FUERA si es posterior a test_hasta)."""
@@ -194,6 +208,9 @@ def split_de_anio(anio: int, particion: dict) -> str:
             return s  # primer split que lo contiene
     return FUERA  # posterior a test
 
+
+# %% [markdown]
+# Tabla por año con los años como enteros (el JSON los trae como texto) y su partición.
 
 # %%
 def tabla_por_anio(resumen_datos: dict) -> pd.DataFrame:
@@ -212,6 +229,10 @@ def tabla_por_anio(resumen_datos: dict) -> pd.DataFrame:
                         index=pd.Index(anios, name="año"))  # índice entero
 
 
+# %% [markdown]
+# Las variables de `features.yaml` con su cita literal; una no disponible en la originación es un error
+# (núcleo §5.7).
+
 # %%
 def tabla_variables(features_cfg: dict) -> pd.DataFrame:
     """Las variables de features.yaml: tipo, etiqueta, transformación y cita literal del diccionario."""
@@ -223,6 +244,9 @@ def tabla_variables(features_cfg: dict) -> pd.DataFrame:
                                      "cita del diccionario": f["cita_diccionario"]}  # literal de Kaggle
                        for f in features_cfg["features"]})  # una fila por variable
 
+
+# %% [markdown]
+# PSI de val o de test frente a train, de mayor a menor; un split que no está en el JSON es un error.
 
 # %%
 def tabla_psi(post: dict, por: str = "test") -> pd.DataFrame:
@@ -238,7 +262,7 @@ def tabla_psi(post: dict, por: str = "test") -> pd.DataFrame:
 # ## Búsqueda de hiperparámetros
 #
 # La rejilla de C de la logística (con exactamente un C elegido), el espacio de la búsqueda del MLP con la escala de
-# `RANGOS` (copia de `src/pd/hpo.py`), los mejores ensayos completos (orden por log-loss de val; empate → menor número, como B-pd §3.3) y
+# `RANGOS` (`src/pd/espacio.py`), los mejores ensayos completos (orden por log-loss de val; empate → menor número, como B-pd §3.3) y
 # el resumen de las dos búsquedas.
 
 # %%
@@ -251,6 +275,9 @@ def tabla_busqueda_c(busqueda: dict) -> pd.DataFrame:
                          f"aparece {int(t['elegido'].sum())}")  # cuántas
     return t  # tabla
 
+
+# %% [markdown]
+# Espacio de la búsqueda con su rango o lista de valores y la escala de `RANGOS`; una clave ajena es un error.
 
 # %%
 def tabla_espacio(hpo: dict) -> pd.DataFrame:
@@ -267,6 +294,9 @@ def tabla_espacio(hpo: dict) -> pd.DataFrame:
     return _por_filas(filas)  # una fila por parámetro
 
 
+# %% [markdown]
+# Valida el número de ensayos que se muestran: entero ≥ 1 (bool y float no).
+
 # %%
 def _k_valido(k) -> int:
     """``k`` si es un entero ≥ 1 (bool y float no)."""
@@ -274,6 +304,9 @@ def _k_valido(k) -> int:
         raise ValueError(f"k debe ser un entero ≥ 1; se recibió {k!r}")  # tipo o rango
     return k  # válido
 
+
+# %% [markdown]
+# Los mejores ensayos completos con el orden de B-pd §3.3 (log-loss de val; empate → menor número).
 
 # %%
 def tabla_mejores_ensayos(hpo: dict, k: int = K_ENSAYOS) -> pd.DataFrame:
@@ -285,18 +318,24 @@ def tabla_mejores_ensayos(hpo: dict, k: int = K_ENSAYOS) -> pd.DataFrame:
     mejores = sorted(completos, key=lambda e: (e["logloss_val"], e["numero"]))[:k]  # orden de B-pd §3.3
     filas = {}  # número → fila
     for e in mejores:  # en orden
-        fila = {p: e["parametros"][p] for p in PARAMETROS_ENSAYO}  # parámetros armados
+        fila = {p: e["parametros"][p] for p in CLAVES_BUSCADAS}  # parámetros armados
         fila["capas"] = str(fila["capas"])  # lista como texto (una celda)
         fila.update({titulo: e[clave] for clave, titulo in COLUMNAS_ENSAYO.items()})  # métricas
         filas[e["numero"]] = fila  # fila lista
     return _por_filas(filas).rename_axis("ensayo")  # índice = número del ensayo
 
 
+# %% [markdown]
+# `en_borde` del mejor ensayo en una línea (null = no está en el borde).
+
 # %%
 def _texto_borde(en_borde: dict) -> str:
     """'lr: no · l2: max · …' a partir de en_borde (null = no está en el borde)."""
     return " · ".join(f"{p}: {NO if v is None else v}" for p, v in en_borde.items())  # una línea
 
+
+# %% [markdown]
+# Las dos búsquedas lado a lado: método, configuraciones, criterio, mejor valor, tiempo y borde.
 
 # %%
 def tabla_resumen_busquedas(busqueda: dict, hpo: dict) -> pd.DataFrame:
@@ -336,6 +375,9 @@ def tabla_arquitectura(resumen: dict) -> pd.DataFrame:
     return _por_filas(filas)  # una fila por clave
 
 
+# %% [markdown]
+# Resumen de las semillas del MLP por métrica, con el valor de la logística al lado.
+
 # %%
 def tabla_semillas(resumen: dict) -> pd.DataFrame:
     """Por métrica: media, desv., mejor y peor del MLP, número de semillas y valor de la logística."""
@@ -344,6 +386,9 @@ def tabla_semillas(resumen: dict) -> pd.DataFrame:
                            "MLP peor": b["peor"], "semillas": b["n"], "logística": log[k]["media"]}  # referencia
                        for k, b in mlp.items()})  # una fila por métrica
 
+
+# %% [markdown]
+# Sentido (`max` o `min`) de una métrica `{métrica}_{split}`; un nombre desconocido es un error.
 
 # %%
 def _sentido(nombre: str) -> str:
@@ -354,6 +399,9 @@ def _sentido(nombre: str) -> str:
     return SENTIDO[metrica]  # sentido
 
 
+# %% [markdown]
+# Quién gana en una métrica según su sentido; la igualdad exacta es `EMPATE`.
+
 # %%
 def _mejor(mlp: float, log: float, sentido: str) -> str:
     """'mlp', 'logistica' o EMPATE según el sentido de la métrica."""
@@ -361,6 +409,9 @@ def _mejor(mlp: float, log: float, sentido: str) -> str:
         return EMPATE  # sin ganador
     return "mlp" if (mlp > log) == (sentido == "max") else "logistica"  # mayor es mejor sólo en 'max'
 
+
+# %% [markdown]
+# MLP − logística por métrica con el ganador; si los modelos no tienen las mismas métricas es un error.
 
 # %%
 def comparacion(resumen: dict) -> pd.DataFrame:
@@ -376,6 +427,9 @@ def comparacion(resumen: dict) -> pd.DataFrame:
         filas[k] = {"logística": a, "MLP (media)": b, "MLP − logística": b - a, "mejor": _mejor(b, a, s)}  # fila
     return _por_filas(filas)  # una fila por métrica
 
+
+# %% [markdown]
+# Victorias estrictas del MLP por semilla; las semillas deben ser exactamente las de `summary.json`.
 
 # %%
 def victorias_por_semilla(semillas: list[dict], resumen: dict) -> pd.DataFrame:
@@ -395,6 +449,9 @@ def victorias_por_semilla(semillas: list[dict], resumen: dict) -> pd.DataFrame:
     return _por_filas(filas)  # una fila por métrica
 
 
+# %% [markdown]
+# Datos de la parada temprana de la semilla mediana (la de `pd_mlp.pt`).
+
 # %%
 def ficha_aprendizaje(semillas: list[dict], resumen: dict) -> dict:
     """Semilla mediana: épocas corridas, mejor época, paciencia, máximo de épocas y mejor pérdida de val."""
@@ -406,6 +463,9 @@ def ficha_aprendizaje(semillas: list[dict], resumen: dict) -> dict:
             "paciencia": registro["config"]["paciencia"], "máx. épocas": registro["config"]["max_epocas"],  # config
             "mejor pérdida de val": registro["mejor_perdida_val"]}  # BCE de val restaurada
 
+
+# %% [markdown]
+# PD media y tasa observada globales por modelo y en cuántos bins la tasa supera a la PD media.
 
 # %%
 def resumen_calibracion(calib: dict) -> pd.DataFrame:
