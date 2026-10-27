@@ -70,7 +70,7 @@ entradas. Receta del JSON frente al modelo en todo el test: |ΔPD| ≤ 1,5e-8 (l
 | ✅ C4 | SHAP del MLP + permutación + scorecard del MLP (26-oct: `src/scorecard/shap_pd.py`, `configs/scorecard/mlp.yaml`, `scorecard_mlp.json` y `shap_mlp.json`) | B5, C1 | Aditividad comprobada numéricamente | verificador-matematico | sáb 24 | Juan José |
 | ✅ C5 | Export real de **los dos modelos** (Spec v0.17: `pd_model_{logistica,mlp}.json` + `casos_paridad_{logistica,mlp}.json`; B5 ya está en `main`; volver a medir la diferencia receta vs modelo con el MLP) | B5, C2 | Contrato §5.5 | revisor-spec | **lun 26** | Juan José |
 | ✅ C6 | Cierre de hipótesis (27-oct: `src/scorecard/hipotesis.py`, `python -m src.scorecard.hipotesis` y al final de `run.py scorecard` con `mlp.yaml`; `hipotesis.json`: EDA, SHAP, logística, test con cortes de train, veredicto, motivo, matiz y sensibilidad) | A6, C4 | Cada H-k con veredicto y evidencia | analista-experimentos | dom 25 | Juan José |
-| C8 | Notebook `03_scorecard` (núcleo §5.8) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
+| ✅ C8 | Notebook `03_scorecard` (núcleo §5.8; 27-oct: `notebooks/03_scorecard.py`, `puntos_cliente` y `direccion_shap` en `puntos.py`; ~10 s) | C4, C6 | Corre en < 2 min; `SET = {"scorecard.pdo": 40}` cambia los puntajes | revisor-spec | dom 25 | Juan José |
 | ✅ C7 | Blog 07 (27-oct: `blog/secciones/07-scorecard.md`, 5 figuras `sc-*` de `src/viz/figs_scorecard.py` en `run.py figures`, 4 referencias nuevas) | C4, C6 | Derivación revisada; figuras citadas | redactor-tecnico + verificador-matematico | dom 25 | Juan José |
 
 ## 5. Pruebas de la parte

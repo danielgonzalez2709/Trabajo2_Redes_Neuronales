@@ -61,6 +61,8 @@ from src.scorecard.puntos import (
     puntos_valor_crudo,
     tabla_bandas,
     preparar_splits,
+    puntos_cliente,
+    direccion_shap,
     validar_cfg_puntos,
 )
 from src.scorecard.scorecard import (
@@ -999,3 +1001,130 @@ def test_12d_logit_alterado_rompe_la_aditividad(cfg20, preparado):
                                         "test": {**preparado["splits"]["test"], "logit": logit}}}
     with pytest.raises(ValueError, match="[Aa]ditividad"):
         construir_scorecard(cfg20, alterado)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 13. puntos_cliente (C8): los puntos de UN crédito, para el notebook 03
+# ---------------------------------------------------------------------------------------------------------------------
+
+COLUMNAS_CLIENTE = ["nombre", "etiqueta_es", "valor", "puntos"]  # columnas de la tabla de variables de puntos_cliente
+
+
+def test_13a_preparado_guarda_los_id_de_cada_split(preparado, datos):
+    """preparar_splits guarda los id de cada split en el orden de sus filas (las de X, logit, prob e y)."""
+    for s in SPLITS:
+        esperado = datos.loc[datos["split"] == s, "id"].astype(str).tolist()
+        assert [str(i) for i in preparado["splits"][s]["id"]] == esperado, s
+        assert len(preparado["splits"][s]["id"]) == preparado["splits"][s]["X"].shape[0], s
+        assert not preparado["splits"][s]["id"].flags.writeable, s
+
+
+@pytest.mark.parametrize("split", SPLITS)
+def test_13b_suma_de_puntos_del_cliente_es_su_score(preparado, por_split, params, features, split):
+    """Puntos base + Σ puntos por variable = score del crédito (el de C1 desde su logit); error ≤ TOL_ADITIVIDAD."""
+    i = 7  # una fila cualquiera del split
+    id_credito = str(preparado["splits"][split]["id"][i])
+    r = puntos_cliente(preparado, params, id_credito, split=split)
+    assert r["id"] == id_credito and r["split"] == split
+    tabla = r["variables"]
+    assert isinstance(tabla, pd.DataFrame) and list(tabla.columns) == COLUMNAS_CLIENTE
+    assert tabla["nombre"].tolist() == [f["nombre"] for f in features]  # orden de features.yaml
+    assert tabla["etiqueta_es"].tolist() == [f["etiqueta_es"] for f in features]
+    score = float(por_split[split]["score"][i])
+    assert r["score"] == pytest.approx(score, abs=TOL)
+    assert r["puntos_base"] == pytest.approx(puntos_base(preparado["intercepto"], params), abs=TOL)
+    assert abs(r["puntos_base"] + tabla["puntos"].sum() - score) <= TOL_ADITIVIDAD
+    assert 0 <= r["error_aditividad"] <= TOL_ADITIVIDAD
+
+
+def test_13c_valores_crudos_del_cliente(preparado, params, datos, features):
+    """La columna `valor` es el valor crudo del crédito en loans_pd.parquet (num como float, cat como texto)."""
+    id_credito = str(preparado["splits"]["test"]["id"][0])
+    fila = datos[datos["id"].astype(str) == id_credito].iloc[0]
+    tabla = puntos_cliente(preparado, params, id_credito)["variables"].set_index("nombre")
+    for f in features:
+        crudo, obtenido = fila[f["nombre"]], tabla.loc[f["nombre"], "valor"]
+        if f["tipo"] == "num" and pd.isna(crudo):
+            assert pd.isna(obtenido), f["nombre"]
+        else:
+            assert obtenido == crudo, f["nombre"]
+
+
+def test_13d_puntos_del_cliente_coinciden_con_la_tabla_de_la_scorecard(preparado, params, sc):
+    """Una categórica del cliente recibe los puntos de su categoría en scorecard.json (C3)."""
+    id_credito = str(preparado["splits"]["test"]["id"][0])
+    tabla = puntos_cliente(preparado, params, id_credito)["variables"].set_index("nombre")
+    term = _entrada(sc, "term")
+    puntos_cat = {c["categoria"]: c["puntos"] for c in term["categorias"]}
+    # el crudo de term trae un espacio inicial (" 36 months"); el preprocesador lo limpia con strip (limpieza de A)
+    assert tabla.loc["term", "puntos"] == pytest.approx(puntos_cat[tabla.loc["term", "valor"].strip()], abs=TOL)
+
+
+def test_13e_id_inexistente_es_error(preparado, params):
+    with pytest.raises(ValueError, match="no está"):
+        puntos_cliente(preparado, params, "no-existe-123")
+
+
+def test_13f_id_de_otro_split_es_error(preparado, params):
+    id_train = str(preparado["splits"]["train"]["id"][0])
+    with pytest.raises(ValueError, match="no está"):
+        puntos_cliente(preparado, params, id_train, split="test")
+
+
+def test_13g_split_desconocido_es_error(preparado, params):
+    with pytest.raises(ValueError, match="split"):
+        puntos_cliente(preparado, params, str(preparado["splits"]["test"]["id"][0]), split="prueba")
+
+
+def test_13h_pdo_40_duplica_los_puntos_del_cliente(preparado, params, cfg40):
+    """Con PDO 40 los puntos de cada variable son el doble que con PDO 20 y (puntos base − base) también se duplica."""
+    params40 = parametros_scorecard(bloque_scorecard(cfg40))
+    id_credito = str(preparado["splits"]["test"]["id"][3])
+    r20 = puntos_cliente(preparado, params, id_credito)
+    r40 = puntos_cliente(preparado, params40, id_credito)
+    np.testing.assert_allclose(r40["variables"]["puntos"].to_numpy(), 2 * r20["variables"]["puntos"].to_numpy(),
+                               rtol=TOL_REL_PDO, atol=1e-12)
+    assert r40["puntos_base"] - params40["base"] == pytest.approx(2 * (r20["puntos_base"] - params["base"]),
+                                                                  rel=TOL_REL_PDO)
+    assert r40["variables"]["valor"].equals(r20["variables"]["valor"])
+
+
+def test_13i_no_altera_el_preparado(preparado, params):
+    """puntos_cliente no modifica el preparado compartido (arrays de solo lectura y mismas claves)."""
+    claves = {s: set(preparado["splits"][s]) for s in SPLITS}
+    puntos_cliente(preparado, params, str(preparado["splits"]["test"]["id"][0]))
+    assert {s: set(preparado["splits"][s]) for s in SPLITS} == claves
+
+
+SHAP_JUGUETE = {"direccion": {  # bloque `direccion` de shap_mlp.json (C4) en miniatura
+    "a": {"tipo": "num", "spearman": 0.8, "n": 10},
+    "c": {"tipo": "cat", "phi_medio": {"x": -0.1, "y": 0.3}, "n": {"x": 6, "y": 4}},
+    "b": {"tipo": "num", "spearman": -0.5, "n": 10},
+}}
+
+
+def test_14a_direccion_shap_a_mano():
+    """ρ alineado al orden pedido (NaN en las categóricas) y φ̄ por categoría en formato largo."""
+    r = direccion_shap(SHAP_JUGUETE, ["b", "c", "a"])
+    np.testing.assert_array_equal(r["spearman"], [-0.5, np.nan, 0.8])
+    cat = r["categorias"]
+    assert list(cat.columns) == ["variable", "categoria", "phi_medio", "n"]
+    assert cat.to_dict("records") == [{"variable": "c", "categoria": "x", "phi_medio": -0.1, "n": 6},
+                                      {"variable": "c", "categoria": "y", "phi_medio": 0.3, "n": 4}]
+
+
+def test_14b_direccion_shap_nombre_ausente_es_error():
+    with pytest.raises(ValueError, match="direccion"):
+        direccion_shap(SHAP_JUGUETE, ["a", "z"])
+
+
+def test_14c_direccion_shap_real():
+    """Con shap_mlp.json versionado: 15 ρ (NaN solo en las 4 categóricas) y φ̄ de term con sus dos categorías."""
+    shap = load_json(RAIZ / "results" / "data" / "scorecard" / "shap_mlp.json")
+    nombres = [r["nombre"] for r in shap["importancia_global"]]
+    r = direccion_shap(shap, nombres)
+    tipos = [shap["direccion"][n]["tipo"] for n in nombres]
+    assert [np.isnan(x) for x in r["spearman"]] == [t == "cat" for t in tipos]
+    term = r["categorias"][r["categorias"]["variable"] == "term"]
+    assert set(term["categoria"]) == {"36 months", "60 months"}
+
