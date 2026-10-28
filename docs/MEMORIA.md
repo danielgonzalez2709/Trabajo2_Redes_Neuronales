@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-28 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.26 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: confirmar H-22…H-28 (blog 12); README con torch CPU en Linux (PR aparte); video; clon limpio |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: README con torch CPU en Linux (PR aparte); video; clon limpio |
 | Entrega | **vie 30-oct-2026, 23:59** (extendida desde el mar 27; meta interna por definir) |
 | Sustentación | Posterior a la entrega, por confirmar |
 
@@ -89,9 +89,10 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día. Candidatos de B7 sin confirmar (de `dev/andres`): H-22 Conceptos (diagonal al revés), H-23 Datos (redondeo). Candidatos de C sin confirmar: H-24 y H-25 (C4), Código. De B10: H-26 Código (guarda de rutas; registrado primero como H-24). De C6–C7: H-27 Código y H-28 Matemáticas (registrados primero como H-26 y H-27).
+Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos).
 
 ## 📓 Bitácora
+- **2026-10-28** — Daniel confirma H-22…H-28: 28 hallazgos (Código 17, Matemáticas 5, Datos 3, Conceptos 3); registro y blog 12 al día.
 - **2026-10-28** — Entrega extendida al vie 30-oct, 23:59 (Spec v0.26, PLAN y memoria). Falta: video (sin clips), videos individuales, clon limpio, H-22…H-28 al blog 12, marcas del blog, E4 y E9, T5.4. PR #24 (C8) fusionado.
 - **2026-10-27** — Spec v0.25 (Juan José, Parte C): el Spec queda igual a C1–C8: §3 Interpretabilidad y C §3.1–§3.4 [DECIDIDO], árbol §4, §5.4 (`scorecard.json`, `scorecard_mlp.json`, `shap_mlp.json`, `hipotesis.json`), C §5 con las 7 pruebas y C §6 corregido (H-24, H-28). Pendiente 9 cerrado; afecta a E.
 - **2026-10-27** — C8 (Juan José): notebook `03_scorecard` (secciones 1–4 en vivo con `SET`, 5–6 leídas de los JSON de C4 y C6); 10–12 s con `SET = {}` y con PDO 40; `puntos_cliente` y `direccion_shap` en `puntos.py` (C3 intacto). Spec y calidad APROBADO; sin candidatos.
@@ -128,8 +129,7 @@ Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, 
   confirma H-08 (λ‖W‖² lo escribió Claude en el Spec). La PD media de test (0,187) < tasa observada (0,262): la tasa sube por año.
 - **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige
   `SALIDA` de todo `src/viz/figs_*.py` y compara SHA-256. Un `figs_*.py` nuevo necesita `SALIDA` y conectarse en `cli._figures`.
-- **2026-10-25** — B4 (Andrés): `run.py pd-hpo`, 40/40 ensayos, 702,4 s; mejor #11 [32, 16, 32] relu adam, log-loss val
-  0,50748, 2 673 parám.; reproducible. Candidatos H-16 (TPE multivariado) y H-17.
+- **2026-10-25** — B4 (Andrés): `run.py pd-hpo`, 40/40 ensayos, 702,4 s; mejor #11 [32, 16, 32] relu adam, log-loss val 0,50748, 2 673 parám.; reproducible. Candidatos H-16 (TPE multivariado) y H-17.
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
 - **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
 - **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos "monótona" siempre (caso `pub_rec`). D5 ✅ (auditor, clon sin red).
