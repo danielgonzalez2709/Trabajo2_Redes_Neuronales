@@ -47,10 +47,11 @@ Fuente: Elaboración propia. "Medido": corrido el 26 de octubre de 2026 en un po
 | `python -m pytest -q -m "not lento"` | Pruebas automáticas que corre el CI | 105,0 s (107,6 s) | Medido |
 | `python -m pytest -q` | Todas las pruebas, incluidas las lentas | 201,3 s (203,6 s); en el clon limpio, 393,2 s | Medido y clon limpio |
 :::
-Los tiempos "Registrado" vienen de otras máquinas: las corridas de la PD registran `hilos_torch` = 4 y las de la LGD
-`hilos_torch` = 8 (`results/data/pd/summary.json` y `results/data/lgd/summary.json`). La Parte B midió su demo en un AMD
+Los tiempos "Registrado" vienen de las máquinas de quienes corrieron cada parte: las corridas de la PD registran
+`hilos_torch` = 4 y las de la LGD `hilos_torch` = 8 (`results/data/pd/summary.json` y `results/data/lgd/summary.json`). La Parte B midió su demo en un AMD
 Ryzen 5 3500U (4 núcleos y 8 hilos; `docs/spec/partes/B-pd.md`, §3.5), y en la descripción del *pull request* #19 indicó
-que las corridas registradas de la PD se hicieron en esa misma máquina. `jupyter lab notebooks/` abre los notebooks y no tiene tiempo que medir.
+que las corridas registradas de la PD se hicieron en esa misma máquina. La máquina de las corridas de la LGD no está
+documentada. `jupyter lab notebooks/` abre los notebooks y no tiene tiempo que medir.
 
 La corrida completa de la PD y su búsqueda no caben en dos minutos; por eso cada tarea debe llevar una configuración de
 demostración que se lance con un solo comando. En el clon limpio la de la PD tardó 5,0 s (de 13,8 a 15,1 s en la máquina de

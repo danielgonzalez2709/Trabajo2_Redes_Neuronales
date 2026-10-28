@@ -96,7 +96,7 @@ Fuente: Elaboración propia a partir de results/data/pd/summary.json y results/d
 | LGD | Regresión lineal | 49 | 1 | 0,03 s |
 | LGD | MLP (32-64-64-32, leaky ReLU) | 9 953 | 30 | 165,3 s (126,1 + 39,2) |
 :::
-Los tiempos de la PD y de la LGD vienen de máquinas distintas (`hilos_torch` = 4 y 8; sección 13), así que solo se
+Los tiempos de la PD y de la LGD se registraron con `hilos_torch` distintos (4 y 8; sección 13), así que solo se
 comparan dentro de cada tarea: la red frente a su modelo de referencia.
 
 La [[tab:discusion-presupuesto]] resume el costo. En la PD la red tiene unas 55 veces los parámetros de la logística y su
@@ -203,7 +203,9 @@ lectura: su puntaje se obtiene de la PD con la misma transformación, pero no se
 red, la sección 7.4 usa SHAP [@lundberg2017] y la 7.5 compara sus variables con las de la scorecard: las cinco de mayor
 media de $|\varphi_j|$ en el MLP son el plazo, el uso de los cupos rotativos, el ingreso anual, las consultas de los
 últimos 6 meses y las líneas de crédito abiertas, y el plazo, el ingreso y el uso de los cupos también están entre las cuatro
-de mayor rango de puntos de la logística (Fuente: `results/data/scorecard/shap_mlp.json`, `importancia_global`).
+de mayor rango de puntos de la logística en la [[tab:discusion-scorecard]], aunque el rango del plazo, que es categórica, no
+es del todo comparable con el de las numéricas (Fuente: `results/data/scorecard/shap_mlp.json`, `importancia_global`, y
+`results/data/scorecard/scorecard.json`).
 
 En la LGD la diferencia es la misma: la lineal se lee coeficiente por coeficiente y el MLP necesitaría herramientas
 adicionales (sección 8.6).
