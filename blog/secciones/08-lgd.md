@@ -405,4 +405,4 @@ documenta sobre la masa en LGD = 1 y la censura, aunque ninguno prueba por sí s
 4. **El orden entre el MLP y la lineal cambia entre validación y prueba** en MAE: en validación la lineal es mejor que las 30
    semillas; en prueba 23 de 30 semillas la mejoran. Con diferencias del orden de 10⁻⁴ y una prueba cuya distribución difiere
    de la de validación (42,9 % frente a 62,7 % con LGD = 1), este cambio de orden no indica que un modelo generalice mejor que
-   el otro; muestra que, en este caso, validación no anticipa el orden en prueba. <!-- revisar: autor -->
+   el otro; muestra que, en este caso, validación no anticipa el orden en prueba.

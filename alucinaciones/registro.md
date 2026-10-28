@@ -6,11 +6,13 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
-| Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
+| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 5 (H-08, H-10, H-14, H-15, H-28) |
+| Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) |
+| Datos del mundo real | 4 (H-02, H-13, H-23, H-29) | 3 (H-02, H-13, H-23) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
+| Conceptos | 3 (H-16, H-21, H-22) | 3 (H-16, H-21, H-22) |
+
+H-29 es un candidato nuevo (28-oct, pendiente de Daniel). H-30 está registrado pero **SIN PROMPT**: no cuenta en la tabla.
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -18,16 +20,16 @@ falsas se registran como candidatos.
 
 | # | Afirmación | Cómo verificarla | Resultado |
 |---|---|---|---|
-| V-01 | Las funciones serverless de Vercel tienen un límite de ~250 MB y PyTorch no cabe | Documentación oficial de límites de Vercel | ⬜ |
-| V-02 | El plan Hobby de Vercel es gratis y para uso personal/no comercial | Términos y precios oficiales de Vercel | ⬜ |
-| V-03 | Neon Postgres tiene un plan gratis en el Marketplace de Vercel | Documentación de Vercel/Neon | ⬜ |
-| V-04 | Render (plan gratis) duerme los servicios tras un periodo sin uso | Documentación de Render | ⬜ |
+| V-01 | Las funciones serverless de Vercel tienen un límite de ~250 MB y PyTorch no cabe | Documentación oficial de límites de Vercel | ⚠️ 28-oct: conclusión correcta, cifra desactualizada para Python (H-29). https://vercel.com/docs/functions/limitations (`last_updated` 2026-08-24): "250 MB, or 500 MB for Python"; el tope de Python subió a 500 MB el 24-feb-2026 ("The bundle size limit for Vercel Functions using the Python runtime is now 500MB", https://vercel.com/changelog/python-vercel-functions-bundle-size-limit-increased-to-500mb) y existen "Large functions" de hasta 5 GB (beta). PyTorch sigue sin caber en el límite estándar: la rueda `torch-2.14.1+cpu` de Linux x86_64 (cp312) mide 194,0 MB comprimida y 715,5 MB sin comprimir (suma de `file_size` del zip, 28-oct); la de PyPI para Linux, 554,6 MB comprimida |
+| V-02 | El plan Hobby de Vercel es gratis y para uso personal/no comercial | Términos y precios oficiales de Vercel | ✅ 28-oct: "The Hobby plan is **free** and aimed at developers with personal projects" y "the Hobby plan restricts users to non-commercial, personal use only" (https://vercel.com/docs/plans/hobby, `last_updated` 2026-09-14); también "Hobby teams are restricted to non-commercial personal use only" (https://vercel.com/docs/limits/fair-use-guidelines). Un trabajo de curso entra en uso personal/no comercial |
+| V-03 | Neon Postgres tiene un plan gratis en el Marketplace de Vercel | Documentación de Vercel/Neon | ✅ 28-oct: la ficha de Neon en el Marketplace de Vercel dice "Neon offers a generous Free Plan" y "Free plan with generous quotas" (https://vercel.com/marketplace/neon); Neon: plan Free a "$0/month", "1 GB of Postgres storage per project", "100 CU-hours/project" (https://neon.com/docs/introduction/plans). Vercel confirma que Vercel Postgres ya no existe y que pasó a Neon en dic-2024 (https://vercel.com/docs/postgres). Aclaración: la página de Neon sobre la integración nativa no nombra el plan Free ("pick a plan"); el dato sale de la ficha del Marketplace |
+| V-04 | Render (plan gratis) duerme los servicios tras un periodo sin uso | Documentación de Render | ✅ 28-oct: "Render spins down a Free web service that goes 15 minutes without receiving any inbound traffic"; despertarlo toma "about one minute" (https://render.com/docs/free, leído en el HTML crudo) |
 | V-05 | Remotion es gratis para individuos y equipos pequeños | Licencia oficial de Remotion | ✅ 24-oct: el LICENSE.md oficial da la licencia gratis a "an individual", "a for-profit organization with up to 3 employees" y "a non-profit or not-for-profit organization"; un video de curso hecho por estudiantes queda cubierto |
 | V-06 | Los créditos recientes ya resueltos sesgan la tasa de malos hacia arriba | Experimento A4 (tasa de malos y fracción de NA por año) | ✅ 23-oct: consistente con los datos. Sin desenlace: 7 % (2012), 46 % (2013), 69 % (2014), 93 % (2015); tasa de malos de los resueltos: 16,7 % → 23,0 % → 26,2 % → 25,5 % (`resumen_datos.json`). Además, al incumplir seguía pendiente el 80 % del monto en test frente al 64 % en train (incumplimientos más tempranos) |
-| V-07 | `AdamW` aplica weight decay desacoplado, que no equivale a L2 con Adam | Loshchilov & Hutter + documentación de PyTorch | ⬜ |
+| V-07 | `AdamW` aplica weight decay desacoplado, que no equivale a L2 con Adam | Loshchilov & Hutter + documentación de PyTorch | ✅ 28-oct: el resumen de arXiv:1711.05101 dice que L2 y weight decay "are equivalent for standard stochastic gradient descent" pero que "this is not the case for adaptive gradient algorithms, such as Adam" (https://arxiv.org/abs/1711.05101, ICLR 2019). PyTorch 2.14: "Implements AdamW algorithm, where weight decay does not accumulate in the momentum nor variance" (https://docs.pytorch.org/docs/2.14/generated/torch.optim.AdamW.html); en el `adam.py` instalado (torch 2.14.1+cpu), `decoupled_weight_decay=True` hace `param.mul_(1 - lr * weight_decay)` y, si no, `grad.add(param, alpha=weight_decay)` (L2 en el gradiente) |
 | V-08 | El conjunto cubre créditos de 2007 a 2015 (afirmación implícita en la partición propuesta) | `resumen_datos.json` (A1) | ✅ 23-oct: `issue_d` de 2007-06 a 2015-12 |
 | V-09 | La EAD al castigo = `funded_amnt` − `total_rec_prncp`, y LGD = 1 − (`recoveries` − `collection_recovery_fee`)/EAD | Diccionario de Kaggle + casos reales (D1) | ✅ 25-oct: los 5 campos citados literalmente de `diccionario_loanstats.csv` en `src/lgd/objetivo.py` (prueba en `tests/test_lgd.py`); `recoveries` = "post charge off gross recovery" justifica restar la tarifa. Datos coherentes: 0 EAD ≤ 0, 0 LGD > 1, 32 LGD < 0 (intereses fuera de la EAD). Supuesto no verificable sin fechas: lo cobrado tras el castigo no entra en `total_rec_prncp`. Evidencia: `evidencias/D1_verificacion_lgd.*` |
-| V-10 | Material for MkDocs está en mantenimiento con correcciones hasta el 5-nov-2026 (dato del Trabajo 1) | Anuncio oficial del proyecto | ⬜ |
+| V-10 | Material for MkDocs está en mantenimiento con correcciones hasta el 5-nov-2026 (dato del Trabajo 1) | Anuncio oficial del proyecto | ⚠️ 28-oct: desactualizada (H-30). El mantenimiento sí existe, pero la fecha cambió. Material 9.7.7 (17-jul-2026, la fijada en `requirements.txt`): "scheduled to reach end of life on November 5, 2026"; en 9.8.0 (24-oct-2026): "Material for MkDocs reaches end of life on May 5, 2027. Critical fixes and security updates continue until that date" (https://github.com/squidfunk/mkdocs-material/releases); el anuncio https://squidfunk.github.io/mkdocs-material/blog/2025/11/05/zensical/ ahora dice "We will continue fixing critical bugs and security vulnerabilities through May 5, 2027". La fecha del 5-nov-2026 era la vigente el 19-oct (planeación) y dejó de serlo 5 días después |
 | V-11 | Referencias propuestas: Bergstra et al. (2011), Akiba et al. (2019), Lundberg & Lee (2017), Papke & Wooldridge (1996), Loshchilov & Hutter (2019), Grinsztajn et al. (2022), Siddiqi (2017) | Crossref / DOI de cada una | ✅ 23-oct: las 14 candidatas (estas + Rumelhart, Kingma & Ba, Srivastava, Brier, Hanley & McNeil, Ferrari & Cribari-Neto, Yurdakul & Naranjo) existen y sus DOI/URL resuelven al trabajo esperado (`evidencias/A8_verificacion_bib.*`). Matices, no alucinaciones: Kingma & Ba y Loshchilov & Hutter tienen DOI de arXiv con año 2014 y 2017 (los años 2015 y 2019 son de ICLR, sin DOI); Siddiqi: Crossref 2016 en línea, 2017 impreso. Autores de Bergstra y Srivastava confirmados en las páginas oficiales. 25-oct: Siddiqi es la 2.ª edición (enero de 2017) según la página de Wiley; Crossref la registra como edición 1, error de metadatos de Crossref y no de la IA |
 
 ---
@@ -396,7 +398,8 @@ falsas se registran como candidatos.
    devuelve True en estudios de un objetivo ("By default, the multivariate TPE is used for single-objective optimization").
    El TPE de Bergstra et al. (2011) modela cada hiperparámetro por separado.
 5. **Corrección:** Spec v0.15 (B-pd §3.3): se mantienen los valores por defecto (decisión de Andrés), `hpo_ensayos.json`
-   registra `multivariate: true` y el blog cita además el TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
+   registra `multivariate: true` y el blog cita además el TPE multivariado: Falkner, Klein y Hutter (2018), BOHB, ICML,
+   PMLR 80, 1437–1446 (verificado el 28-oct en proceedings.mlr.press; es la referencia del docstring de `TPESampler`).
    Aviso a D, que también usa los valores por defecto.
 6. **Lección aprendida:** los valores por defecto cambian entre versiones mayores; antes de citar el método de una
    biblioteca, leer la firma y el código de la versión fijada en `requirements.txt`, no la documentación de memoria.
@@ -499,7 +502,7 @@ falsas se registran como candidatos.
    en otra cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
 
 ### H-22 — "En test, los 10 bins de ambos modelos quedan por debajo de la diagonal" (calibración que subestima)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Conceptos
 - **Parte:** B
 - **Nota de numeración:** registrado primero como H-21 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
@@ -520,7 +523,7 @@ falsas se registran como candidatos.
    (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
 
 ### H-23 — "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" (faltaba el 23, descartado por redondeo)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Datos del mundo real
 - **Parte:** B
 - **Nota de numeración:** registrado primero como H-22 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
@@ -537,15 +540,15 @@ falsas se registran como candidatos.
    cambia el conteo justo en el borde.
 
 ### H-24 — "La eficiencia del explainer de permutaciones de shap es exacta con cualquier número de permutaciones"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, sesión orquestadora de Juan José y subagente `implementador` (Claude Opus 5.5) ·
   **Fecha:** 26-oct-2026 · **Quién lo cazó:** el subagente `revisor-calidad` (bloqueante B1 de C4); el orquestador lo reprodujo
 - **Nota de numeración:** registrado primero como H-21 en `dev/juanjose`; renumerado a H-24 porque en `main` ya
   existen H-21…H-23 (Partes B y E).
-1. **Prompt (literal):** `prompts/C4.md`: el plan del orquestador ("la eficiencia es exacta sin importar cuántas
-   permutaciones se usen") y la fase roja ("Eficiencia exacta por telescopio (verificado en el código de shap)"); el
+1. **Prompt (literal):** `prompts/C4.md`: el plan del orquestador, que daba la eficiencia por exacta para cualquier
+   número de permutaciones (paráfrasis; la frase entre comillas que había aquí no es literal), y la fase roja ("Eficiencia exacta por telescopio (verificado en el código de shap)"); el
    implementador lo repitió en la celda markdown de `src/scorecard/shap_pd.py`.
 2. **Respuesta relevante de la IA:** `src/scorecard/shap_pd.py` (fase verde, sin commit), celda del explainer: "(suma
    telescópica), así que la eficiencia es **exacta con cualquier número de permutaciones**".
@@ -564,7 +567,7 @@ falsas se registran como candidatos.
    prueba supone.
 
 ### H-25 — Pruebas de SHAP y de la importancia por permutación que no distinguen signo, desviación ni agrupación
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
@@ -587,7 +590,7 @@ falsas se registran como candidatos.
    decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
 
 ### H-26 — "La guarda impide escribir en los archivos del modelo principal" (B10, tres guardas que no lo impedían)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
@@ -613,7 +616,7 @@ falsas se registran como candidatos.
    no dependa del directorio desde donde se ejecuta; y una prueba de la guarda en rojo no debe poder escribir de verdad.
 
 ### H-27 — Pruebas de la regla del veredicto que no distinguen `≥ 2` de `≥ 1` ni las desigualdades de borde
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
@@ -632,7 +635,7 @@ falsas se registran como candidatos.
    caso justo por debajo.
 
 ### H-28 — "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" (Matemáticas)
-- **Estado:** candidato (pendiente de confirmar por Juan José)
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Matemáticas
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 (C1) · **Quién
@@ -653,3 +656,43 @@ falsas se registran como candidatos.
    consistente el puntaje no cambia (el factor sí cambia de valor, pero compensa).
 6. **Lección aprendida:** una "nota de punto caliente" suena plausible pero también debe verificarse numéricamente; el
    error real de las bases es la inconsistencia, no la base elegida.
+
+### H-29 — "El límite de las funciones de Vercel es de ~250 MB" (cifra desactualizada para Python; la conclusión se sostiene)
+- **Estado:** candidato (28-oct; lo confirma Daniel). Menor: la conclusión práctica era correcta.
+- **Categoría:** Datos del mundo real
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 19-oct-2026 · **Quién lo cazó:** el subagente `cazador`, al
+  verificar V-01 (28-oct)
+1. **Prompt (literal):** `prompts/asesoria_puente_claude.md`, Prompt A ("Propongo para el despliegue de la aplicacion vercel,
+   necesito que me confirmes eso…").
+2. **Respuesta relevante de la IA:** el archivo de prompts no guarda la respuesta literal, solo su resumen verificable: "no
+   desplegar PyTorch en funciones de Vercel por el límite de ~250 MB". La frase exacta de la IA no está disponible.
+3. **Cómo sospechamos:** V-01 de la lista de afirmaciones pendientes; se contrastó con la página de límites de Vercel.
+4. **Evidencia:** https://vercel.com/docs/functions/limitations (consultada el 28-oct-2026, `last_updated` 2026-08-24): "250 MB,
+   or 500 MB for Python"; el changelog del 24-feb-2026 (anterior a la asesoría) subió el tope de Python a 500 MB, y hay "Large
+   functions" de hasta 5 GB en beta. Medición: la rueda `torch-2.14.1+cpu` de Linux x86_64 (cp312) pesa 194,0 MB comprimida y
+   715,5 MB sin comprimir, así que no cabe ni en 500 MB (el límite es sobre el tamaño sin comprimir); la de PyPI para Linux pesa
+   554,6 MB comprimida.
+5. **Corrección:** el límite vigente para funciones Python es 500 MB (250 MB para las demás), no ~250 MB; la decisión de no
+   desplegar PyTorch en Vercel sigue siendo válida y la inferencia en el navegador no cambia.
+6. **Lección aprendida:** las cifras de límites y planes de servicios en la nube cambian; se citan con la página oficial y su
+   fecha, no de memoria. Aquí el error no cambió la decisión, y por eso se anota como menor.
+
+### H-30 — "Material for MkDocs tiene correcciones hasta el 5-nov-2026" (dato que dejó de ser vigente el 24-oct) — SIN PROMPT
+- **Estado:** candidato, **SIN PROMPT: no cuenta** hasta localizar el prompt y la respuesta literales. Probable descarte: la
+  fecha era la oficial el 19-oct y no es una alucinación sino un dato que se movió.
+- **Categoría:** Datos del mundo real
+- **Parte:** E
+- **Herramienta y modelo:** Claude Code (modelo por confirmar) · **Fecha:** por confirmar (V-10 la atribuye al Trabajo 1) ·
+  **Quién lo cazó:** el subagente `cazador` (28-oct)
+1. **Prompt (literal):** SIN PROMPT. `prompts/asesoria_puente_claude.md` no menciona esta fecha.
+2. **Respuesta relevante de la IA:** SIN PROMPT. Solo existe la afirmación de V-10 ("dato del Trabajo 1").
+3. **Cómo sospechamos:** V-10 de la lista de afirmaciones pendientes; la fecha se contrastó con las notas de versión y el
+   anuncio oficial.
+4. **Evidencia:** 9.7.7 (17-jul-2026): "scheduled to reach end of life on November 5, 2026"; 9.8.0 (24-oct-2026): "reaches end
+   of life on May 5, 2027. Critical fixes and security updates continue until that date"
+   (https://github.com/squidfunk/mkdocs-material/releases); el anuncio
+   (https://squidfunk.github.io/mkdocs-material/blog/2025/11/05/zensical/) hoy dice "through May 5, 2027". Consultado el 28-oct.
+5. **Corrección:** el soporte crítico va hasta el 5-may-2027. Si algún texto del proyecto cita el 5-nov-2026 como fin del
+   soporte, debe actualizarse (en `blog/`, `docs/` y los `.yml` no se encontró esa fecha; solo está en este registro).
+6. **Lección aprendida:** las fechas de soporte de un proyecto externo se citan con la fecha de consulta; pueden moverse.

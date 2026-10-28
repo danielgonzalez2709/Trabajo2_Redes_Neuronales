@@ -166,7 +166,7 @@ bien calibrado queda sobre la diagonal $\bar y_k = \bar p_k$.
   el modelo **subestima** el riesgo en ese bin.
 - Un punto **por debajo** ($\bar y_k < \bar p_k$) significa que el modelo **sobreestima** el riesgo.
 
-Es fácil leerlo al revés (hallazgo candidato H-22)<!-- revisar: autor (H-22 aún sin confirmar en el blog 12) -->: la regla es "arriba = la realidad es peor que la predicción". La
+Es fácil leerlo al revés (hallazgo H-22, sección 12): la regla es "arriba = la realidad es peor que la predicción". La
 curva de calibración de prueba de los dos modelos está en la sección 6.4.
 
 ### 5.7 Por qué se reportan las dos familias

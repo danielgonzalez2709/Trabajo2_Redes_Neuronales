@@ -1,8 +1,8 @@
 """Tablas de la pérdida esperada para el notebook ``05_perdida_esperada`` y el blog (tarea E5; núcleo §5.8: cero lógica
 en el notebook).
 
-Solo ordenan lo que ya calculó `run.py el` en ``results/data/el/summary.json`` (o el resumen en memoria de una corrida);
-no recalculan nada. El contraste con lo observado es solo de los créditos resueltos (E §3.2); los en mora van aparte con
+`tabla_totales` y `tabla_bandas` solo ordenan lo que ya calculó `run.py el` en ``results/data/el/summary.json`` (o el
+resumen en memoria de una corrida); `descomposicion_razon` parte de ``results/data/el/el_test.parquet`` (blog, 9.5). El contraste con lo observado es solo de los créditos resueltos (E §3.2); los en mora van aparte con
 su pérdida provisional. Montos en USD; tasas, PD y LGD como fracciones. Lo que no aplica a una fila (p. ej. la pérdida
 realizada de los en mora) o no está definido (razón sin pérdida realizada, ``None`` en el JSON) aparece como NaN.
 """
@@ -49,5 +49,43 @@ def tabla_bandas(resumen: dict) -> pd.DataFrame:
                           for col, (bloque, clave) in COLUMNAS_BANDAS.items()}
              for b in resumen["por_banda"]}
     tabla = pd.DataFrame.from_dict(filas, orient="index")
+    tabla.index.name = "Banda"
+    return tabla
+
+
+FACTORES = ["E[L] / realizada", "Factor PD", "Factor LGD", "Factor EAD"]
+
+
+def _factores(df: pd.DataFrame) -> list[float]:
+    """Razón y factores de un grupo de créditos resueltos (ver `descomposicion_razon`)."""
+    castigados = df[df["estado"] == "castigado"]
+    exposicion = castigados["ead_incumplimiento"]  # F − P: principal pendiente al castigo
+    lgd_obs = castigados["perdida_observada"] / exposicion  # L / (F − P)
+    esperada = (df["pd"] * df["lgd"] * df["ead"]).sum()  # Σ_R PD·LGD·F
+    lgd_pred_f = (castigados["lgd"] * castigados["ead"]).sum()  # Σ_C LGD·F
+    lgd_obs_f = (lgd_obs * castigados["ead"]).sum()  # Σ_C LGD_obs·F
+    realizada = df["perdida_observada"].sum()  # Σ_R L = Σ_C LGD_obs·(F − P), porque L = 0 en los pagados
+    return [esperada / realizada, esperada / lgd_pred_f, lgd_pred_f / lgd_obs_f, lgd_obs_f / realizada]
+
+
+def descomposicion_razon(el: pd.DataFrame) -> pd.DataFrame:
+    """Razón entre la pérdida esperada y la realizada de los créditos resueltos como producto de tres factores (blog, 9.5).
+
+    Con R = resueltos (castigados y pagados), C = castigados, F = `ead` (monto desembolsado), F − P = `ead_incumplimiento`
+    y L = `perdida_observada`:
+
+        Σ_R PD·LGD·F / Σ_R L = [Σ_R PD·LGD·F / Σ_C LGD·F] · [Σ_C LGD·F / Σ_C LGD_obs·F] · [Σ_C LGD_obs·F / Σ_R L],
+
+    con LGD_obs = L / (F − P): factor PD, factor LGD y factor EAD. Es una identidad (los términos intermedios se
+    cancelan); cada factor vale 1 si su pieza es perfecta. Los créditos en mora no entran (no están resueltos).
+    Devuelve una fila por banda (índice = número de banda) y una fila "Total".
+    """
+    resueltos = el[el["estado"].isin(["castigado", "pagado"])]
+    castigados = resueltos[resueltos["estado"] == "castigado"]
+    if (castigados["ead_incumplimiento"] <= 0).any():  # LGD_obs = L/(F − P) no está definida
+        raise ValueError("Hay castigados con ead_incumplimiento ≤ 0: la LGD observada L/(F − P) no está definida")
+    filas = {banda: _factores(grupo) for banda, grupo in resueltos.groupby("banda", sort=True)}
+    filas["Total"] = _factores(resueltos)
+    tabla = pd.DataFrame.from_dict(filas, orient="index", columns=FACTORES)
     tabla.index.name = "Banda"
     return tabla

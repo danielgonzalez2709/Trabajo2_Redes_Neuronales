@@ -11,10 +11,23 @@ app web y video. Curso Redes neuronales y algoritmos bioinspirados, UNAL 2026-02
 
 ## Instalación (Python 3.12)
 
+Windows:
+
 ```bash
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 ```
+
+Linux y macOS: en Linux, la rueda de torch de PyPI trae CUDA (unos 3 GB), así que primero se instala la de CPU desde el
+índice de PyTorch y después el resto (es lo mismo que hace el CI en `.github/workflows/ci.yml`):
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+.venv/bin/python -m pip install -r requirements.txt
+```
+En macOS la rueda de PyPI ya es de CPU; el primer comando de pip se puede omitir.
+
 Con GPU NVIDIA (opcional): reinstalar torch desde https://pytorch.org con la versión de CUDA de su equipo. La demo corre en CPU.
 
 ## Datos

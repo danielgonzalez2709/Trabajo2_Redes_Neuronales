@@ -537,7 +537,8 @@ def ks(y, p, curva: FuncionCurvaKS = curva_ks) -> float:
 #
 # - **Calibración y discriminación:** el puntaje depende de ambas; la descomposición de Murphy (1973) lo formaliza
 #   con tres términos, fiabilidad (calibración) − resolución + incertidumbre; con bins es solo una aproximación.
-#   TODO(cita): confirmar en el texto de Murphy, A. H. (1973). A new vector partition of the probability score.
+#   Referencia (metadatos verificados en Crossref el 28-oct; la partición no se cotejó con el texto): Murphy, A. H.
+#   (1973). A new vector partition of the probability score.
 #   *Journal of Applied Meteorology, 12*(4), 595–600. https://doi.org/10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2
 # - **Regla de puntuación propia:** su valor esperado se minimiza al reportar la probabilidad verdadera (Gneiting y
 #   Raftery, 2007, Ejemplo 1, p. 363). Gneiting, T., & Raftery, A. E. (2007). Strictly proper scoring rules,

@@ -139,6 +139,15 @@ CLAVES_METRICAS_ENSAYO = {  # lo que mide medir_ensayo
 CLAVES_BUSQUEDA = {"tipo", "ensayo", "n_ensayos", "tiempo_s", "evidencia", "fecha"}  # bloque busqueda del YAML
 CLAVES_EVIDENCIA = {"sha256_particion", "sha256_preprocesador"}  # núcleo §6
 PERMISOS_LEGIBLES = 0o644  # rw-r--r--: los de save_json
+
+
+def _permisos_legibles(ruta) -> bool:
+    """0o644 en POSIX. En Windows `os.chmod` solo controla la marca de solo lectura y `st_mode` informa 0o666 (o 0o444):
+    ahí basta con que el dueño pueda leer y escribir, que es lo que garantiza `save_json`."""
+    modo = stat.S_IMODE(ruta.stat().st_mode)
+    if os.name == "nt":
+        return bool(modo & stat.S_IREAD) and bool(modo & stat.S_IWRITE)
+    return modo == PERMISOS_LEGIBLES
 TIEMPOS = {"tiempo_total_s", "tiempo_reloj_s"}  # claves de tiempo que cambian entre corridas
 
 MLP_PRUEBA = {  # bloque mlp heredado: válido y rápido (max_epocas pequeño)
@@ -640,7 +649,7 @@ def test_07_texto_mlp_final_se_lee_igual(tmp_path):
     assert escribir_texto_atomico(str(ruta), texto) == ruta  # acepta str y devuelve Path
     assert ruta.read_text(encoding="utf-8") == texto  # contenido exacto
     assert load_config(ruta) == {"mlp": MLP_GANADOR, "busqueda": BUSQUEDA_EJEMPLO}  # el cargador del proyecto
-    assert stat.S_IMODE(ruta.stat().st_mode) == PERMISOS_LEGIBLES  # legible por todos
+    assert _permisos_legibles(ruta)  # legible por todos (0o644 en POSIX)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["mlp_final.yaml"]  # sin temporales
 
 
@@ -992,7 +1001,7 @@ def test_17_mlp_final(corrida):
         "tipo": "optuna", "ensayo": j["mejor"]["numero"], "n_ensayos": N_ENSAYOS,
         "tiempo_s": j["tiempo_total_s"], "evidencia": j["evidencia"], "fecha": FECHA_FIJA.isoformat()}
     assert set(cfg["busqueda"]) == CLAVES_BUSQUEDA  # claves exactas
-    assert stat.S_IMODE(destino.stat().st_mode) == PERMISOS_LEGIBLES  # legible
+    assert _permisos_legibles(destino)  # legible (0o644 en POSIX)
     base = destino.parent / "base_temporal.yaml"  # base que lo hereda, junto al destino
     base.write_text(f"hereda: {destino.name}\nbase_seed: 0\n", encoding="utf-8")  # como configs/pd/base.yaml
     assert load_config(base)["mlp"] == cfg["mlp"]  # B5 hereda el ganador
