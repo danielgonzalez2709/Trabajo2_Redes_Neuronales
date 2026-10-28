@@ -46,8 +46,6 @@ donde $F_i$ es `funded_amnt`, que el diccionario define como "The total amount c
 time." (Fuente: `data/processed/diccionario_loanstats.csv`; la sección 8.1 explica por qué lo preferimos a `loan_amnt`). Se
 conoce en la originación, que es cuando se calcula la PD con las 15 variables de la sección 2.3; los montos posteriores
 (`total_rec_prncp`, `recoveries`) solo se conocen después y no pueden entrar en una estimación *ex ante*.
-<!-- TODO(cita): si se quiere anclar la definición de EAD o de E[L] en la regulación (p. ej. Basilea), falta una referencia
-verificada en blog/references.bib; hoy la fórmula se atribuye solo al enunciado del curso. -->
 
 **Por qué es conservadora.** Usar $F_i$ equivale a suponer que el incumplimiento ocurre antes de amortizar nada de
 principal. En la realidad, quien incumple suele haber pagado una parte: entre los créditos castigados de prueba, la fracción
@@ -72,7 +70,6 @@ incumplimiento (promediar sobre todo el plazo supone que es igual de probable en
 cuantificamos: hacerlo, y estimar el momento del incumplimiento con los créditos de entrenamiento, queda como trabajo futuro.
 Preferimos la EAD de originación porque no depende de ese supuesto y su sesgo tiene un signo conocido (sobreestima la
 exposición).
-<!-- revisar: autor (¿se quiere cuantificar la alternativa antes de la entrega?) -->
 
 ### 9.3 Resultados
 
@@ -188,8 +185,7 @@ ese total; la mediana de las 1 284 diferencias es 0,01 USD. Los 197 y la mediana
 los créditos de prueba con estado *Fully Paid* y contando cuántos tienen `funded_amnt − total_rec_prncp` mayor que 1. El
 diccionario no explica por qué un crédito pagado tendría principal sin registrar, así que no interpretamos la diferencia:
 estos créditos conservan pérdida realizada 0 y el monto se reporta aparte, sin sumarlo a la pérdida. Aun si se sumara entero,
-sería menos del 1 % de la pérdida realizada de los resueltos.
-<!-- revisar: autor (1 670 028,92 / 168 195 585,76 = 0,0099) -->
+sería menos del 1 % de la pérdida realizada de los resueltos (1 670 028,92 / 168 195 585,76 = 0,0099).
 
 ### 9.5 Lectura: por qué la razón queda cerca de 1
 
@@ -235,7 +231,7 @@ vez de 1,179 y 0,971. La [[tab:el-descomposicion]] aplica la descomposición a l
 
 ::: tabla el-descomposicion
 Título: Descomposición de la razón entre pérdida esperada y realizada en un factor de PD, uno de LGD y uno de EAD (créditos resueltos de prueba)
-Fuente: Elaboración propia a partir de results/data/el/el_test.parquet (columnas pd, lgd, ead, ead_incumplimiento, estado, perdida_observada, observacion_completa y banda), con las sumas de la ecuación anterior. El producto de los tres factores reproduce la razón de results/data/el/summary.json.
+Fuente: Elaboración propia a partir de results/data/el/el_test.parquet (columnas pd, lgd, ead, ead_incumplimiento, estado, perdida_observada, observacion_completa y banda), con las sumas de la ecuación anterior (función descomposicion_razon de src/el/tablas.py, que también muestra el notebook 05). El producto de los tres factores reproduce la razón de results/data/el/summary.json.
 | Banda | E[L] / realizada | Factor PD | Factor LGD | Factor EAD |
 |---:|---:|---:|---:|---:|
 | 1 | 1,134 | 1,051 | 0,978 | 1,103 |
@@ -250,8 +246,6 @@ Fuente: Elaboración propia a partir de results/data/el/el_test.parquet (columna
 | 10 | 1,209 | 0,981 | 0,967 | 1,275 |
 | **Total** | **1,059** | **0,926** | **0,971** | **1,179** |
 :::
-<!-- revisar: autor (la tabla el-descomposicion se calculó fuera de src/: conviene llevar la función a src/el/tablas.py con su
-prueba para que el notebook 05 la reproduzca; el cálculo está descrito en la Fuente) -->
 
 En el total, **la PD se queda corta en un 7,4 % y la LGD en un 2,9 %, y la EAD de originación agrega un 17,9 %**: con
 cuatro decimales, $0{,}9256 \times 0{,}9708 \times 1{,}1788 = 1{,}0592$. Por bandas se ve lo mismo con otros pesos:
@@ -285,4 +279,3 @@ calculamos cómo varía la pérdida esperada entre las 30 semillas de la LGD ni 
 mediana se compara en la sección 10.4).
 Tercera, tanto la pérdida esperada como la realizada se miden en principal, sin intereses ni descuento del dinero en el
 tiempo (sección 8.1).
-<!-- revisar: autor (variabilidad entre semillas de la E[L]: no calculada) -->

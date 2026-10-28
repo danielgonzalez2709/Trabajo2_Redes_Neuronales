@@ -155,7 +155,6 @@ el sesgo de selección de los créditos recientes (sección 2.4).
   después de la primera pasada por los datos. No es un caso aislado, pero tampoco la regla: la mejor época es 1 en 2 de las
   30 semillas y va de 1 a 20 entre todas. Una explicación posible es que la validación tiene más malos que el entrenamiento
   (22,9 % frente a 16,3 %), así que lo que el MLP sigue aprendiendo de train no mejora la pérdida en val; no lo probamos.
-  <!-- revisar: autor -->
 - **Subestimación en prueba.** Los dos modelos predicen menos malos de los que hay en prueba (§6.4): la PD media es 0,187 y
   0,204 frente a una tasa de 0,262. Ordenan bien el riesgo, pero si se usa la PD como probabilidad (por ejemplo, en la
   pérdida esperada) hace falta recalibrarla o vigilar la deriva.

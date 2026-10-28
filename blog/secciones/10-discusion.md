@@ -61,12 +61,10 @@ MLP, la salida de `run.py el` de la sección 10.4).
 
 **Diagnóstico: cuánto de la ventaja en Brier y log-loss es nivel.** Para separarlo, desplazamos el intercepto de cada modelo
 (sumamos una constante $c$ a su logit, $p_i' = \sigma\big(\operatorname{logit}(p_i) + c\big)$) hasta que su PD media en
-prueba iguala la tasa de malos de prueba, y volvemos a medir. Con la semilla 20 del MLP, la brecha de log-loss entre la
+prueba iguala la tasa de malos de prueba, y volvemos a medir (`python scripts/diagnostico_nivel_pd.py`). Con la semilla 20 del MLP, la brecha de log-loss entre la
 logística y el MLP baja de 0,0101 a 0,0018 y la de Brier de 0,0025 a 0,0008; es decir, la mayor parte de la ventaja viene de
 que el MLP predice un nivel más alto, y una parte menor se mantiene con el nivel igualado. El ajuste usa las
 etiquetas de prueba, así que **es solo un diagnóstico**: no es un modelo que se pueda usar ni una métrica de prueba válida.
-<!-- revisar: autor (diagnóstico calculado fuera de src/ con models/pd_logistica.joblib y models/pd_mlp.pt; el script está
-en el scratchpad de la sesión. Si se mantiene, conviene llevarlo a src/pd/ con su prueba) -->
 
 **Forma de la distribución.** La PD de la logística va de 0,015 a 0,736 (desviación 0,106) y la del MLP de 0,018 a 0,410
 (desviación 0,092): la del MLP está más comprimida (Fuente: `results/data/pd/pred_test.parquet`). Por eso, aunque su media
@@ -83,8 +81,8 @@ búsqueda no fue difícil de ganar: 35 de los 40 ensayos superaron la log-loss d
 redes probadas tenían de 1 601 a 62 081 parámetros. Las corridas son cortas: se detuvieron entre las épocas 11 y 30, y la mejor época de
 validación fue la 5 o una anterior en 16 de las 30 semillas; en la semilla mediana (la 20, que es la que usan la pérdida
 esperada y la aplicación) fue la primera (Fuente: `results/data/pd/semillas/`). La logística probó 13 valores de $C$ y eligió
-$C = 3{,}16 \times 10^{-3}$ (Fuente: `results/data/pd/busqueda_logistica.json`).
-<!-- revisar: autor (Andrés: ¿la mejor época temprana se discute en la sección 6? Si allí hay una explicación, citarla) -->
+$C = 3{,}16 \times 10^{-3}$ (Fuente: `results/data/pd/busqueda_logistica.json`). La sección 6.7 discute la parada tan
+temprana como una limitación.
 
 ### 10.2 Costo de cómputo y complejidad
 
@@ -98,8 +96,8 @@ Fuente: Elaboración propia a partir de results/data/pd/summary.json y results/d
 | LGD | Regresión lineal | 49 | 1 | 0,03 s |
 | LGD | MLP (32-64-64-32, leaky ReLU) | 9 953 | 30 | 165,3 s (126,1 + 39,2) |
 :::
-<!-- revisar: autor (los tiempos de PD y de LGD se midieron en máquinas posiblemente distintas; hilos_torch = 4 en la PD.
-Confirmar con Andrés y Camila antes de compararlos entre tareas) -->
+Los tiempos de la PD y de la LGD vienen de máquinas distintas (`hilos_torch` = 4 y 8; sección 13), así que solo se
+comparan dentro de cada tarea: la red frente a su modelo de referencia.
 
 La [[tab:discusion-presupuesto]] resume el costo. En la PD la red tiene unas 55 veces los parámetros de la logística y su
 ciclo completo tardó unas 15 veces más (940,4 s frente a 60,8 s); en la LGD tiene unas 200 veces los parámetros de la
@@ -138,7 +136,7 @@ que no son los mismos créditos en una banda dada.
 
 ::: tabla discusion-el
 Título: Pérdida esperada del conjunto de prueba con la PD de la logística y con la del MLP, y descomposición de la razón en los créditos resueltos
-Fuente: Elaboración propia. Logística: results/data/el/summary.json y results/data/el/el_test.parquet. MLP: salida de python run.py el --config configs/el/base.yaml --set pd.modelo=mlp --set salida=<carpeta temporal> (summary.json y el_test.parquet; no se guarda en results/). LGD: MLP de la Parte D (semilla 22); EAD: funded_amnt. Factores: la descomposición de la sección 9.5, calculada con el_test.parquet de cada corrida. Montos en millones de USD.
+Fuente: Elaboración propia. Logística: results/data/el/summary.json y results/data/el/el_test.parquet. MLP: salida de python run.py el --config configs/el/base.yaml --set pd.modelo=mlp --set salida=<carpeta temporal> (summary.json y el_test.parquet; no se guarda en results/). LGD: MLP de la Parte D (semilla 22); EAD: funded_amnt. Factores: la descomposición de la sección 9.5 (función descomposicion_razon de src/el/tablas.py) sobre el el_test.parquet de cada corrida. Montos en millones de USD.
 | | PD de la logística | PD del MLP (semilla 20) |
 |---|---:|---:|
 | E[L], todo el conjunto de prueba (74 154 créditos) | 197,03 | 208,20 |
@@ -152,8 +150,6 @@ Fuente: Elaboración propia. Logística: results/data/el/summary.json y results/
 | Factor EAD | 1,179 | 1,179 |
 | E[L] / realizada por banda (mínimo y máximo) | 0,927 (banda 5) – 1,209 (banda 10) | 1,031 (banda 1) – 1,360 (banda 10) |
 :::
-<!-- revisar: autor (la E[L] con el MLP y su descomposición no están en results/: decidir si se guarda la corrida, p. ej. en
-results/data/el_mlp/, y llevar la descomposición a src/el/tablas.py, como pide la nota de la sección 9.5) -->
 
 Con el MLP, la pérdida esperada de todo el conjunto de prueba sube de 197,03 a 208,20 millones de USD, y la razón entre
 pérdida esperada y realizada en los resueltos pasa de 1,059 a 1,123. Por banda, con el MLP la razón supera a 1 en las diez
@@ -203,24 +199,25 @@ Con la logística se puede decir, por ejemplo, que el ingreso anual mueve el pun
 y 99 de entrenamiento, y que la antigüedad del historial crediticio casi no lo mueve (1,5 puntos). El rango es una medida
 simple del peso de la variable en la población de entrenamiento: no es una medida causal y depende de la escala y la
 dispersión de cada variable (`src/scorecard/puntos.py`). El MLP no admite esa
-lectura: su puntaje se obtiene de la PD con la misma transformación, pero no se descompone en puntos por variable. La
-explicación de la red con SHAP [@lundberg2017] está planeada (tarea C4) y **todavía no existe**, así que hoy no podemos decir
-qué variables pesan en el MLP ni si coinciden con las de la scorecard.
-<!-- TODO(dato-faltante): resultados de SHAP del MLP de PD (C4, Parte C); actualizar este párrafo cuando existan. -->
+lectura: su puntaje se obtiene de la PD con la misma transformación, pero no se descompone en puntos por variable. Para la
+red, la sección 7.4 usa SHAP [@lundberg2017] y la 7.5 compara sus variables con las de la scorecard: las cinco de mayor
+media de $|\varphi_j|$ en el MLP son el plazo, el uso de los cupos rotativos, el ingreso anual, las consultas de los
+últimos 6 meses y las líneas de crédito abiertas, y el plazo, el ingreso y el uso de los cupos también están entre las cuatro
+de mayor rango de puntos de la logística (Fuente: `results/data/scorecard/shap_mlp.json`, `importancia_global`).
 
 En la LGD la diferencia es la misma: la lineal se lee coeficiente por coeficiente y el MLP necesitaría herramientas
 adicionales (sección 8.6).
 
 La aplicación web lleva los dos modelos de PD: la especificación (v0.17, 26 de octubre) decidió que vayan los dos, con un
-selector entre la red y la logística, y los dos modelos ya están exportados en `app/public/model/`.
-<!-- revisar: autor (confirmar con Camila que el selector ya está en la app publicada antes de la entrega) -->
+selector entre la red y la logística, y así los muestra la aplicación publicada (https://trabajo2-redes-neuronales.vercel.app).
 
 ### 10.6 Qué aportó la red, en resumen
 
 - **PD.** El MLP discrimina igual o apenas mejor que la logística (AUC de prueba 0,6716 ± 0,0031 frente a 0,6696, una
   diferencia menor que la variabilidad entre semillas) y mejora de forma consistente Brier y log-loss (las 30 semillas); según
   el diagnóstico de la sección 10.1 (con la semilla mediana), la mayor parte de esa mejora viene de que su PD media está más cerca de la tasa de malos
-  de 2014. Cuesta unas 55 veces más parámetros, unas 15 veces más tiempo y, por ahora, no tiene explicación por variable.
+  de 2014. Cuesta unas 55 veces más parámetros y unas 15 veces más tiempo, y su explicación por variable no es una tabla de
+  puntos como la de la logística, sino SHAP (sección 7.4).
 - **LGD.** El MLP no aportó en la práctica: empata con la lineal en MAE de prueba dentro de la variabilidad entre semillas, y su
   ventaja en RMSE, consistente entre semillas, es de alrededor de una milésima. Tiene unas 200 veces más parámetros, y ninguno de
   los dos supera con claridad a una constante.
@@ -233,8 +230,6 @@ originación y en el cambio de la población entre cosechas (es una lectura de l
 Es consistente con la idea de que en datos tabulares una red no gana por defecto [@grinsztajn2022], con dos matices: su
 conclusión es para conjuntos de tamaño mediano (del orden de 10 000 muestras), y aquí el entrenamiento de la PD tiene 90 347
 créditos; y nosotros no comparamos con modelos basados en árboles.
-<!-- revisar: autor (la cita de Grinsztajn et al. solo se apoya en su tesis general y en el tamaño de datos que estudian;
-si se prefiere, quitarla) -->
 
 ### 10.7 Aprendizajes sobre el problema
 

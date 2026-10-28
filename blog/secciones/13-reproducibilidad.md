@@ -51,7 +51,6 @@ Los tiempos "Registrado" vienen de otras máquinas: las corridas de la PD regist
 `hilos_torch` = 8 (`results/data/pd/summary.json` y `results/data/lgd/summary.json`). La Parte B midió su demo en un AMD
 Ryzen 5 3500U (4 núcleos y 8 hilos; `docs/spec/partes/B-pd.md`, §3.5), y en la descripción del *pull request* #19 indicó
 que las corridas registradas de la PD se hicieron en esa misma máquina. `jupyter lab notebooks/` abre los notebooks y no tiene tiempo que medir.
-<!-- revisar: autor (José: confirmar en qué máquina corrió la LGD registrada) -->
 
 La corrida completa de la PD y su búsqueda no caben en dos minutos; por eso cada tarea debe llevar una configuración de
 demostración que se lance con un solo comando. En el clon limpio la de la PD tardó 5,0 s (de 13,8 a 15,1 s en la máquina de
