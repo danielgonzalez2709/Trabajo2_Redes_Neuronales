@@ -16,3 +16,13 @@ jobs:
       - run: pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
       - run: pip install -r requirements.txt
       - run: python -m pytest -q -m "not lento"
+      # E4: pruebas de la app (incluye la paridad TS vs Python de los dos modelos, núcleo §5.5) y su compilación estática.
+      # Van en este mismo job para que el check obligatorio `pruebas` también falle si se rompe la app.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm --prefix app ci
+      - run: npm --prefix app test
+      - run: npm --prefix app run build

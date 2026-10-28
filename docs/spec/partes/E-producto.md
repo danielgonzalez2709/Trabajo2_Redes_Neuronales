@@ -53,7 +53,7 @@
 | R-APP-2 | Puntaje y PD de **los dos modelos** (Spec v0.17) | Selector "Red neuronal (MLP)" / "Regresión logística" (por defecto el MLP); el modelo elegido muestra su puntaje y su PD, y al lado, el del otro modelo para las mismas entradas. Al instante; coinciden con Python (prueba de paridad de cada modelo) |
 | R-APP-3 | Ubicación en la población | Percentil + histograma de la población con su marca, con los `percentiles_score` del modelo elegido |
 | R-APP-4 | "¿Y si…?" | Deslizadores por variable con el puntaje nuevo en vivo (del modelo elegido) + los 3 cambios que más suben el puntaje |
-| R-APP-5 | Intuitiva | Probada con 2 personas ajenas al curso antes del lun 26 |
+| R-APP-5 | Intuitiva | Sin prueba formal con usuarios [DECIDIDO, Daniel, 28-oct]: se quitó la prueba con 2 personas ajenas al curso; la app se revisa en producción |
 | R-APP-6 | Enlaces | Al blog y al video, visibles |
 | R-APP-7 | Local con un comando | `npm --prefix app run dev` |
 | R-APP-8 | Publicada | URL de Vercel en el blog y el README |
@@ -93,14 +93,14 @@ equipo → enlace. 2–3 min. YouTube no listado; enlace en la app y el blog.
 | E1 | Esqueleto de la app + Vercel enlazado | E0 | `npm --prefix app run dev` levanta; URL de vista previa | implementador-web | vie 23 | José |
 | E2 | App: formulario, PD, score, percentil (con el JSON de juguete) | C2 | R-APP-1 a R-APP-3 | implementador-web | sáb 24 | José |
 | E3 | App: "¿y si…?" + enlaces | E2 | R-APP-4, R-APP-6 | implementador-web | dom 25 | José |
-| E4 | Paridad en CI + modelos reales (los dos, v0.17) | C5, E3 | 1 000/1 000 dentro de la tolerancia en cada modelo | revisor-spec | dom 25 | José |
+| E4 | Paridad en CI + modelos reales (los dos, v0.17) | C5, E3 | 1 000/1 000 dentro de la tolerancia en cada modelo; `ci.yml` corre `npm --prefix app ci`, `test` y `build` dentro del check `pruebas` | revisor-spec | dom 25 (hecha 28-oct) | Daniel |
 | E5 | E[L] | B5, D4 | Por crédito y por banda; contraste con lo observado | verificador-matematico | dom 25 | Daniel |
 | E6 | Video: guion (vie 23), grabación (sáb 24), edición en Remotion (dom 25) | E2 | 2–3 min, aparecen los 5 | — | dom 25 | Daniel |
 | E7 | Blog 00, 09–13 + publicación en GitHub Pages | todas | `mkdocs build --strict`; enlaces a repo, app y video | redactor-tecnico + cazador | lun 26 | Daniel |
 | E8 | `run.py figures` integra todas las figuras | B7, C7, D6 | Clon limpio regenera todo | auditor-reproducibilidad | lun 26 | Daniel |
 | E10 | `run.py notebooks` (.py → .ipynb + ejecución) + plantilla con la celda de parámetros | E0 | La plantilla corre con los sintéticos; `test_notebooks.py` | revisor-spec | vie 23 | Daniel |
 | E11 | Notebooks `00_sustentacion` y `05_perdida_esperada` | E5, B9, C8, D8 | Cada uno en < 2 min; `00` trae la celda de predicción escrita antes de ejecutar | revisor-spec | lun 26 | Daniel |
-| E9 | Usabilidad con 2 personas + despliegue final | E4 | R-APP-5, R-APP-8 | — | lun 26 | José |
+| E9 | Despliegue final (la prueba de usabilidad con 2 personas se quitó; Daniel, 28-oct) | E4 | R-APP-8: https://trabajo2-redes-neuronales.vercel.app, en el blog y el README | — | lun 26 (hecha 27-oct) | José |
 
 ## 5. Puntos calientes de alucinación
 - Límites y precios de Vercel, licencia de Remotion, mantenimiento de MkDocs Material (V-01…V-10 del registro).

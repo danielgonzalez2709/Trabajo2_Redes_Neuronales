@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-28 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.26 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: video; fichas de la sustentación (T5.4) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. App en producción (https://trabajo2-redes-neuronales.vercel.app); E4 ✅ (CI) y E9 ✅; falta el enlace del video (Daniel). Daniel: video; fichas de la sustentación (T5.4) |
 | Entrega | **vie 30-oct-2026, 23:59** (extendida desde el mar 27; meta interna por definir) |
 | Sustentación | Posterior a la entrega, por confirmar |
 
@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- App (Daniel, 28-oct; Spec v0.27): E4 la hace Daniel (la app entra al check `pruebas` del CI); se quita la prueba de usabilidad con 2 personas (R-APP-5, E9).
 - App: arquitectura y UX (José, 26-oct): `app/lib/` es dominio puro (`contrato`, `preprocesar`, `modelo`, `escenarios`), hooks como
   adaptadores, componentes presentacionales y una sola página contenedora; los casos de paridad solo en pruebas. Un solo panel:
   perfil base → escenario (+Δ) con deslizadores y el top-3 de cambios; densidad SVG desde los 101 percentiles; entradas en la URL;
@@ -92,6 +93,7 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos).
 
 ## 📓 Bitácora
+- **2026-10-28** — E4 ✅ (Daniel): `ci.yml` corre `npm --prefix app ci`, `test` (paridad de los dos modelos) y `build` en el check `pruebas`. E9 sin prueba de usabilidad (Spec v0.27).
 - **2026-10-28** — Clon limpio en otra máquina (`auditoria.yml`, runner Ubuntu 24.04, sin red): todo en verde (1 821 pruebas, demos PD 5,0 s y LGD 3,6 s, app); JSON de `results/` idénticos; cambian `pd_model_mlp.json` y los `casos_paridad_*.json` (la paridad pasa), bytes de 26 PNG, notebooks y `el_test.parquet`. README con torch CPU; notebook 00 con 9 predicciones de B, C y D (T5.4).
 - **2026-10-28** — Daniel confirma H-22…H-28: 28 hallazgos (Código 17, Matemáticas 5, Datos 3, Conceptos 3); registro y blog 12 al día.
 - **2026-10-28** — Entrega extendida al vie 30-oct, 23:59 (Spec v0.26, PLAN y memoria). Falta: video (sin clips), videos individuales, clon limpio, H-22…H-28 al blog 12, marcas del blog, E4 y E9, T5.4. PR #24 (C8) fusionado.
@@ -124,10 +126,8 @@ Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 
 - **2026-10-26** — PR #8 fusionado (7:46 a. m., CI en verde; revisado por Daniel): Parte C C1–C2 en `main`. JSON de la app verificado aparte: contrato §5.5, 600 puntos en 50:1, paridad |ΔPD| ≤ 1,3e-8 en los 1 000 casos e igual al joblib de B en todo el test.
 - **2026-10-26** — B5 (Andrés): `run.py pd`; 812 pruebas; 3 revisores + analista OK. Test: MLP AUC 0,67163 ± 0,00309 (logística
   0,66965; 24/30), Brier 0,18324 ± 0,00108 (0,18652; 30/30); mediana = semilla 20; semilla 0 = ensayo #11 bit a bit. H-18, H-19.
-- **2026-10-25** — PR #7 fusionado (1:26 p. m.; revisado por Daniel): Parte D D1–D8 en `main`. Primera E[L] real (logística de B +
-  MLP de D) en todo el test: 196,7 M USD. Detalles para Camila en el PR; figuras de A y notebooks 00/01 restaurados.
-- **2026-10-25** — PR #6 fusionado (12:12 p. m.; revisado por Daniel): Parte B B1–B3 en `main`, cifras reproducidas aparte. Daniel
-  confirma H-08 (λ‖W‖² lo escribió Claude en el Spec). La PD media de test (0,187) < tasa observada (0,262): la tasa sube por año.
+- **2026-10-25** — PR #7 fusionado (1:26 p. m.; revisado por Daniel): Parte D D1–D8 en `main`. Primera E[L] real (logística de B + MLP de D) en todo el test: 196,7 M USD. Detalles para Camila en el PR; figuras de A y notebooks 00/01 restaurados.
+- **2026-10-25** — PR #6 fusionado (12:12 p. m.; revisado por Daniel): Parte B B1–B3 en `main`, cifras reproducidas aparte. Daniel confirma H-08 (λ‖W‖² lo escribió Claude en el Spec). La PD media de test (0,187) < tasa observada (0,262): la tasa sube por año.
 - **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige `SALIDA` de todo `src/viz/figs_*.py` y compara SHA-256. Un `figs_*.py` nuevo necesita `SALIDA` y conectarse en `cli._figures`.
 - **2026-10-25** — B4 (Andrés): `run.py pd-hpo`, 40/40 ensayos, 702,4 s; mejor #11 [32, 16, 32] relu adam, log-loss val 0,50748, 2 673 parám.; reproducible. Candidatos H-16 (TPE multivariado) y H-17.
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
