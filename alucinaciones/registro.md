@@ -544,8 +544,8 @@ falsas se registran como candidatos.
   **Fecha:** 26-oct-2026 · **Quién lo cazó:** el subagente `revisor-calidad` (bloqueante B1 de C4); el orquestador lo reprodujo
 - **Nota de numeración:** registrado primero como H-21 en `dev/juanjose`; renumerado a H-24 porque en `main` ya
   existen H-21…H-23 (Partes B y E).
-1. **Prompt (literal):** `prompts/C4.md`: el plan del orquestador ("la eficiencia es exacta sin importar cuántas
-   permutaciones se usen") y la fase roja ("Eficiencia exacta por telescopio (verificado en el código de shap)"); el
+1. **Prompt (literal):** `prompts/C4.md`: el plan del orquestador, que daba la eficiencia por exacta para cualquier
+   número de permutaciones (paráfrasis; la frase entre comillas que había aquí no es literal), y la fase roja ("Eficiencia exacta por telescopio (verificado en el código de shap)"); el
    implementador lo repitió en la celda markdown de `src/scorecard/shap_pd.py`.
 2. **Respuesta relevante de la IA:** `src/scorecard/shap_pd.py` (fase verde, sin commit), celda del explainer: "(suma
    telescópica), así que la eficiencia es **exacta con cualquier número de permutaciones**".

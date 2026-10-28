@@ -39,7 +39,7 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinacione
 | H-23 | Datos del mundo real | B | Confirmado | "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" del mejor | Son tres: el 23 queda a 0,000987 y se perdió al redondear antes de comparar |
 | H-24 | Código | C | Confirmado | La eficiencia de SHAP con el explainer de permutaciones "es exacta con cualquier número de permutaciones" | El masker compara con `np.isclose`: con otra semilla la suma se rompe (2,7e-9 > 1e-9) |
 | H-25 | Código | C | Confirmado | Presentó las pruebas de SHAP y de la permutación como la cobertura de su fórmula | Pasan las 62 pruebas con 48 jugadores, ddof = 0 o los signos de AUC y log-loss invertidos |
-| H-26 | Código | B | Confirmado | "La guarda impide escribir en los archivos del modelo principal" | Era una lista negra incompleta: una prueba sobrescribió `results/data/pd/pred_test.parquet` |
+| H-26 | Código | B | Confirmado | Dio por cubierto que las rutas que pisarían las del modelo principal "dan `ValueError`" | Era una lista negra incompleta: una prueba sobrescribió `results/data/pd/pred_test.parquet` |
 | H-27 | Código | C | Confirmado | Presentó las pruebas de la regla del veredicto como un caso por cada rama | Pasan con "≥ 1 en contra" en vez de "≥ 2" y con las desigualdades de borde cambiadas |
 | H-28 | Matemáticas | C | Confirmado | "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" | Con log10 en las dos partes el puntaje es idéntico; el error es mezclar bases (8,69 puntos) |
 :::
@@ -428,7 +428,7 @@ revisión del borrador de la sección 10.*
 
 ### H-22 — La diagonal del lado equivocado (Conceptos)
 
-*Parte B · confirmado (Daniel, 28-oct) · lo cazó la sesión principal de Andrés al mirar `pd-calibracion.png`.*
+*Parte B · confirmado (Daniel, 28-oct) · lo cazó la sesión principal que orquestaba B7, al mirar `pd-calibracion.png`.*
 
 - **Prompt:** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" (pide las figuras de B7 y sugerir la curva para el
   video).
@@ -461,7 +461,7 @@ revisión del borrador de la sección 10.*
 *Parte C · confirmado (Daniel, 28-oct) · lo cazó el subagente revisor-calidad de C4; la sesión principal de Juan José lo
 reprodujo.*
 
-- **Prompt:** `prompts/C4.md`: el plan ("la eficiencia es exacta sin importar cuántas permutaciones se usen") y la fase roja
+- **Prompt:** `prompts/C4.md`: el plan, que daba la eficiencia por exacta para cualquier número de permutaciones, y la fase roja
   ("verificado en el código de shap").
 - **Respuesta de la IA:** en `src/scorecard/shap_pd.py`, la celda del explainer decía que, por la suma telescópica, "la
   eficiencia es **exacta con cualquier número de permutaciones**".

@@ -185,8 +185,7 @@ reglas de DeepLIFT por nodo; GradientExplainer calcula gradientes esperados, que
 del muestreo; KernelExplainer estima los $\varphi$ con una regresión ponderada sobre coaliciones muestreadas y, por defecto,
 selecciona como máximo 10 variables (con 15 jugadores dejaría al menos 5 en cero); y ExactExplainer enumera las $2^{15} = 32\,768$ coaliciones por
 cliente, demasiado costoso para 1 000 clientes. Para que la telescopia fuera exacta tuvimos que hacer que shap comparara los
-valores del cliente y del fondo por igualdad exacta (candidato H-24 de la cacería, `alucinaciones/registro.md`).
-<!-- revisar: autor (si H-24 se confirma y entra a la sección 12, cambiar la remisión a "sección 12, hallazgo H-24") -->
+valores del cliente y del fondo por igualdad exacta (sección 12, hallazgo H-24).
 
 **Puntos del MLP.** De la eficiencia,
 
