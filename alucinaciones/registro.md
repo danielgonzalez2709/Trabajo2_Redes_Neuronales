@@ -6,11 +6,11 @@
 ## Cobertura actual
 | Categoría | Candidatos | Confirmados |
 |---|---|---|
-| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 4 (H-08, H-10, H-14, H-15) |
-| Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 13 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20) |
-| Datos del mundo real | 3 (H-02, H-13, H-23) | 2 (H-02, H-13) |
+| Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 5 (H-08, H-10, H-14, H-15, H-28) |
+| Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) |
+| Datos del mundo real | 3 (H-02, H-13, H-23) | 3 (H-02, H-13, H-23) |
 | Bibliografía | 0 | 0 |
-| Conceptos | 3 (H-16, H-21, H-22) | 2 (H-16, H-21) |
+| Conceptos | 3 (H-16, H-21, H-22) | 3 (H-16, H-21, H-22) |
 
 ## Afirmaciones pendientes de verificar (de la asesoría inicial, `prompts/asesoria_puente_claude.md`)
 Afirmaciones que hizo Claude al planear el trabajo (19-oct-2026). **No son hallazgos**: hay que verificarlas, y solo si resultan
@@ -499,7 +499,7 @@ falsas se registran como candidatos.
    en otra cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
 
 ### H-22 — "En test, los 10 bins de ambos modelos quedan por debajo de la diagonal" (calibración que subestima)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Conceptos
 - **Parte:** B
 - **Nota de numeración:** registrado primero como H-21 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
@@ -520,7 +520,7 @@ falsas se registran como candidatos.
    (aquí "subestima" era correcto y la posición respecto de la diagonal, no). Mirar la imagen antes de escribir el texto.
 
 ### H-23 — "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" (faltaba el 23, descartado por redondeo)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Datos del mundo real
 - **Parte:** B
 - **Nota de numeración:** registrado primero como H-22 en `dev/andres`; renumerado al integrar `main`, que ya tenía H-21.
@@ -537,7 +537,7 @@ falsas se registran como candidatos.
    cambia el conteo justo en el borde.
 
 ### H-24 — "La eficiencia del explainer de permutaciones de shap es exacta con cualquier número de permutaciones"
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, sesión orquestadora de Juan José y subagente `implementador` (Claude Opus 5.5) ·
@@ -564,7 +564,7 @@ falsas se registran como candidatos.
    prueba supone.
 
 ### H-25 — Pruebas de SHAP y de la importancia por permutación que no distinguen signo, desviación ni agrupación
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 26-oct-2026 · **Quién lo
@@ -587,7 +587,7 @@ falsas se registran como candidatos.
    decisión (signo, ddof, agrupación, procedencia de los datos) necesita un caso que falle si se invierte.
 
 ### H-26 — "La guarda impide escribir en los archivos del modelo principal" (B10, tres guardas que no lo impedían)
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** B
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
@@ -613,7 +613,7 @@ falsas se registran como candidatos.
    no dependa del directorio desde donde se ejecuta; y una prueba de la guarda en rojo no debe poder escribir de verdad.
 
 ### H-27 — Pruebas de la regla del veredicto que no distinguen `≥ 2` de `≥ 1` ni las desigualdades de borde
-- **Estado:** candidato
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Código
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 27-oct-2026 · **Quién lo
@@ -632,7 +632,7 @@ falsas se registran como candidatos.
    caso justo por debajo.
 
 ### H-28 — "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" (Matemáticas)
-- **Estado:** candidato (pendiente de confirmar por Juan José)
+- **Estado:** confirmado (Daniel, 28-oct)
 - **Categoría:** Matemáticas
 - **Parte:** C
 - **Herramienta y modelo:** Claude Code, subagente `implementador` (Claude Opus 5.5) · **Fecha:** 25-oct-2026 (C1) · **Quién
