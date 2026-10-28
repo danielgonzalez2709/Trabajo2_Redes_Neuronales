@@ -88,9 +88,10 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
-Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos).
+Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos). Candidatos sin confirmar: H-29 (límite de Vercel) y H-30 (fin de MkDocs Material, sin prompt).
 
 ## 📓 Bitácora
+- **2026-10-28** — Blog 11 completo (B, C, D y E; redactor + cazador, corregido); V-02, V-03, V-04 y V-07 ✅, V-01 y V-10 en parte (candidatos H-29 y H-30, sin confirmar); citas del código verificadas (Murphy, Prechelt).
 - **2026-10-28** — Spec v0.28: pila técnica y notebooks [DECIDIDO]; §13 pendientes 1–4 resueltos. `test_hpo.py` pasa en Windows (permisos portables).
 - **2026-10-28** — Blog sin marcas `revisar`/TODO: Falkner et al. (2018) verificada y en la bibliografía; `descomposicion_razon` en `src/el/tablas.py` (notebook 05); `scripts/diagnostico_nivel_pd.py`; SHAP del MLP en el blog 10. Cazador APROBADO.
 - **2026-10-28** — E4 ✅ (Daniel): `ci.yml` corre `npm --prefix app ci`, `test` (paridad de los dos modelos) y `build` en el check `pruebas`. E9 sin prueba de usabilidad (Spec v0.27).
