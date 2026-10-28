@@ -346,8 +346,8 @@ instalado.*
   default, the multivariate TPE is used for single-objective optimization"), mientras que el TPE de @bergstra2011 modela
   cada hiperparámetro por separado (`evidencias/H-16_tpe_multivariado.py`).
 - **Corrección:** especificación v0.15: se mantienen los valores por defecto, `hpo_ensayos.json` registra
-  `multivariate: true` y la cita del TPE multivariado queda pendiente de verificación.
-  <!-- TODO(cita): Falkner et al. (2018) está marcado [VERIFICAR] en el registro; no está en references.bib. -->
+  `multivariate: true` y, para el TPE multivariado, la sección 4 cita la referencia a la que remite la documentación de
+  `TPESampler`, @falkner2018, verificada en las actas de ICML 2018 (PMLR, volumen 80).
 - **Lección:** los valores por defecto cambian entre versiones mayores; se lee el código de la versión fijada.
 
 ### H-17 — Un caso de borde falso en coma flotante (Código)

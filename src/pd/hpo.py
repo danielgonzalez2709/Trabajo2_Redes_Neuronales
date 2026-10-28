@@ -23,8 +23,8 @@
 #
 # **TPE multivariado.** En Optuna 5.0.0, `TPESampler()` con sus valores por defecto es multivariado en un estudio de
 # un objetivo (`_is_multivariate`), no el TPE univariado de Bergstra et al. (2011). Se mantienen los valores por
-# defecto y se registra `multivariate: true` en el JSON. TODO(cita): Falkner et al. (2018), BOHB, para el TPE
-# multivariado [VERIFICAR].
+# defecto y se registra `multivariate: true` en el JSON. El docstring de `TPESampler` remite, para el TPE multivariado, a
+# Falkner, Klein y Hutter (2018), "BOHB: Robust and Efficient Hyperparameter Optimization at Scale", ICML, PMLR 80.
 #
 # Las dependencias (`cargar`, `modelo_cls`, `reloj`, `ahora`, `optuna_mod`, `criterio`, `auc_fn`) se inyectan: las
 # pruebas sustituyen cualquiera sin tocar el código. `buscar` solo compone las piezas.

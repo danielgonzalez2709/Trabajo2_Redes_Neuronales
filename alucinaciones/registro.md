@@ -396,7 +396,8 @@ falsas se registran como candidatos.
    devuelve True en estudios de un objetivo ("By default, the multivariate TPE is used for single-objective optimization").
    El TPE de Bergstra et al. (2011) modela cada hiperparámetro por separado.
 5. **Corrección:** Spec v0.15 (B-pd §3.3): se mantienen los valores por defecto (decisión de Andrés), `hpo_ensayos.json`
-   registra `multivariate: true` y el blog cita además el TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
+   registra `multivariate: true` y el blog cita además el TPE multivariado: Falkner, Klein y Hutter (2018), BOHB, ICML,
+   PMLR 80, 1437–1446 (verificado el 28-oct en proceedings.mlr.press; es la referencia del docstring de `TPESampler`).
    Aviso a D, que también usa los valores por defecto.
 6. **Lección aprendida:** los valores por defecto cambian entre versiones mayores; antes de citar el método de una
    biblioteca, leer la firma y el código de la versión fijada en `requirements.txt`, no la documentación de memoria.

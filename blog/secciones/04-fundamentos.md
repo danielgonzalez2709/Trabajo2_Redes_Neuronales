@@ -408,8 +408,7 @@ dieron buena pérdida y escasean las que dieron mala.
 TPE (Fuente: `results/data/pd/hpo_ensayos.json`, campo `muestreador`). Un detalle importante: en Optuna 5.0.0, la versión
 fijada, el TPE por defecto es **multivariado** en estudios de un objetivo, es decir, modela los hiperparámetros juntos y no
 cada uno por separado como el TPE de @bergstra2011. Lo detectamos leyendo el código de Optuna (hallazgo H-16, sección 12) y
-el JSON lo registra (`multivariate: true`). <!-- TODO(cita): referencia del TPE multivariado (Falkner et al., 2018) sin
-verificar y fuera de references.bib; por ahora se describe sin citar. -->
+el JSON lo registra (`multivariate: true`). Para esta variante, la documentación de `TPESampler` remite a @falkner2018.
 
 **Criterio, presupuesto y semilla.** Cada ensayo se puntúa con la **log-loss de validación** (sección 5.5), una regla de
 puntuación propia que premia a la vez ordenar bien y estar calibrado; la AUC de validación se registra al lado pero no
