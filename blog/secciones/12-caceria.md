@@ -546,8 +546,8 @@ de B10, intentando romper la guarda.*
 ### Verificaciones que salieron correctas
 
 No todo lo que dijo la IA estaba mal. El enunciado contempla documentar las verificaciones hechas y sus resultados, y aquí
-lo hacemos aunque los hallazgos superen la meta. De las afirmaciones que hizo la IA al planear el trabajo, cinco ya están
-verificadas y resultaron correctas:
+lo hacemos aunque los hallazgos superen la meta. De las once afirmaciones que hizo la IA al planear el trabajo, nueve resultaron
+correctas (las cuatro últimas, sobre planes de despliegue y el optimizador, se consultaron el 28 de octubre):
 
 - **Referencias.** Las 14 que propuso existen y sus DOI o direcciones oficiales llevan al trabajo esperado
   (`evidencias/A8_verificacion_bib.*`). Los matices de año (la versión de arXiv frente a la del congreso en Kingma y Ba y en
@@ -563,6 +563,19 @@ verificadas y resultaron correctas:
   puede verificar sin fechas: que lo cobrado tras el castigo no entra en `total_rec_prncp` (`evidencias/D1_verificacion_lgd.*`).
 - **Licencia de Remotion.** La licencia oficial es gratis para individuos, organizaciones con fines de lucro de hasta tres
   empleados y organizaciones sin ánimo de lucro; un video de curso hecho por estudiantes queda cubierto.
+- **Plan Hobby de Vercel.** Es gratis y se limita a uso personal y no comercial: "The Hobby plan is free and aimed at developers
+  with personal projects" y "Hobby teams are restricted to non-commercial personal use only" (documentación de Vercel).
+- **Neon en el Marketplace de Vercel.** La ficha de Neon en el Marketplace ofrece un plan gratis ("Free plan with generous
+  quotas"); según Neon, el plan Free cuesta 0 USD al mes e incluye 1 GB de almacenamiento por proyecto.
+- **Render.** Su plan gratis duerme el servicio tras inactividad: "Render spins down a Free web service that goes 15 minutes
+  without receiving any inbound traffic", y despertarlo toma cerca de un minuto (documentación de Render).
+- **`AdamW`.** Aplica el *weight decay* desacoplado, que no equivale a L2 con Adam: Loshchilov y Hutter muestran que "this is not
+  the case for adaptive gradient algorithms, such as Adam", y la documentación de PyTorch dice que en `AdamW` el decaimiento "does
+  not accumulate in the momentum nor variance".
 
-Las otras seis afirmaciones de la planeación (límites y planes de Vercel, Neon y Render, el *weight decay* desacoplado de
-`AdamW` y el mantenimiento de Material for MkDocs) siguen sin verificar en el registro.
+Las otras dos afirmaciones resultaron correctas solo en parte, por datos externos que cambian. La del límite de tamaño de las
+funciones de Vercel decía "~250 MB": hoy son 250 MB, pero 500 MB para Python; aun así PyTorch no cabe
+(la rueda de CPU para Linux ocupa 715,5 MB sin comprimir), así que la decisión de hacer la inferencia en el navegador se
+mantiene. La del mantenimiento de Material for MkDocs daba como fin el 5 de noviembre de 2026, fecha oficial al planear, pero el
+24 de octubre el proyecto la movió al 5 de mayo de 2027. Ninguna de las dos se cuenta como hallazgo mientras no la revise Daniel;
+el detalle está en `alucinaciones/registro.md`.
