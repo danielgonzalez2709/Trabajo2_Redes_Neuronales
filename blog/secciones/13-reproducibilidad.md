@@ -42,20 +42,22 @@ Fuente: Elaboración propia. "Medido": corrido el 26 de octubre de 2026 en un po
 | `python run.py export` | Los dos modelos de PD → `app/public/model/*.json` y casos de paridad | 1,3 s (6,5 s) | Medido |
 | `python run.py figures` | Regenera las 26 figuras del reporte desde `results/` (todas las partes) | 10,3 s | Clon limpio |
 | `python run.py notebooks` | Convierte y ejecuta los seis notebooks (00 a 05) | 53,5 s | Clon limpio |
-| `npm --prefix app run dev` | Aplicación web local en http://localhost:3000 (antes, una vez, `npm --prefix app ci`: 8,9 s) | 0,4 s hasta "Ready" | Clon limpio |
+| `npm --prefix app run dev` | Aplicación web local en http://localhost:3000 (antes, una vez, `npm --prefix app ci`: 9 s) | 0,4 s hasta "Ready" | Clon limpio |
 | `mkdocs build --strict -f blog/mkdocs.yml` | Construye este reporte (`mkdocs serve -f blog/mkdocs.yml` lo sirve en local) | 3,8 s de reloj | Medido |
 | `python -m pytest -q -m "not lento"` | Pruebas automáticas que corre el CI | 105,0 s (107,6 s) | Medido |
 | `python -m pytest -q` | Todas las pruebas, incluidas las lentas | 201,3 s (203,6 s); en el clon limpio, 393,2 s | Medido y clon limpio |
 :::
-Los tiempos "Registrado" vienen de otras máquinas: las corridas de la PD se hicieron en un AMD Ryzen 5 3500U (4 núcleos y 8
-hilos) con `hilos_torch` = 4, y las de la LGD registran `hilos_torch` = 8 (`results/data/pd/summary.json` y
-`results/data/lgd/summary.json`). `jupyter lab notebooks/` abre los notebooks y no tiene tiempo que medir.
+Los tiempos "Registrado" vienen de otras máquinas: las corridas de la PD registran `hilos_torch` = 4 y las de la LGD
+`hilos_torch` = 8 (`results/data/pd/summary.json` y `results/data/lgd/summary.json`). La Parte B midió su demo en un AMD
+Ryzen 5 3500U (4 núcleos y 8 hilos; `docs/spec/partes/B-pd.md`, §3.5), y en la descripción del *pull request* #19 indicó
+que las corridas registradas de la PD se hicieron en esa misma máquina. `jupyter lab notebooks/` abre los notebooks y no tiene tiempo que medir.
 <!-- revisar: autor (José: confirmar en qué máquina corrió la LGD registrada) -->
 
 La corrida completa de la PD y su búsqueda no caben en dos minutos; por eso cada tarea debe llevar una configuración de
 demostración que se lance con un solo comando. En el clon limpio la de la PD tardó 5,0 s (de 13,8 a 15,1 s en la máquina de
 desarrollo de la Parte B) y la de la LGD 3,6 s. Las otras demos de la sustentación (`eda`, `scorecard` y `el`, según
-`configs/sustentacion.yaml`) tardaron menos de 10 s de reloj cada una, y también `export` y `figures`. En el clon limpio los
+`configs/sustentacion.yaml`) tardaron menos de 10 s de reloj cada una en Windows, y también `export` y `figures`; en el
+clon limpio, `eda`, `scorecard`, `el` y `export` tardaron entre 0,8 y 4,4 s, y `figures` 10,3 s. En el clon limpio los
 notebooks tardaron 10,0 s (00, sustentación), 10,4 s (01, datos), 11,7 s (02, PD), 6,1 s (03, scorecard), 10,0 s (04, LGD) y
 5,3 s (05, pérdida esperada).
 
@@ -77,12 +79,16 @@ desarrollo. Lo hace `.github/workflows/auditoria.yml`, que se lanza a mano desde
 - **Todo terminó sin errores:** las demos de la PD y de la LGD, `eda`, `scorecard`, `el`, `export`, `figures`, `notebooks`,
   las 1 822 pruebas (1 821 pasan y 1 se omite, incluidas las lentas), `mkdocs build --strict` y la app (`npm ci`, las 104
   pruebas de `npm test`, `npm run build` y `npm run dev`).
-- **Archivos versionados al regenerar.** Los resultados en JSON salieron idénticos a los versionados, entre ellos
-  `scorecard.json`, el `summary.json` de la pérdida esperada y los modelos de la app. Cambiaron tres cosas:
-  - las 26 figuras, en bytes y no en datos: sin las fuentes de la paleta, matplotlib usa otra fuente;
+- **Archivos versionados al regenerar.** Los resultados en JSON de `results/` salieron idénticos a los versionados, entre
+  ellos `scorecard.json` y el `summary.json` de la pérdida esperada. Cambiaron cuatro grupos de archivos:
+  - los modelos de la app (`app/public/model/`): en `pd_model_logistica.json` solo cambian 4 líneas, como en Windows; en
+    `pd_model_mlp.json` y en los dos `casos_paridad_*.json` cambian más líneas (100, 68 y 44 en el `git diff --stat`). Las
+    104 pruebas de la app, que incluyen la paridad, pasaron con esos archivos regenerados. No examinamos la causa;
+  - las 26 figuras, en bytes. La Parte B ya había visto que, sin las fuentes de la paleta, matplotlib usa otra fuente;
+    no lo comprobamos figura por figura;
   - los seis notebooks, en sus salidas;
-  - los bytes de `results/data/el/el_test.parquet`, con el mismo tamaño y el `summary.json` idéntico; en Windows ese archivo
-    sale igual byte a byte. No investigamos la diferencia fila por fila.
+  - `results/data/el/el_test.parquet`, con el mismo tamaño y el `summary.json` idéntico. En Windows, volver a correr
+    `python run.py el` (28 de octubre) lo deja igual byte a byte. No investigamos la diferencia fila por fila.
 
 **Pruebas e integración continua.** `.github/workflows/ci.yml` corre `python -m pytest -q -m "not lento"` en Linux (Ubuntu,
 Python 3.12, PyTorch de CPU) en cada *pull request* y en cada cambio de `main`, y el *check* `pruebas` debe estar en verde para
@@ -91,7 +97,7 @@ fusionar en `main`. En la medición de Windows de la [[tab:comandos]] (26 de oct
 archivo que escribe la búsqueda y en Windows reciben 0o666 (reportadas a la Parte B). Con las pruebas lentas falla además
 `test_demo_lgd_menos_de_2_minutos` (`tests/test_demo_lgd.py`), porque creaba enlaces simbólicos y Windows no lo permite sin
 privilegios (WinError 1314); en esa corrida pasaron 1 348. La Parte D lo corrigió después: la prueba copia los archivos. En el
-clon limpio en Linux pasan todas.
+clon limpio en Linux pasan todas menos una, que se omite (1 821 pasan).
 
 **Publicación del reporte.** `.github/workflows/blog.yml` construye el blog con `mkdocs build --strict` y lo publica en GitHub
 Pages (https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/) cada vez que un cambio en `blog/` llega a `main`.
