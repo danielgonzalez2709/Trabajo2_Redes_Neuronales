@@ -93,6 +93,7 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos).
 
 ## 📓 Bitácora
+- **2026-10-28** — Blog sin marcas `revisar`/TODO: Falkner et al. (2018) verificada y en la bibliografía; `descomposicion_razon` en `src/el/tablas.py` (notebook 05); `scripts/diagnostico_nivel_pd.py`; SHAP del MLP en el blog 10. Cazador APROBADO.
 - **2026-10-28** — E4 ✅ (Daniel): `ci.yml` corre `npm --prefix app ci`, `test` (paridad de los dos modelos) y `build` en el check `pruebas`. E9 sin prueba de usabilidad (Spec v0.27).
 - **2026-10-28** — Clon limpio en otra máquina (`auditoria.yml`, runner Ubuntu 24.04, sin red): todo en verde (1 821 pruebas, demos PD 5,0 s y LGD 3,6 s, app); JSON de `results/` idénticos; cambian `pd_model_mlp.json` y los `casos_paridad_*.json` (la paridad pasa), bytes de 26 PNG, notebooks y `el_test.parquet`. README con torch CPU; notebook 00 con 9 predicciones de B, C y D (T5.4).
 - **2026-10-28** — Daniel confirma H-22…H-28: 28 hallazgos (Código 17, Matemáticas 5, Datos 3, Conceptos 3); registro y blog 12 al día.
@@ -124,8 +125,7 @@ Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 
   MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
   en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179. H-13–H-15.
 - **2026-10-26** — PR #8 fusionado (7:46 a. m., CI en verde; revisado por Daniel): Parte C C1–C2 en `main`. JSON de la app verificado aparte: contrato §5.5, 600 puntos en 50:1, paridad |ΔPD| ≤ 1,3e-8 en los 1 000 casos e igual al joblib de B en todo el test.
-- **2026-10-26** — B5 (Andrés): `run.py pd`; 812 pruebas; 3 revisores + analista OK. Test: MLP AUC 0,67163 ± 0,00309 (logística
-  0,66965; 24/30), Brier 0,18324 ± 0,00108 (0,18652; 30/30); mediana = semilla 20; semilla 0 = ensayo #11 bit a bit. H-18, H-19.
+- **2026-10-26** — B5 (Andrés): `run.py pd`; 812 pruebas; 3 revisores + analista OK. Test: MLP AUC 0,67163 ± 0,00309 (logística 0,66965; 24/30), Brier 0,18324 ± 0,00108 (0,18652; 30/30); mediana = semilla 20; semilla 0 = ensayo #11 bit a bit. H-18, H-19.
 - **2026-10-25** — PR #7 fusionado (1:26 p. m.; revisado por Daniel): Parte D D1–D8 en `main`. Primera E[L] real (logística de B + MLP de D) en todo el test: 196,7 M USD. Detalles para Camila en el PR; figuras de A y notebooks 00/01 restaurados.
 - **2026-10-25** — PR #6 fusionado (12:12 p. m.; revisado por Daniel): Parte B B1–B3 en `main`, cifras reproducidas aparte. Daniel confirma H-08 (λ‖W‖² lo escribió Claude en el Spec). La PD media de test (0,187) < tasa observada (0,262): la tasa sube por año.
 - **2026-10-25** — `tests/test_no_network.py` corregido (Parte E, con permiso de Daniel): `pytest` ya no reescribe `lgd-*.png`; redirige `SALIDA` de todo `src/viz/figs_*.py` y compara SHA-256. Un `figs_*.py` nuevo necesita `SALIDA` y conectarse en `cli._figures`.
