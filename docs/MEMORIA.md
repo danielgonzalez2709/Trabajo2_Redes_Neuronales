@@ -62,9 +62,9 @@ Juan José González Morales.
   force push ni borrado; Daniel fusiona sus propios PR con el bypass de admin.
 - Metodología: Spec Driven + Subagent Driven Development, como en el Trabajo 1.
 - Spec por partes (22-oct): núcleo único con los contratos + una spec por parte; los contratos **no se copian** a las partes.
-- [PROPUESTO] Notebooks por parte (`notebooks/NN_*.py` en formato percent → `.ipynb` ejecutado con `run.py notebooks`):
+- [DECIDIDO, v0.28] Notebooks por parte (`notebooks/NN_*.py` en formato percent → `.ipynb` ejecutado con `run.py notebooks`):
   celda de parámetros con las mismas claves que `--set`, cero lógica propia; el CLI se mantiene.
-- [PROPUESTO] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
+- [DECIDIDO, v0.28] Python 3.12 + PyTorch + scikit-learn + Optuna TPE (PD 40 ensayos, LGD 30) + SHAP; blog MkDocs con el hook del
   Trabajo 1; app Next.js estática en Vercel con inferencia en el navegador; video con Remotion; Design System `apple-design`.
 - B4–B5 (Andrés, 25/26-oct; Spec v0.15–v0.16, B-pd §3.3 y §3.5): TPE de Optuna 5 por defecto (multivariado), log-loss de
   val, presupuesto = Σ fit, `mlp_final.yaml` heredado; semilla mediana = (logloss_val, seed) en (n−1)//2; `busqueda` optuna o
@@ -83,8 +83,6 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 **vie 30, 23:59 entrega** (antes mar 27).
 
 ## ⏳ Pendientes (decisiones)
-1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
-5. Avisar a D: `iterar_minilotes(n, batch, rng, device)` recibe `device`; `evidencia` (§5.4, v0.14) va en los JSON de la LGD.
 6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`). (Blog 06: `mejor_epoca` = 1 ya va en §6.7, B8.)
 7. ✅ B6 medida en otra máquina (5,0 s); `demo: pd` aceptada; README con torch CPU en Linux (28-oct).
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
@@ -93,6 +91,7 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 Confirmados: 28 de 28 (Daniel; H-22…H-28 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 3 (H-02, H-13, H-23), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (28 hallazgos).
 
 ## 📓 Bitácora
+- **2026-10-28** — Spec v0.28: pila técnica y notebooks [DECIDIDO]; §13 pendientes 1–4 resueltos. `test_hpo.py` pasa en Windows (permisos portables).
 - **2026-10-28** — Blog sin marcas `revisar`/TODO: Falkner et al. (2018) verificada y en la bibliografía; `descomposicion_razon` en `src/el/tablas.py` (notebook 05); `scripts/diagnostico_nivel_pd.py`; SHAP del MLP en el blog 10. Cazador APROBADO.
 - **2026-10-28** — E4 ✅ (Daniel): `ci.yml` corre `npm --prefix app ci`, `test` (paridad de los dos modelos) y `build` en el check `pruebas`. E9 sin prueba de usabilidad (Spec v0.27).
 - **2026-10-28** — Clon limpio en otra máquina (`auditoria.yml`, runner Ubuntu 24.04, sin red): todo en verde (1 821 pruebas, demos PD 5,0 s y LGD 3,6 s, app); JSON de `results/` idénticos; cambian `pd_model_mlp.json` y los `casos_paridad_*.json` (la paridad pasa), bytes de 26 PNG, notebooks y `el_test.parquet`. README con torch CPU; notebook 00 con 9 predicciones de B, C y D (T5.4).
