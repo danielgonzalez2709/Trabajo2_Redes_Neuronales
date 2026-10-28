@@ -8,7 +8,7 @@
 |---|---|---|
 | Matemáticas | 5 (H-08, H-10, H-14, H-15, H-28) | 5 (H-08, H-10, H-14, H-15, H-28) |
 | Código | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) | 17 (H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27) |
-| Datos del mundo real | 4 (H-02, H-13, H-23, H-29) | 3 (H-02, H-13, H-23) |
+| Datos del mundo real | 4 (H-02, H-13, H-23, H-29) | 4 (H-02, H-13, H-23, H-29) |
 | Bibliografía | 0 | 0 |
 | Conceptos | 3 (H-16, H-21, H-22) | 3 (H-16, H-21, H-22) |
 
@@ -658,7 +658,7 @@ falsas se registran como candidatos.
    error real de las bases es la inconsistencia, no la base elegida.
 
 ### H-29 — "El límite de las funciones de Vercel es de ~250 MB" (cifra desactualizada para Python; la conclusión se sostiene)
-- **Estado:** candidato (28-oct; lo confirma Daniel). Menor: la conclusión práctica era correcta.
+- **Estado:** confirmado (Daniel, 28-oct). Menor: la conclusión práctica era correcta.
 - **Categoría:** Datos del mundo real
 - **Parte:** E
 - **Herramienta y modelo:** Claude Code, Claude Opus 5.5 · **Fecha:** 19-oct-2026 · **Quién lo cazó:** el subagente `cazador`, al
@@ -679,7 +679,7 @@ falsas se registran como candidatos.
    fecha, no de memoria. Aquí el error no cambió la decisión, y por eso se anota como menor.
 
 ### H-30 — "Material for MkDocs tiene correcciones hasta el 5-nov-2026" (dato que dejó de ser vigente el 24-oct) — SIN PROMPT
-- **Estado:** candidato, **SIN PROMPT: no cuenta** hasta localizar el prompt y la respuesta literales. Probable descarte: la
+- **Estado:** descartado (Daniel, 28-oct): sin prompt y no es una alucinación. **SIN PROMPT: no cuenta.** La
   fecha era la oficial el 19-oct y no es una alucinación sino un dato que se movió.
 - **Categoría:** Datos del mundo real
 - **Parte:** E

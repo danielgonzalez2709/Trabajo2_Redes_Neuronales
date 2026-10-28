@@ -6,7 +6,7 @@ cifras que no estén ahí). Cada parte agrega aquí sus hallazgos cuando estén 
 Registramos cada error de la IA en `alucinaciones/registro.md`, con el prompt literal (en `alucinaciones/prompts/`), su
 evidencia (derivación, experimento o fuente; los scripts y salidas en `alucinaciones/evidencias/` cuando existen) y la
 corrección. Un hallazgo queda **confirmado** cuando un integrante lo revisa (el autor de la parte o Daniel, que coordina la
-cacería). Los veintiocho hallazgos registrados están confirmados: la [[tab:caceria]] los resume y la [[tab:caceria-cobertura]]
+cacería). Los veintinueve hallazgos registrados están confirmados: la [[tab:caceria]] los resume y la [[tab:caceria-cobertura]]
 los cuenta por categoría.
 
 ::: tabla caceria
@@ -42,14 +42,15 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinacione
 | H-26 | Código | B | Confirmado | Dio por cubierto que las rutas que pisarían las del modelo principal "dan `ValueError`" | Era una lista negra incompleta: una prueba sobrescribió `results/data/pd/pred_test.parquet` |
 | H-27 | Código | C | Confirmado | Presentó las pruebas de la regla del veredicto como un caso por cada rama | Pasan con "≥ 1 en contra" en vez de "≥ 2" y con las desigualdades de borde cambiadas |
 | H-28 | Matemáticas | C | Confirmado | "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" | Con log10 en las dos partes el puntaje es idéntico; el error es mezclar bases (8,69 puntos) |
+| H-29 | Datos del mundo real | E | Confirmado | Propuso no desplegar PyTorch en funciones de Vercel "por el límite de ~250 MB" | Para Python el límite ya era de 500 MB; la decisión se sostiene porque torch para CPU ocupa 715,5 MB |
 :::
 
 ### Cobertura
 
-Los veintiocho hallazgos están confirmados. La [[tab:caceria-cobertura]] los reparte por categoría. Por parte, son dos de la
+Los veintinueve hallazgos están confirmados. La [[tab:caceria-cobertura]] los reparte por categoría. Por parte, son dos de la
 A (H-01, H-02), catorce de la B (H-03 a H-09, H-16 a H-19, H-22, H-23 y H-26), siete de la C (H-11, H-12, H-20, H-24, H-25,
-H-27 y H-28), uno de la D (H-10) y cuatro de la E (H-13 a H-15 y H-21). Se cumple la meta del enunciado (≥ 5 hallazgos en
-≥ 3 categorías; aquí, 28 en cuatro de las cinco) y la nuestra de al menos uno por parte (núcleo §9). No encontramos errores de bibliografía: las referencias que
+H-27 y H-28), uno de la D (H-10) y cinco de la E (H-13 a H-15, H-21 y H-29). Se cumple la meta del enunciado (≥ 5 hallazgos en
+≥ 3 categorías; aquí, 29 en cuatro de las cinco) y la nuestra de al menos uno por parte (núcleo §9). No encontramos errores de bibliografía: las referencias que
 propuso la IA resultaron correctas (ver "Verificaciones que salieron correctas" al final).
 
 ::: tabla caceria-cobertura
@@ -59,10 +60,10 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md (sección "Cob
 |---|---|---|
 | Matemáticas | H-08, H-10, H-14, H-15, H-28 | 5 |
 | Código | H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27 | 17 |
-| Datos del mundo real | H-02, H-13, H-23 | 3 |
+| Datos del mundo real | H-02, H-13, H-23, H-29 | 4 |
 | Bibliografía | — | 0 |
 | Conceptos | H-16, H-21, H-22 | 3 |
-| **Total** | | **28** |
+| **Total** | | **29** |
 :::
 
 Dos patrones se repiten. El primero: once de los diecisiete errores de código no están en el código sino en **las pruebas**
@@ -71,8 +72,8 @@ Nueve de ellos se cazaron con mutantes, es decir, versiones del código con el e
 rechazar (H-03, H-06, H-09, H-11, H-18, H-19, H-20, H-25 y H-27).
 
 El segundo: los errores vienen de todos los papeles, no solo de quien implementa. Según la herramienta que el registro anota
-en cada hallazgo, diez los cometió una sesión principal, la que dirige cada integrante o la que planeó el trabajo y escribió
-la especificación (H-01, H-02, H-05, H-06, H-08, H-13, H-16, H-18, H-22 y H-23); doce, el subagente implementador (H-03,
+en cada hallazgo, once los cometió una sesión principal, la que dirige cada integrante o la que planeó el trabajo y escribió
+la especificación (H-01, H-02, H-05, H-06, H-08, H-13, H-16, H-18, H-22, H-23 y H-29); doce, el subagente implementador (H-03,
 H-04, H-07, H-09, H-10, H-11, H-12, H-20, H-25, H-26, H-27 y H-28); dos, el redactor técnico (H-14 y H-21); uno, el
 cazador de alucinaciones, que verifica (H-15); y tres, una sesión principal junto con otro subagente (H-17, con el revisor
 de calidad, y H-19 y H-24, con el implementador). Solo cuatro (H-01, H-09, H-15 y H-22) los cazó el mismo agente que
@@ -543,6 +544,22 @@ de B10, intentando romper la guarda.*
 - **Lección:** una nota de "punto caliente" también se verifica numéricamente; aquí el riesgo real era la inconsistencia, no
   la base elegida.
 
+### H-29 — Un límite de servicio que ya había cambiado (Datos del mundo real)
+
+*Parte E · confirmado (Daniel, 28-oct) · lo cazó el subagente cazador-alucinaciones al verificar V-01.*
+
+- **Prompt:** `prompts/asesoria_puente_claude.md`, prompt A ("Propongo para el despliegue de la aplicacion vercel,
+  necesito que me confirmes eso…"). De la respuesta solo se guardó un resumen, como en H-16.
+- **Respuesta de la IA:** no desplegar PyTorch en funciones de Vercel "por el límite de ~250 MB".
+- **Cómo sospechamos:** era una de las afirmaciones de la planeación pendientes de verificar (V-01); se contrastó con la
+  página de límites de Vercel.
+- **Evidencia:** la documentación de Vercel (consultada el 28 de octubre) da "250 MB, or 500 MB for Python", y una función con
+  PyTorch es de Python. La decisión sí se sostiene: la rueda de torch para CPU en Linux ocupa 715,5 MB sin comprimir y no
+  cabe ni en 500 MB (`alucinaciones/registro.md`, H-29).
+- **Corrección:** el límite vigente para Python es de 500 MB; la inferencia en el navegador no cambia.
+- **Lección:** las cifras de límites y planes de servicios en la nube cambian; se citan con la página oficial y su fecha, no de
+  memoria.
+
 ### Verificaciones que salieron correctas
 
 No todo lo que dijo la IA estaba mal. El enunciado contempla documentar las verificaciones hechas y sus resultados, y aquí
@@ -573,9 +590,8 @@ correctas (las cuatro últimas, sobre planes de despliegue y el optimizador, se 
   the case for adaptive gradient algorithms, such as Adam", y la documentación de PyTorch dice que en `AdamW` el decaimiento "does
   not accumulate in the momentum nor variance".
 
-Las otras dos afirmaciones resultaron correctas solo en parte, por datos externos que cambian. La del límite de tamaño de las
-funciones de Vercel decía "~250 MB": hoy son 250 MB, pero 500 MB para Python; aun así PyTorch no cabe
-(la rueda de CPU para Linux ocupa 715,5 MB sin comprimir), así que la decisión de hacer la inferencia en el navegador se
-mantiene. La del mantenimiento de Material for MkDocs daba como fin el 5 de noviembre de 2026, fecha oficial al planear, pero el
-24 de octubre el proyecto la movió al 5 de mayo de 2027. Ninguna de las dos se cuenta como hallazgo mientras no la revise Daniel;
-el detalle está en `alucinaciones/registro.md`.
+Las otras dos afirmaciones resultaron correctas solo en parte. La del límite de tamaño de las funciones de Vercel es el
+hallazgo H-29: la cifra ya estaba desactualizada para Python, aunque la decisión se sostiene. La del mantenimiento de Material for
+MkDocs daba como fin el 5 de noviembre de 2026, que era la fecha oficial al planear; el proyecto la movió al 5 de mayo de 2027
+el 24 de octubre. Esa no es una alucinación sino un dato que cambió después, y no tiene prompt de este trabajo, así que se
+descartó (`alucinaciones/registro.md`, H-30).
