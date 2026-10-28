@@ -125,7 +125,17 @@ el_test = pd.read_parquet(carpeta / "el_test.parquet")
 el_test.groupby("estado").head(FILAS_POR_ESTADO)[COLUMNAS].round(3)
 
 # %% [markdown]
-# ## 5. Cómo se lee
+# ## 5. Qué parte de la razón pone cada factor (blog, 9.5)
+# La razón E[L] / realizada de los resueltos es el producto de un factor PD, uno LGD y uno EAD
+# (`src/el/tablas.py::descomposicion_razon`); cada factor vale 1 si su pieza es perfecta.
+
+# %%
+from src.el.tablas import descomposicion_razon
+
+descomposicion_razon(el_test).round(3)
+
+# %% [markdown]
+# ## 6. Cómo se lee
 #
 # - **Razón E[L] / realizada (resueltos):** mayor que 1, la E[L] sobreestima la pérdida que de verdad ocurrió; menor
 #   que 1, la subestima. Se lee en total (sección 1) y por banda (tabla y primera figura).
