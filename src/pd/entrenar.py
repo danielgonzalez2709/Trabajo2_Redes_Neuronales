@@ -59,8 +59,9 @@ OPTIMIZADORES = ("adam", "sgd")  # valores admitidos de mlp.optimizador (núcleo
 # El `weight_decay` $\lambda$ de `torch.optim.Adam` y `torch.optim.SGD` suma justamente $\lambda\,\theta$ al gradiente
 # ($g_t \leftarrow g_t + \lambda\,\theta_{t-1}$, docstrings de PyTorch 2.14.1), así que `weight_decay = mlp.l2`
 # **es** la L2 $(\lambda/2)\lVert W\rVert^2$ sumada a la pérdida. No se usa `AdamW` (decaimiento desacoplado), que
-# no es L2 con Adam (Parte B §3.2 y §6). TODO(cita): Loshchilov, I. y Hutter, F., "Decoupled Weight Decay
-# Regularization" (ICLR 2019), para la diferencia entre L2 y weight decay desacoplado.
+# no es L2 con Adam (Parte B §3.2 y §6). Referencia: Loshchilov, I. y Hutter, F., "Decoupled Weight Decay
+# Regularization" (`loshchilov2017` en blog/references.bib, verificada en A8), para la diferencia entre L2 y weight decay
+# desacoplado.
 #
 # Los sesgos ($b$, tensores de una dimensión) **no** se penalizan (decisión de Andrés): se arman dos grupos de
 # parámetros, pesos (`ndim > 1`) con `weight_decay = λ` y sesgos (`ndim == 1`) con `weight_decay = 0`.
@@ -97,8 +98,8 @@ def grupos_de_parametros(red: nn.Module, l2: float) -> list[dict]:
 #
 # La división entre $1-\beta^t$ es la **corrección de sesgo**: como $m_0 = v_0 = 0$, en los primeros pasos $m_t$ y
 # $v_t$ están sesgados hacia 0. Las ecuaciones son las de la docstring de `torch.optim.Adam` y `torch.optim.SGD`
-# (`help(torch.optim.Adam)`). TODO(cita): Kingma, D. P. y Ba, J., "Adam: A Method for Stochastic Optimization"
-# (ICLR 2015). `mlp.momento` solo lo usa SGD; Adam lo ignora.
+# (`help(torch.optim.Adam)`). Referencia: Kingma, D. P. y Ba, J., "Adam: A Method for Stochastic Optimization"
+# (`kingma2014` en blog/references.bib, verificada en A8). `mlp.momento` solo lo usa SGD; Adam lo ignora.
 
 # %%
 def construir_optimizador(red: nn.Module, cfg_mlp: dict, agrupar=grupos_de_parametros) -> torch.optim.Optimizer:
@@ -180,8 +181,9 @@ def evaluar_perdida(red, perdida, X, y) -> float:
 #   $L^{*} \leftarrow L_e$, se guarda una copia profunda de los pesos y la cuenta de épocas sin mejora vuelve a 0;
 # - si no hay mejora, la cuenta sube en 1, y al llegar a `paciencia` se detiene el entrenamiento.
 #
-# Al terminar (por paciencia o por `max_epocas`) se **restauran los pesos de la mejor época**. TODO(cita): referencia
-# para la parada temprana (p. ej. Prechelt, "Early Stopping — But When?"), por verificar.
+# Al terminar (por paciencia o por `max_epocas`) se **restauran los pesos de la mejor época**. Referencia para la parada
+# temprana: Prechelt, L. (1998). Early Stopping - But When? En *Neural Networks: Tricks of the Trade* (LNCS 1524,
+# pp. 55-69). Springer. https://doi.org/10.1007/3-540-49430-8_3 (verificada en Crossref el 28-oct).
 
 # %%
 class ParadaTemprana:

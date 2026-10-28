@@ -23,7 +23,7 @@
 #
 # Referencia de la construcción (puntaje lineal en el logaritmo de las odds con base, odds de referencia y PDO):
 # Siddiqi, N. (2017). *Intelligent Credit Scoring: Building and Implementing Better Credit Risk Scorecards* (2.ª ed.).
-# Wiley. TODO(cita): capítulo y página de la fórmula.
+# Wiley (`siddiqi2017` en blog/references.bib, verificada en A8; sin capítulo ni página: no tuvimos el texto del libro).
 #
 # El archivo está en formato *percent* de Jupytext: se lee como notebook, pero sigue siendo un módulo importable sin
 # efectos al importar.
