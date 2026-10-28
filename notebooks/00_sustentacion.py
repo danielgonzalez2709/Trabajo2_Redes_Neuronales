@@ -77,9 +77,10 @@ else:
 # |---|---|---|
 # | Enunciado y reglas | `docs/spec/SPEC.md` (Anexo = enunciado literal) | todos |
 # | Datos, objetivo, variables, partición, análisis descriptivo | `docs/spec/partes/A-datos.md`, `src/datos/`, blog 1–3, notebook 01 | Daniel |
-# | PD: logística, MLP, búsqueda, métricas | `docs/spec/partes/B-pd.md`, `src/pd/`, blog 4–6, notebook 02 | Andrés y Juan José |
-# | Scorecard, SHAP, hipótesis | `docs/spec/partes/C-scorecard.md`, `src/scorecard/`, blog 7, notebook 03 | Andrés y Juan José |
+# | PD: logística, MLP, búsqueda, métricas | `docs/spec/partes/B-pd.md`, `src/pd/`, blog 4–6, notebook 02 | Andrés |
+# | Scorecard, SHAP, hipótesis | `docs/spec/partes/C-scorecard.md`, `src/scorecard/`, blog 7, notebook 03 | Juan José |
 # | LGD | `docs/spec/partes/D-lgd.md`, `src/lgd/`, blog 8, notebook 04 | Camila y José |
-# | Pérdida esperada, app, video | `docs/spec/partes/E-producto.md`, `src/el/`, `app/`, `video/`, blog 9 | Daniel y Camila |
+# | Pérdida esperada, video, blog, integración | `docs/spec/partes/E-producto.md`, `src/el/`, `video/`, blog 0 y 9–13, notebook 05 | Daniel |
+# | App web | `app/` (https://trabajo2-redes-neuronales.vercel.app) | José |
 # | Cacería de la alucinación | `alucinaciones/registro.md`, blog 12 | todos |
 # | Fichas de estudio y preguntas probables | `docs/sustentacion/` (tarea T5.4) | todos |
