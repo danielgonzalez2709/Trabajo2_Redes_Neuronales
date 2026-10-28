@@ -6,7 +6,7 @@ cifras que no estén ahí). Cada parte agrega aquí sus hallazgos cuando estén 
 Registramos cada error de la IA en `alucinaciones/registro.md`, con el prompt literal (en `alucinaciones/prompts/`), su
 evidencia (derivación, experimento o fuente; los scripts y salidas en `alucinaciones/evidencias/` cuando existen) y la
 corrección. Un hallazgo queda **confirmado** cuando un integrante lo revisa (el autor de la parte o Daniel, que coordina la
-cacería). Los veintiún hallazgos registrados están confirmados: la [[tab:caceria]] los resume y la [[tab:caceria-cobertura]]
+cacería). Los veintiocho hallazgos registrados están confirmados: la [[tab:caceria]] los resume y la [[tab:caceria-cobertura]]
 los cuenta por categoría.
 
 ::: tabla caceria
@@ -35,14 +35,21 @@ Fuente: Elaboración propia a partir de alucinaciones/registro.md y alucinacione
 | H-19 | Código | B | Confirmado | Dio por comprobado con las pruebas 17–18 que se guarda la red de la semilla mediana | En su escenario la mediana era la primera semilla y el mutante que guarda la primera sobrevivía |
 | H-20 | Código | C | Confirmado | Presentó como la prueba del rango de puntos una con `percentiles_rango` igual a los extremos de la tabla | El mutante que usa los extremos de la tabla pasa las 74 pruebas |
 | H-21 | Conceptos | E | Confirmado | La PD media de prueba queda baja porque "los dos aprendieron la tasa de las cosechas hasta 2012" | En entrenamiento la logística reproduce la tasa (0,1630) y el MLP queda por encima (0,1884) |
+| H-22 | Conceptos | B | Confirmado | En la calibración de prueba, "los 10 bins de ambos modelos quedan por debajo de la diagonal" | La tasa observada supera a la PD media en los 20 bins: los puntos quedan por encima |
+| H-23 | Datos del mundo real | B | Confirmado | "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de 0,001" del mejor | Son tres: el 23 queda a 0,000987 y se perdió al redondear antes de comparar |
+| H-24 | Código | C | Confirmado | La eficiencia de SHAP con el explainer de permutaciones "es exacta con cualquier número de permutaciones" | El masker compara con `np.isclose`: con otra semilla la suma se rompe (2,7e-9 > 1e-9) |
+| H-25 | Código | C | Confirmado | Presentó las pruebas de SHAP y de la permutación como la cobertura de su fórmula | Pasan las 62 pruebas con 48 jugadores, ddof = 0 o los signos de AUC y log-loss invertidos |
+| H-26 | Código | B | Confirmado | "La guarda impide escribir en los archivos del modelo principal" | Era una lista negra incompleta: una prueba sobrescribió `results/data/pd/pred_test.parquet` |
+| H-27 | Código | C | Confirmado | Presentó las pruebas de la regla del veredicto como un caso por cada rama | Pasan con "≥ 1 en contra" en vez de "≥ 2" y con las desigualdades de borde cambiadas |
+| H-28 | Matemáticas | C | Confirmado | "Usar log10 en vez de ln cambia el factor: duplicar las odds ya no sumaría pdo" | Con log10 en las dos partes el puntaje es idéntico; el error es mezclar bases (8,69 puntos) |
 :::
 
 ### Cobertura
 
-Los veintiún hallazgos están confirmados. La [[tab:caceria-cobertura]] los reparte por categoría. Por parte, son dos de la
-A (H-01, H-02), once de la B (H-03 a H-09 y H-16 a H-19), tres de la C (H-11, H-12, H-20), uno de la D (H-10) y cuatro de
-la E (H-13 a H-15 y H-21). Se cumple la meta del enunciado (≥ 5 hallazgos en ≥ 3 categorías; aquí, 21 en cuatro de las
-cinco) y la nuestra de al menos uno por parte (núcleo §9). No encontramos errores de bibliografía: las referencias que
+Los veintiocho hallazgos están confirmados. La [[tab:caceria-cobertura]] los reparte por categoría. Por parte, son dos de la
+A (H-01, H-02), catorce de la B (H-03 a H-09, H-16 a H-19, H-22, H-23 y H-26), siete de la C (H-11, H-12, H-20, H-24, H-25,
+H-27 y H-28), uno de la D (H-10) y cuatro de la E (H-13 a H-15 y H-21). Se cumple la meta del enunciado (≥ 5 hallazgos en
+≥ 3 categorías; aquí, 28 en cuatro de las cinco) y la nuestra de al menos uno por parte (núcleo §9). No encontramos errores de bibliografía: las referencias que
 propuso la IA resultaron correctas (ver "Verificaciones que salieron correctas" al final).
 
 ::: tabla caceria-cobertura
@@ -50,26 +57,26 @@ Título: Hallazgos confirmados por categoría
 Fuente: Elaboración propia a partir de alucinaciones/registro.md (sección "Cobertura actual").
 | Categoría | Hallazgos | Total |
 |---|---|---|
-| Matemáticas | H-08, H-10, H-14, H-15 | 4 |
-| Código | H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20 | 13 |
-| Datos del mundo real | H-02, H-13 | 2 |
+| Matemáticas | H-08, H-10, H-14, H-15, H-28 | 5 |
+| Código | H-01, H-03, H-04, H-05, H-06, H-07, H-09, H-11, H-12, H-17, H-18, H-19, H-20, H-24, H-25, H-26, H-27 | 17 |
+| Datos del mundo real | H-02, H-13, H-23 | 3 |
 | Bibliografía | — | 0 |
-| Conceptos | H-16, H-21 | 2 |
-| **Total** | | **21** |
+| Conceptos | H-16, H-21, H-22 | 3 |
+| **Total** | | **28** |
 :::
 
-Dos patrones se repiten. El primero: nueve de los trece errores de código no están en el código sino en **las pruebas** o
-en afirmaciones sobre ellas ("esta prueba cubre X"): H-03, H-05, H-06, H-09, H-11, H-17, H-18, H-19 y H-20. Siete de ellos
-se cazaron con mutantes, es decir, versiones del código con el error a propósito que la prueba debería rechazar (H-03, H-06,
-H-09, H-11, H-18, H-19 y H-20).
+Dos patrones se repiten. El primero: once de los diecisiete errores de código no están en el código sino en **las pruebas**
+o en afirmaciones sobre ellas ("esta prueba cubre X"): H-03, H-05, H-06, H-09, H-11, H-17, H-18, H-19, H-20, H-25 y H-27.
+Nueve de ellos se cazaron con mutantes, es decir, versiones del código con el error a propósito que la prueba debería
+rechazar (H-03, H-06, H-09, H-11, H-18, H-19, H-20, H-25 y H-27).
 
 El segundo: los errores vienen de todos los papeles, no solo de quien implementa. Según la herramienta que el registro anota
-en cada hallazgo, ocho los cometió una sesión principal, la que dirige cada integrante o la que planeó el trabajo y escribió
-la especificación (H-01, H-02, H-05, H-06, H-08, H-13, H-16 y H-18); ocho, el subagente implementador (H-03, H-04, H-07,
-H-09, H-10, H-11, H-12 y H-20); dos, el redactor técnico (H-14 y H-21); uno, el cazador de alucinaciones, que verifica
-(H-15); y dos, una sesión principal junto con otro subagente (H-17, con el revisor de calidad, y H-19, con el
-implementador). Solo tres (H-01, H-09 y H-15) los cazó el mismo agente que cometió el error; los demás los encontró otro
-agente (un subagente u otra sesión) o un integrante.
+en cada hallazgo, diez los cometió una sesión principal, la que dirige cada integrante o la que planeó el trabajo y escribió
+la especificación (H-01, H-02, H-05, H-06, H-08, H-13, H-16, H-18, H-22 y H-23); doce, el subagente implementador (H-03,
+H-04, H-07, H-09, H-10, H-11, H-12, H-20, H-25, H-26, H-27 y H-28); dos, el redactor técnico (H-14 y H-21); uno, el
+cazador de alucinaciones, que verifica (H-15); y tres, una sesión principal junto con otro subagente (H-17, con el revisor
+de calidad, y H-19 y H-24, con el implementador). Solo cuatro (H-01, H-09, H-15 y H-22) los cazó el mismo agente que
+cometió el error; los demás los encontró otro agente (un subagente u otra sesión) o un integrante.
 
 ### H-01 — Un índice que da 0 en silencio (Código)
 
@@ -418,6 +425,123 @@ revisión del borrador de la sección 10.*
 - **Corrección:** la sección 10 da las PD medias por conjunto de cada modelo, sin afirmar la causa del nivel del MLP.
 - **Lección:** "los dos modelos hacen X" se comprueba con cada modelo por separado; una red con parada temprana en otra
   cosecha no tiene por qué reproducir la tasa de entrenamiento como la logística.
+
+### H-22 — La diagonal del lado equivocado (Conceptos)
+
+*Parte B · confirmado (Daniel, 28-oct) · lo cazó la sesión principal de Andrés al mirar `pd-calibracion.png`.*
+
+- **Prompt:** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" (pide las figuras de B7 y sugerir la curva para el
+  video).
+- **Respuesta de la IA:** el plan aprobado decía que en prueba "los 10 bins de ambos modelos quedan **por debajo de la
+  diagonal**", y el implementador lo repitió en su entrega.
+- **Cómo sospechamos:** la figura pone la tasa observada en el eje y y la PD media en el eje x, y los puntos se veían arriba
+  de y = x. Si el modelo subestima (PD < tasa), los puntos deben quedar por encima.
+- **Evidencia:** en los 20 bins (10 por modelo) la tasa observada supera a la PD media, con y − x entre +0,012 y +0,109; la
+  PD media es 0,187 y 0,204 frente a una tasa de 0,262 (`evidencias/H-22_calibracion_diagonal.txt`).
+- **Corrección:** el blog 06 (§6.4) y la especificación dicen "por encima de la diagonal".
+- **Lección:** una frase sobre una figura se verifica contra la figura y sus ejes, no contra la conclusión: "subestima" era
+  correcto, la posición respecto de la diagonal no.
+
+### H-23 — El ensayo que se perdió al redondear (Datos del mundo real)
+
+*Parte B · confirmado (Daniel, 28-oct) · lo cazó el subagente revisor-spec de B7 al recalcular cada cifra del blog 06.*
+
+- **Prompt:** `prompts/B7.md`, "Prompt de Andrés a la sesión principal" y la respuesta "Bloques + una frase por figura".
+- **Respuesta de la IA:** el primer borrador del blog 06 decía "Dos ensayos posteriores, el 19 y el 27, quedaron a menos de
+  0,001 de ese valor". La frase se decidió mirando valores redondeados a 4 decimales.
+- **Cómo sospechamos:** el revisor recalculó las diferencias sin redondear desde `hpo_ensayos.json`.
+- **Evidencia:** el ensayo 23 queda a 0,000987 del mejor, por debajo del umbral; redondeado se ve igual que el 39, que sí
+  queda fuera (0,001013) (`evidencias/H-23_ensayos_cercanos.txt`).
+- **Corrección:** "Tres ensayos posteriores (el 19, el 23 y el 27) quedaron a menos de 0,001 de ese valor".
+- **Lección:** una comparación con un umbral se hace con los valores sin redondear; redondear antes cambia el conteo justo
+  en el borde.
+
+### H-24 — Una eficiencia "exacta" que dependía de `np.isclose` (Código)
+
+*Parte C · confirmado (Daniel, 28-oct) · lo cazó el subagente revisor-calidad de C4; la sesión principal de Juan José lo
+reprodujo.*
+
+- **Prompt:** `prompts/C4.md`: el plan ("la eficiencia es exacta sin importar cuántas permutaciones se usen") y la fase roja
+  ("verificado en el código de shap").
+- **Respuesta de la IA:** en `src/scorecard/shap_pd.py`, la celda del explainer decía que, por la suma telescópica, "la
+  eficiencia es **exacta con cualquier número de permutaciones**".
+- **Cómo sospechamos:** el revisor leyó el masker de shap, que decide si una variable "no cambia" frente al fondo con
+  `np.isclose` (tolerancia relativa 1e-5) y no con igualdad, y probó otras semillas.
+- **Evidencia:** con `--set shap.base_seed=34`, `run.py scorecard --config configs/scorecard/mlp.yaml` se detiene con
+  "Eficiencia rota: 2.702e-09 > 1e-09"; dos valores transformados de `revol_bal` que difieren en 7,7e-6 son "iguales" para
+  `np.isclose`, así que shap no reevalúa esa variable (`evidencias/H-24_isclose_eficiencia.txt` y `.py`).
+- **Corrección:** cada jugador se codifica con un índice entero en la tabla de valores únicos antes de pasarlo a shap, con
+  una prueba nueva de un valor que difiere en 1e-6 relativo.
+- **Lección:** "verificado en el código" exige leer también lo que el algoritmo delega (aquí, el masker) y probar con varias
+  semillas; la garantía matemática solo vale si la implementación evalúa lo que la prueba supone.
+
+### H-25 — Pruebas de SHAP que no distinguían signo, desviación ni agrupación (Código)
+
+*Parte C · confirmado (Daniel, 28-oct) · lo cazó el subagente verificador-matematico con mutantes sobre C4.*
+
+- **Prompt:** `prompts/C4.md`, "1. implementador — fase roja" (permutación: "caída de AUC y aumento de log-loss (media y
+  desviación muestral)"; jugadores = 15 variables con las categóricas enteras).
+- **Respuesta de la IA:** `tests/test_shap_pd.py`, presentado como el conjunto que prueba la permutación, la agrupación de
+  las categóricas y la fuga.
+- **Cómo sospechamos:** el verificador aplicó mutantes con sentido sobre una copia del módulo.
+- **Evidencia:** pasaban las 62 pruebas con SHAP sobre las 48 columnas en vez de las 15 variables, con la desviación
+  poblacional (ddof = 0) y con los signos de la caída de AUC o del aumento de log-loss cambiados; el fondo sacado de prueba
+  solo lo detectaba una prueba lenta que el CI no corre (`evidencias/H-25_mutantes_sobreviven.txt` y
+  `evidencias/H-25_mutantes/`).
+- **Corrección:** un caso a mano de la permutación (media, desviación con ddof = 1 y signos), la comparación de los valores
+  de SHAP con la ruta de jugadores agrupados y una prueba no lenta de que el fondo sale de entrenamiento.
+- **Lección:** una prueba de formato no prueba una fórmula; cada decisión (signo, ddof, agrupación, origen de los datos)
+  necesita un caso que falle si se invierte.
+
+### H-26 — Una guarda que no guardaba (Código)
+
+*Parte B · confirmado (Daniel, 28-oct) · lo cazaron los subagentes revisor-spec (ronda 1) y revisor-calidad (rondas 2 y 3)
+de B10, intentando romper la guarda.*
+
+- **Prompt:** `prompts/B10.md`, "1. implementador" ("NO toques `results/data/pd/`, `models/pd_*`,
+  `configs/pd/mlp_final.yaml`…").
+- **Respuesta de la IA:** el informe de la ronda 1 daba como caso cubierto que las rutas que pisarían las del modelo
+  principal "dan `ValueError`"; la guarda era una lista negra que no revisaba dos de las rutas configurables, y las dos
+  correcciones siguientes repitieron el patrón.
+- **Cómo sospechamos:** los revisores llamaron a la validación con la configuración real y un `--set` por caso, y después
+  desde `notebooks/` con `../`.
+- **Evidencia:** en una ronda, una prueba que llamaba al CLI sobrescribió `results/data/pd/pred_test.parquet` (se restauró y
+  su SHA-256 volvió a coincidir con el versionado) (`evidencias/H-26_guarda_rutas_sensibilidad.txt`).
+- **Corrección:** una lista blanca evaluada contra la raíz fija del repositorio: dentro del repo solo se escribe en
+  `results/data/pd_sensibilidad*` y `models/pd_sensibilidad*`, y las pruebas de la guarda solo validan.
+- **Lección:** una protección de escritura se define por lo permitido, no por lo prohibido, y contra una raíz que no dependa
+  del directorio desde donde se ejecuta.
+
+### H-27 — Un caso por rama no bastaba (Código)
+
+*Parte C · confirmado (Daniel, 28-oct) · lo cazó el subagente revisor-calidad de C6 con mutantes.*
+
+- **Prompt:** `prompts/C6.md`, "1. implementador — fases roja y verde" (pruebas: "juguetes de cada rama").
+- **Respuesta de la IA:** `tests/test_hipotesis.py` (34 pruebas), presentado como cobertura de cada rama de la regla del
+  veredicto (confirmada, refutada, no concluyente).
+- **Cómo sospechamos:** el revisor buscó, para cada desigualdad de `src/scorecard/hipotesis.py`, un caso que fallara al
+  invertirla.
+- **Evidencia:** sobrevivían los mutantes que refutan con una sola fuente en contra (`≥ 1` en vez de `≥ 2`) y los que mueven
+  las desigualdades de borde (`< −u` en vez de `≤ −u`, `a ≥ 0` en vez de `a > 0`) (`evidencias/H-27_mutantes_regla_c6.txt`).
+- **Corrección:** una prueba con una fuente en contra y dos nulas (no concluyente) y los casos de borde ρ = −0,5 y a = 0; los
+  tres mutantes ya fallan.
+- **Lección:** cada umbral necesita su caso en el borde y cada conteo ("≥ 2") el caso justo por debajo.
+
+### H-28 — El error no era la base del logaritmo, sino mezclarlas (Matemáticas)
+
+*Parte C · confirmado (Daniel, 28-oct) · lo cazó el subagente verificador-matematico en C7.*
+
+- **Prompt:** `prompts/C1.md`, sección 3 "implementador — fase verde", en la nota de puntos calientes ("log10 cambia el
+  factor").
+- **Respuesta de la IA:** un comentario de `src/scorecard/scorecard.py` (commit dad6f00) decía que "usar $\log_{10}$ en vez
+  de $\ln$ cambia el factor: duplicar las odds ya no sumaría pdo".
+- **Cómo sospechamos:** el verificador recalculó la fórmula con las dos bases en lugar de aceptar la nota.
+- **Evidencia:** con ln, duplicar las odds suma 20,0 puntos; con log10 en las dos partes (factor = PDO / log10 2 = 66,44),
+  también suma 20,0 y el puntaje es el mismo (527,12 con p = 0,2). Solo al mezclar bases (factor = PDO / ln 2 con log10 en
+  el puntaje) duplicar suma 8,6859 (`evidencias/C7_log10.py`, sin datos).
+- **Corrección:** el comentario de `scorecard.py` y la sección 7 dicen que el error es mezclar bases.
+- **Lección:** una nota de "punto caliente" también se verifica numéricamente; aquí el riesgo real era la inconsistencia, no
+  la base elegida.
 
 ### Verificaciones que salieron correctas
 
