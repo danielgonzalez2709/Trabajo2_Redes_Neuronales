@@ -1,0 +1,89 @@
+# E8 / T5.2 — Auditoría en un clon limpio en otra máquina (enunciado, entregable 3): un runner de GitHub (Linux) clona el
+# repo sin cachés, instala el entorno fijado y corre las demos, los comandos principales, las figuras, los notebooks, todas
+# las pruebas, el blog y la app, con los experimentos sin red. Al final informa los tiempos y qué archivos versionados
+# cambiaron. Se lanza a mano (Actions → auditoria → Run workflow) o al cambiar este archivo en dev/daniel.
+name: auditoria
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev/daniel]
+    paths: [.github/workflows/auditoria.yml]
+jobs:
+  clon-limpio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # sin caché de pip: instalación desde cero
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Máquina
+        run: |
+          {
+            echo "## Clon limpio en otra máquina"
+            echo
+            echo "- Commit: \`$(git rev-parse --short HEAD)\` · Runner: \`$RUNNER_OS\` $(lsb_release -ds 2>/dev/null)"
+            echo "- CPU: $(lscpu | sed -n 's/^Model name: *//p') · núcleos: $(nproc) · RAM: $(free -g | awk '/Mem:/{print $2}') GB"
+            echo "- Python $(python --version | cut -d' ' -f2) · Node $(node --version)"
+            echo
+            echo "| Paso | Código de salida | Tiempo |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Auditoría
+        shell: bash
+        run: |
+          set +e
+          paso() {  # paso "<nombre>" <red|sin_red> comando...: corre, mide y anota en el resumen
+            local nombre="$1" modo="$2"; shift 2
+            local ini=$(date +%s.%N)
+            if [ "$modo" = sin_red ]; then
+              # Espacio de red propio sin salida a internet; solo la interfaz local (la usa el kernel de Jupyter).
+              sudo env "PATH=$PATH" "HOME=$HOME" unshare -n -- bash -c 'ip link set lo up; u="$1"; shift; exec sudo -u "$u" env "PATH=$PATH" "HOME=$HOME" "$@"' \
+                _ "$USER" "$@" > "log_${nombre//[^a-zA-Z0-9]/_}.txt" 2>&1
+            else
+              "$@" > "log_${nombre//[^a-zA-Z0-9]/_}.txt" 2>&1
+            fi
+            local rc=$?; local fin=$(date +%s.%N)
+            printf '| %s | %s | %.1f s |\n' "$nombre" "$rc" "$(echo "$fin - $ini" | bc)" >> "$GITHUB_STEP_SUMMARY"
+            echo "::group::$nombre (código $rc)"; tail -n 40 "log_${nombre//[^a-zA-Z0-9]/_}.txt"; echo "::endgroup::"
+          }
+          paso "pip: torch CPU" red python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+          paso "pip: requirements.txt" red python -m pip install -r requirements.txt
+          paso "sin red: comprobación" sin_red python -c "import urllib.request as u; u.urlopen('https://pypi.org', timeout=5)"
+          paso "run.py pd (demo B6)" sin_red python run.py pd --config configs/pd/demo.yaml
+          paso "run.py lgd (demo D)" sin_red python run.py lgd --config configs/lgd/demo.yaml
+          paso "run.py eda" sin_red python run.py eda --config configs/datos.yaml
+          paso "run.py scorecard" sin_red python run.py scorecard --config configs/scorecard/base.yaml
+          paso "run.py el" sin_red python run.py el --config configs/el/base.yaml
+          paso "run.py export" sin_red python run.py export
+          paso "run.py figures" sin_red python run.py figures
+          paso "run.py notebooks" sin_red python run.py notebooks
+          paso "pytest (todas, con lentas)" sin_red python -m pytest -q
+          paso "mkdocs build --strict" sin_red mkdocs build --strict -f blog/mkdocs.yml -d /tmp/site
+          paso "npm ci (app)" red npm --prefix app ci
+          paso "npm test (app)" sin_red npm --prefix app test
+          paso "npm run build (app)" sin_red npm --prefix app run build
+          # App local con un solo comando: tiempo hasta que responde en http://localhost:3000.
+          ini=$(date +%s.%N); (npm --prefix app run dev > log_npm_dev.txt 2>&1 &)
+          for i in $(seq 1 120); do curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 | grep -q 200 && break; sleep 1; done
+          fin=$(date +%s.%N); codigo=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000)
+          printf '| npm --prefix app run dev (hasta HTTP %s) | — | %.1f s |\n' "$codigo" "$(echo "$fin - $ini" | bc)" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo
+            echo "### Archivos versionados que cambiaron al regenerar"
+            echo
+            echo '```'
+            git status --porcelain
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          git diff --stat > cambios.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auditoria-clon-limpio
+          path: |
+            log_*.txt
+            cambios.txt
