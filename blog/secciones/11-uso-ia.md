@@ -99,9 +99,9 @@ sección y de la cacería de la alucinación (sección 12).
 
 ### 11.3 Lo que aprendimos de trabajar con IA
 
-La sección 12 reúne 28 hallazgos confirmados. De ahí salen las lecciones.
+La sección 12 reúne 29 hallazgos confirmados. De ahí salen las lecciones.
 
-- **La IA escribe rápido y con seguridad también lo incorrecto.** Los errores son 17 de código, 5 de matemáticas, 3 de datos
+- **La IA escribe rápido y con seguridad también lo incorrecto.** Los errores son 17 de código, 5 de matemáticas, 4 de datos
   del mundo real y 3 de conceptos; no hubo errores de bibliografía. En la Parte A, el de código pasó las pruebas que la
   misma IA había escrito y solo apareció al mirar un resultado con sospecha (un 0,000 exacto); el otro era una frase del
   reporte que sonaba razonable y solo cayó al contrastarla con el diccionario.
@@ -110,9 +110,9 @@ La sección 12 reúne 28 hallazgos confirmados. De ahí salen las lecciones.
   prueba nueva falle con su mutante. Una prueba que no puede fallar (H-05) o cuyos parámetros coinciden (H-20) parece una
   cobertura que no existe.
 - **Separar al que escribe del que revisa funciona.** El revisor no veía la conversación del implementador, solo la
-  especificación y el código, y por eso encontró afirmaciones que el implementador daba por obvias. Solo 4 de los 28 errores
+  especificación y el código, y por eso encontró afirmaciones que el implementador daba por obvias. Solo 4 de los 29 errores
   (H-01, H-09, H-15 y H-22) los cazó el mismo agente que los cometió.
-- **Todos los papeles se equivocan, también los que verifican.** Según el registro, 10 errores los cometió una sesión
+- **Todos los papeles se equivocan, también los que verifican.** Según el registro, 11 errores los cometió una sesión
   principal (la que dirige cada integrante o planeó el trabajo), 12 el implementador, 2 el redactor, 1 el cazador (H-15) y 3
   una sesión principal junto con otro subagente. La especificación que escribió la IA también tuvo errores (H-08 y H-16). Por
   eso ninguna cifra ni afirmación de un subagente se acepta sin otra revisión.
