@@ -11,11 +11,11 @@
 ## 📍 Estado actual
 | | |
 |---|---|
-| Última actualización | 2026-10-26 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Spec v0.24 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): PR de C8 (notebook 03); PR de Spec de la Parte C (pendiente 9). D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: confirmar H-22…H-28 (blog 12); README con torch CPU en Linux (PR aparte); video; clon limpio |
-| Entrega | **mar 27-oct-2026, 23:59** (meta interna 6 p. m.; días restantes: 1) |
-| Sustentación | Posterior al 27-oct, por confirmar |
+| Última actualización | 2026-10-28 |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.26 |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6 🟨 (falta medir la demo en otra máquina: Daniel o Juan José); B7–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. José: app en producción (https://trabajo2-redes-neuronales.vercel.app); faltan E4 (paridad en CI) y E9. Daniel: confirmar H-22…H-28 (blog 12); README con torch CPU en Linux (PR aparte); video; clon limpio |
+| Entrega | **vie 30-oct-2026, 23:59** (extendida desde el mar 27; meta interna por definir) |
+| Sustentación | Posterior a la entrega, por confirmar |
 
 ## 👥 Equipo
 | Parte | Spec | Quién |
@@ -79,7 +79,7 @@ Juan José González Morales.
 ## ⏳ Hitos (núcleo §11)
 jue 22 E0 · vie 23 2 p. m. datos reales · vie 23 noche búsquedas · sáb 24 mediodía PD final · sáb 24 tarde grabación ·
 sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de cada parte · lun 26 clon limpio y blog publicado ·
-mar 27 6 p. m. entrega.
+**vie 30, 23:59 entrega** (antes mar 27).
 
 ## ⏳ Pendientes (decisiones)
 1. Reparto de tareas dentro de cada pareja (D y E; B+C ya repartió).
@@ -92,6 +92,7 @@ mar 27 6 p. m. entrega.
 Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, H-14, H-15), Datos del mundo real 2 (H-02, H-13), Conceptos 2 (H-16, H-21), Bibliografía 0; por parte A 2, B 11, C 3, D 1, E 4 · Afirmaciones por verificar: V-01…V-12 · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día. Candidatos de B7 sin confirmar (de `dev/andres`): H-22 Conceptos (diagonal al revés), H-23 Datos (redondeo). Candidatos de C sin confirmar: H-24 y H-25 (C4), Código. De B10: H-26 Código (guarda de rutas; registrado primero como H-24). De C6–C7: H-27 Código y H-28 Matemáticas (registrados primero como H-26 y H-27).
 
 ## 📓 Bitácora
+- **2026-10-28** — Entrega extendida al vie 30-oct, 23:59 (Spec v0.26, PLAN y memoria). Falta: video (sin clips), videos individuales, clon limpio, H-22…H-28 al blog 12, marcas del blog, E4 y E9, T5.4. PR #24 (C8) fusionado.
 - **2026-10-27** — Spec v0.25 (Juan José, Parte C): el Spec queda igual a C1–C8: §3 Interpretabilidad y C §3.1–§3.4 [DECIDIDO], árbol §4, §5.4 (`scorecard.json`, `scorecard_mlp.json`, `shap_mlp.json`, `hipotesis.json`), C §5 con las 7 pruebas y C §6 corregido (H-24, H-28). Pendiente 9 cerrado; afecta a E.
 - **2026-10-27** — C8 (Juan José): notebook `03_scorecard` (secciones 1–4 en vivo con `SET`, 5–6 leídas de los JSON de C4 y C6); 10–12 s con `SET = {}` y con PDO 40; `puntos_cliente` y `direccion_shap` en `puntos.py` (C3 intacto). Spec y calidad APROBADO; sin candidatos.
 - **2026-10-27** — App en producción en Vercel (PR #21 y #22): https://trabajo2-redes-neuronales.vercel.app; `vercel.json` con `outputDirectory: .next` (con `out` fallaba: NEXT_NO_ROUTES_MANIFEST). URL en blog 00 y README.
@@ -131,8 +132,7 @@ Confirmados: 21 de 21 (Daniel, 26-oct): Código 13, Matemáticas 4 (H-08, H-10, 
   0,50748, 2 673 parám.; reproducible. Candidatos H-16 (TPE multivariado) y H-17.
 - **2026-10-25** — D7 (Camila): blog 08 escrito y verificado (matemático y cazador); cita recortada de `loan_amnt` corregida. Revisión de autora hecha (lr en el borde como limitación).
 - **2026-10-25** — D8 (Camila): notebook `04_lgd` (4,4 s; §3.2b + demo + oficiales); tablas en `src/lgd/tablas.py`. Rechazado 1.ª ronda (faltaba §3.2b).
-- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos
-  "monótona" siempre (caso `pub_rec`). D5 ✅ (auditor, clon sin red).
+- **2026-10-25** — D6 (Camila): 7 figuras `lgd-*.png` (`src/viz/figs_lgd.py`, en `run.py figures`). D1b: `descriptivo.json`; hallazgo para A: con 2 grupos "monótona" siempre (caso `pub_rec`). D5 ✅ (auditor, clon sin red).
 - **2026-10-25** — D4 (Camila): TPE 30/30 + 30 semillas. Test: MLP MAE 0,07708 ± 0,00059 (14 593 parám.), lineal 0,07712 (49); la mediana constante gana (0,06986). Rechazado 1.ª ronda (`mejor_config.json` pisaba `--set`); arreglado con `mlp_final.yaml`.
 - **2026-10-25** — Revisión de lo que B, C, D y E consumen de A desde un `main` limpio: todo funciona. Spec v0.12: `categorias_es` y `etiquetas_categorias` en el JSON de la app. Siddiqi: 2.ª ed. (PR #5, fusionado 8:27 a. m.).
 - **2026-10-25** — Spec v0.11: `data/processed/diccionario_loanstats.csv` (copia literal del diccionario, hoja LoanStats) para que D cite los campos de la LGD sin el crudo; lo pidió Camila. Prueba: las citas de `features.yaml` coinciden letra por letra.
