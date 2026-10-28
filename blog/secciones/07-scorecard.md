@@ -231,7 +231,8 @@ La [[tab:sc-variables-riesgo]] y la [[fig:sc-importancia]] ordenan las 15 variab
 Las cinco primeras son el plazo, el uso de los cupos rotativos, el ingreso anual, las consultas de los últimos 6 meses y las
 líneas de crédito abiertas. La importancia por permutación coincide en lo principal: plazo, ingreso anual y uso de los cupos
 son las tres de mayor caída de AUC en la logística y en el MLP, y también están entre las cuatro de mayor rango de puntos de la
-logística ([[tab:discusion-scorecard]]). Las tres medidas miden cosas distintas (efecto sobre el logit, sobre la AUC y sobre
+logística ([[tab:discusion-scorecard]]), aunque el rango del plazo, que es categórica, no es del todo comparable con el de
+las numéricas. Las tres medidas miden cosas distintas (efecto sobre el logit, sobre la AUC y sobre
 los puntos), así que solo comparamos órdenes, no números. Los registros públicos negativos son la única variable con caída
 de AUC **negativa** en los dos modelos: permutarlos mejora un poco la AUC de prueba (sección 7.6).
 
