@@ -88,9 +88,9 @@ Todos desde la raíz con el `.venv` activado. Las demos escriben en carpetas ign
 | … cambiando un hiperparámetro | `python run.py pd --config configs/pd/demo.yaml --set mlp.lr=0.05` (o `mlp.dropout=0.5`, `mlp.capas=[64,32]`, `mlp.max_epocas=2`, `logistica.rejilla_C=[1.0e-2]`) | ~13 s |
 | Demo LGD | `python run.py lgd --config configs/lgd/demo.yaml --set mlp.l2=0.1` | ~5 s |
 | Scorecard con otro PDO | `python run.py scorecard --config configs/scorecard/base.yaml --set scorecard.pdo=40 --set salida=<carpeta temporal>` | ~2 s |
-| **Optimización (búsqueda) de la PD, corta** | `python run.py pd-hpo --config configs/pd/hpo.yaml --set hpo.n_ensayos=2 --set hpo.destino=<tmp>/mlp_final.yaml --set hpo.salida=<tmp>` | ~65 s (3 ensayos: 96 s) |
-| … cambiando el espacio | añadir `--set hpo.espacio.activacion=[tanh]` o `--set hpo.espacio.lr=[1.0e-3,1.0e-2]` | igual |
-| **Optimización de la LGD, corta** | `python run.py lgd-hpo --config configs/lgd/hpo.yaml --set hpo.n_ensayos=3 --set hpo.destino=<tmp>/mlp_final.yaml --set salida=<tmp>` | ~80 s (5 ensayos: 138 s, se pasa de 2 min) |
+| **Optimización (búsqueda) de la PD, corta** | `python run.py pd-hpo --config configs/pd/hpo.yaml --set hpo.n_ensayos=3 --set hpo.destino=<tmp>/mlp_final.yaml --set hpo.salida=<tmp>` | 3 ensayos: 96 s; depende de las configuraciones que salgan |
+| … cambiando el espacio | añadir `--set "hpo.espacio.activacion=[tanh]"` (o `hpo.espacio.lr=[1.0e-3,1.0e-2]`) | 2 ensayos con solo tanh: 25 s |
+| **Optimización de la LGD, corta** | `python run.py lgd-hpo --config configs/lgd/hpo.yaml --set hpo.n_ensayos=3 --set hpo.destino=<tmp>/mlp_final.yaml --set salida=<tmp>` | no medido con 3; con 5 ensayos: 138 s (se pasa de 2 min) |
 | Notebook (si lo piden así) | `notebooks/00_sustentacion.ipynb`: `SET = {"demo": "pd"}`, `CAMBIO = {"mlp.lr": 0.05}`, `PREDICCION = "…"` | ~15 s |
 
 **Nunca** correr `pd-hpo` o `lgd-hpo` sin `hpo.destino` temporal: reescriben `configs/*/mlp_final.yaml`.
