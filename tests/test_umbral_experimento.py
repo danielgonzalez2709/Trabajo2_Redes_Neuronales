@@ -683,7 +683,8 @@ def test_script_exito(tmp_path):
 # %% [markdown]
 # ## 11. Prueba lenta con datos reales
 #
-# Raíz temporal con enlaces de solo lectura a `data/processed`, `models` y `results/data/pd` reales, y la salida en
+# Raíz temporal con enlaces de solo lectura a `data/processed`, `results/data/pd` y los tres archivos de `models/`
+# reales (la carpeta `models` es real: un enlace de carpeta saldría de la raíz y la guarda lo rechaza), y la salida en
 # una carpeta propia: `base_seed = 20` y `semillas.n = 1` reentrena solo la semilla mediana, así que el control se
 # ejerce con la red real. Comprueba que las PD de prueba de `pd_mlp.pt` y de la logística coinciden con
 # `pred_test.parquet` y que nada del repositorio cambia.
@@ -694,9 +695,12 @@ def test_lento_datos_reales(tmp_path):
     """Corrida real con la semilla mediana: control, pred_test y archivos."""
     resumen = load_json(ROOT / "results" / "data" / "pd" / "summary.json")  # semilla mediana real
     raiz = tmp_path / "repo"  # raíz temporal
-    for rel in ("data/processed", "models", "results/data/pd"):  # entradas reales
+    for rel in ("data/processed", "results/data/pd"):  # carpetas de entrada reales
         (raiz / rel).parent.mkdir(parents=True, exist_ok=True)  # carpeta padre
         os.symlink(ROOT / rel, raiz / rel)  # enlace de solo lectura
+    (raiz / "models").mkdir()  # carpeta real: la guarda exige que `modelos` quede dentro de la raíz
+    for nombre in ("pd_logistica.joblib", "pd_mlp.pt", "preprocesador_pd.json"):  # archivos que se leen
+        os.symlink(ROOT / "models" / nombre, raiz / "models" / nombre)  # enlace de solo lectura
     cfg = load_config(RUTA_CFG)  # config real
     cfg.update(base_seed=resumen["mlp"]["semilla_mediana"], semillas={"n": 1},  # solo la mediana
                salida="results/data/pd_umbral_lento", figuras="results/data/pd_umbral_lento/figuras")  # carpeta propia

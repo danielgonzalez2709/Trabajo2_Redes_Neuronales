@@ -160,17 +160,17 @@ def figura_costo(d: dict, destino: Path) -> Path:
     for m in MODELOS:  # cada modelo
         dm, color, nombre = d["modelos"][m], p.COLOR_MODELO[m], p.NOMBRE_MODELO[m]  # atajos
         izq.plot(d["razones"], dm["cuota"], color=color,  # r* (= rechazo de prueba por cuota, salvo el techo de k)
-                 label=f"{nombre}: cuota óptima de val (= rechazo en prueba por cuota)")  # leyenda
+                 label=f"{nombre}: cuota de val")  # leyenda (la nota del eje dice que es el rechazo por cuota)
         izq.plot(d["razones"], dm["rechazo_umbral"], color=color, linestyle="--",  # PD absoluta en test
-                 label=f"{nombre}: rechazo en prueba con el umbral de val")  # contraste
+                 label=f"{nombre}: umbral de val en prueba")  # contraste
         der.plot(d["razones"], dm["umbral_val"], color=color, label=f"{nombre}: umbral de val")  # t_val
     der.plot(d["razones"], d["p_estrella"], color=p.TINTA_TENUE, linestyle=":", label="p* = 1/(1 + L/G)")  # teoría
-    for ax in (izq, der):  # los dos ejes
+    for ax, lugar in ((izq, "upper left"), (der, "upper right")):  # los dos ejes y dónde no tapan las curvas
         ax.set_xscale("log")  # L/G logarítmica
         ax.set_xlabel("Razón de costos L/G")  # eje x
-        ax.legend(fontsize=7)  # leyenda
+        ax.legend(loc=lugar, fontsize=7)  # leyenda
     izq.set_ylim(0, 1)  # cuotas y tasas en [0, 1]
-    izq.set_ylabel("Tasa de rechazo")  # eje y
+    izq.set_ylabel("Tasa de rechazo en prueba")  # eje y (cuota de val = rechazo por cuota)
     izq.set_title("Cuota que minimiza el costo")  # título
     der.set_ylabel("Umbral de PD")  # eje y
     der.set_title("Umbral observado frente a p*")  # título
