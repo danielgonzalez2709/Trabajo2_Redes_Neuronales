@@ -30,9 +30,10 @@ CARPETAS_PROTEGIDAS = ("data", "models", "results", "blog")  # el notebook no la
 CARPETA_EJEMPLO = {"salida": "results/data/pd2_demo", "modelos": "models/pd2_demo"}  # del comando de ejemplo
 SET_UNA_SEMILLA = '{"mlp.capas": [8], "semillas.n": 1}'  # prueba 14: otra arquitectura y una semilla
 SECCIONES = ("1", "1.0", "1.1", "1.2", "1.3", "2", "2.1", "2.2", "2.3", "3", "3.1", "3.2", "3.3", "3.4", "3.5",
-             "4", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6")  # B-pd §3.7, en orden
+             "4", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "5", "5.1", "5.2", "5.3", "5.4", "5.5")  # B-pd §3.7
 ENTRADAS = ("data/processed/loans_pd.parquet", "models/preprocesador_pd.json", "results/data/pd/summary.json",
-            "results/data/pd/hpo_ensayos.json", "configs/pd/mlp_final.yaml")  # lo que el notebook necesita
+            "results/data/pd/hpo_ensayos.json", "configs/pd/mlp_final.yaml",  # PD (B3–B5)
+            "results/data/pd_umbral/umbral.json")  # umbral (B11): lo que el notebook necesita
 
 
 # %% [markdown]
@@ -175,6 +176,18 @@ def test_figuras_del_blog_citadas_existen():
 
 
 # %% [markdown]
+# La sección 5 (B11) muestra las dos figuras `pd-umbral-*` del blog y lee `umbral.json` con `load_json`.
+
+# %%
+def test_seccion_5_lee_umbral_y_sus_figuras():
+    """pd-umbral-sensibilidad.png y pd-umbral-costo.png citadas; umbral.json leído con load_json."""
+    texto = _texto()  # fuente
+    citadas = re.findall(r'FIGURAS_BLOG / "([^"]+)"', texto)  # figuras del blog
+    assert {"pd-umbral-sensibilidad.png", "pd-umbral-costo.png"} <= set(citadas)  # las dos de B11
+    assert '"results/data/pd_umbral/umbral.json"' in texto and "load_json(UMBRAL)" in texto  # solo lectura
+
+
+# %% [markdown]
 # `FIGURAS_DEMO` se lee del `.py` sin ejecutarlo y se compara con `figs_pd.ARCHIVOS`.
 
 # %%
@@ -235,7 +248,7 @@ def test_texto_sin_cifras_escritas_a_mano():
 
 # %%
 def test_cada_seccion_enlaza_al_blog():
-    """Cada sección 1–4 remite a una sección del blog que existe."""
+    """Cada sección 1–5 remite a una sección del blog que existe."""
     md = "\n".join(c for t, c in _celdas(_texto()) if t == "markdown")  # texto
     for parte in re.split(r"^## (?=\d)", md, flags=re.M)[1:]:  # cada sección numerada
         enlaces = re.findall(r"\]\(\.\./(blog/secciones/0\d-[\w-]+\.md)\)", parte)  # enlaces al blog
@@ -296,7 +309,7 @@ def test_notebook_02_corre_sin_tocar_lo_versionado(tmp_path, monkeypatch):
     print(f"notebook 02_pd: {segundos:.1f} s")  # para el informe (-s)
     assert segundos < TIEMPO_MAX_S  # núcleo §5.8
     _sin_ruta_temporal(ipynb)  # no se expone
-    assert ipynb.count('"image/png"') == 6 + 2 + 2 + 5  # demo, datos, búsqueda y modelo final
+    assert ipynb.count('"image/png"') == 6 + 2 + 2 + 5 + 2  # demo, datos, búsqueda, modelo final y umbral
 
 
 # %% [markdown]
