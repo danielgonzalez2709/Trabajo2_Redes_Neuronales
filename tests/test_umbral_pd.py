@@ -504,3 +504,39 @@ def test_no_mutan_entradas():
     u.cuota_optima(y, p, 2.0, [0.0, 0.5, 1.0])  # óptima
     u.curva_sensibilidad(y, p, [0.5])  # curva
     assert np.array_equal(p, P_MANO) and np.array_equal(y, Y_MANO)  # intactos
+
+
+# %% [markdown]
+# ## Cuotas desde conteos ya calculados
+#
+# `cuota_optima_conteos` y `cuota_para_meta_conteos` reciben los conteos de `conteos_por_cuota` (un solo ordenamiento
+# por modelo) y dan exactamente lo mismo que las versiones directas para cualquier razón y meta.
+
+# %%
+def test_cuotas_desde_conteos_igual_a_la_directa():
+    """Misma cuota que cuota_optima y cuota_para_meta en razones y metas variadas."""
+    y, p = _calibrada(3000)  # muestra
+    rejilla = np.round(np.linspace(0, 1, 101), 9)  # cuotas
+    c = u.conteos_por_cuota(y, p, rejilla)  # una vez
+    for razon in (1e-9, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 1e9):  # razones, incluidas las extremas
+        assert u.cuota_optima_conteos(c, rejilla, razon) == u.cuota_optima(y, p, razon, rejilla)  # igual
+    for meta in (0.0, 0.3, 0.5, 0.8, 0.9, 1.0):  # metas
+        assert u.cuota_para_meta_conteos(c, rejilla, meta) == u.cuota_para_meta(y, p, meta, rejilla)  # igual
+    corta = rejilla[:2]  # cuotas 0 y 0,01
+    assert u.cuota_para_meta_conteos(u.conteos_por_cuota(y, p, corta), corta, 1.0) is None  # inalcanzable
+
+
+# %% [markdown]
+# Conteos de otro largo que la rejilla, sin una clave, o razón y meta inválidas → `ValueError`.
+
+# %%
+def test_cuotas_desde_conteos_invalidas():
+    """Largo distinto, clave de menos, razón ≤ 0 o meta > 1 → ValueError."""
+    rejilla = [0.0, 0.5, 1.0]  # tres cuotas
+    c = u.conteos_por_cuota(Y_MANO, P_MANO, rejilla)  # conteos
+    for f in (lambda: u.cuota_optima_conteos(c, [0.0, 1.0], 1.0),  # largo distinto
+              lambda: u.cuota_optima_conteos({"fn": c["fn"]}, rejilla, 1.0),  # falta fp
+              lambda: u.cuota_optima_conteos(c, rejilla, 0.0),  # razón inválida
+              lambda: u.cuota_para_meta_conteos(c, rejilla, 1.5)):  # meta inválida
+        with pytest.raises(ValueError):  # error esperado
+            f()  # inválida

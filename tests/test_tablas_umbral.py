@@ -191,3 +191,22 @@ def test_bloque_que_falta(f, bloque):
     del u[bloque]  # falta
     with pytest.raises(ValueError, match=bloque):  # error esperado
         f(u)  # tabla
+
+
+# %% [markdown]
+# ## 7. Un solo lugar para el contrato de `umbral.json`
+#
+# `tablas_umbral` define `ARCHIVO_UMBRAL`, `MODELOS`, `COMANDO_UMBRAL` y `bloque`; la orquestación y las figuras los
+# importan de allí (los mismos objetos, sin copias), y `MODELOS` coincide con los nombres de `experimento.py`.
+
+# %%
+def test_contrato_en_un_solo_lugar():
+    """Mismos objetos en umbral_experimento y src/viz/umbral_pd; MODELOS = los de B5."""
+    from src.pd import experimento as ex  # nombres de los modelos de B5
+    from src.viz import umbral_pd as vu  # figuras de B11
+    assert tu.MODELOS == (ex.MODELO_LOGISTICA, ex.MODELO_MLP)  # orden y nombres
+    assert ue.ARCHIVO_UMBRAL is tu.ARCHIVO_UMBRAL and vu.ARCHIVO_UMBRAL is tu.ARCHIVO_UMBRAL  # un solo nombre
+    assert ue.MODELOS is tu.MODELOS and vu.MODELOS is tu.MODELOS  # un solo orden
+    assert vu.bloque is tu.bloque and not hasattr(vu, "_bloque") and not hasattr(tu, "_bloque")  # una sola función
+    with pytest.raises(ValueError, match="scripts/umbral_pd.py"):  # mensaje con el comando
+        tu.bloque({}, "trivial")  # falta

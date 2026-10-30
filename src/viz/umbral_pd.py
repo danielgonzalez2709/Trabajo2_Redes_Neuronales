@@ -37,21 +37,21 @@ matplotlib.use("Agg")  # dibuja en archivos, sin ventana
 import matplotlib.pyplot as plt  # noqa: E402  figuras y ejes
 
 from src.common.results import load_json  # noqa: E402  lectura sin NaN
+from src.pd.tablas_umbral import ARCHIVO_UMBRAL, COMANDO_UMBRAL, MODELOS, bloque  # noqa: E402  contrato de umbral.json
 from src.viz import paleta as p  # noqa: E402  color por entidad
 from src.viz.style import aplicar_estilo  # noqa: E402  estilo común
 
 # %% [markdown]
 # ## Constantes
 #
-# Rutas, nombres de archivo, modelos y splits en orden fijo, y los estilos de trazo por métrica (solo visuales).
+# Rutas, nombres de los PNG, splits en orden fijo y los estilos de trazo por métrica (solo visuales). El nombre de
+# `umbral.json`, el orden de los modelos, el comando y `bloque` se importan de `src/pd/tablas_umbral.py` (un solo
+# lugar para el contrato).
 
 # %%
 SALIDA = Path("blog/docs/figures")  # figuras versionadas del blog (redirigible en las pruebas)
 ENTRADA = Path("results/data/pd_umbral")  # resultados de B11
-ARCHIVO_UMBRAL = "umbral.json"  # = umbral_experimento.ARCHIVO_UMBRAL
 ARCHIVOS = ("pd-umbral-sensibilidad.png", "pd-umbral-costo.png")  # salida, en orden
-COMANDO = "B11: python scripts/umbral_pd.py --config configs/pd/umbral.yaml"  # cómo se genera umbral.json
-MODELOS = ("logistica", "mlp")  # orden de los modelos (núcleo §5.4)
 SPLITS = ("val", "test")  # paneles de la sensibilidad
 CURVAS = ("tpr", "tnr", "tasa_rechazo")  # métricas de la sensibilidad
 ETIQUETA_CURVA = {"tpr": "TPR (malos rechazados)", "tnr": "TNR (buenos aprobados)",  # leyendas
@@ -73,17 +73,6 @@ def _mismo_largo(eje: list, curva: list, nombre: str) -> list:
 
 
 # %% [markdown]
-# Un bloque obligatorio de `umbral.json`; si falta → `ValueError`.
-
-# %%
-def _bloque(umbral: dict, clave: str) -> dict:
-    """umbral[clave] o ValueError."""
-    if not isinstance(umbral, dict) or clave not in umbral:  # falta
-        raise ValueError(f"umbral.json no tiene el bloque {clave!r}; genéralo con {COMANDO}")  # cómo
-    return umbral[clave]  # bloque
-
-
-# %% [markdown]
 # ## Datos de la sensibilidad al umbral (pura)
 #
 # Para cada umbral $t$ de la rejilla: $\mathrm{TPR}(t)$, $\mathrm{TNR}(t)$ y la tasa de rechazo de la política
@@ -92,11 +81,11 @@ def _bloque(umbral: dict, clave: str) -> dict:
 # %%
 def datos_sensibilidad(umbral: dict) -> dict:
     """{umbrales, umbral_inicial, modelos: {m: {split: {curva: lista}}}}."""
-    s = _bloque(umbral, "sensibilidad_umbral")  # bloque
+    s = bloque(umbral, "sensibilidad_umbral")  # bloque
     eje = list(s["umbrales"])  # umbrales
     modelos = {m: {sp: {c: _mismo_largo(eje, s["modelos"][m][sp][c], f"{m}.{sp}.{c}") for c in CURVAS}  # curvas
                    for sp in SPLITS} for m in MODELOS}  # por modelo y split
-    return {"umbrales": eje, "umbral_inicial": _bloque(umbral, "matriz_inicial")["umbral"],  # eje y 0,5
+    return {"umbrales": eje, "umbral_inicial": bloque(umbral, "matriz_inicial")["umbral"],  # eje y 0,5
             "modelos": modelos}  # curvas
 
 
@@ -109,7 +98,7 @@ def datos_sensibilidad(umbral: dict) -> dict:
 # %%
 def datos_costo(umbral: dict) -> dict:
     """{razones, p_estrella, modelos: {m: {cuota, rechazo_cuota, rechazo_umbral, umbral_val}}}."""
-    c = _bloque(umbral, "curva_costo")  # bloque
+    c = bloque(umbral, "curva_costo")  # bloque
     eje = list(c["razones"])  # razones L/G
     modelos = {}  # por modelo
     for m in MODELOS:  # logística y MLP
@@ -208,7 +197,7 @@ def generar(raiz: Path = Path("."), destino: Path | None = None, datos: dict | N
     if datos is None:  # lectura del JSON
         ruta = Path(raiz) / ENTRADA / ARCHIVO_UMBRAL  # umbral.json
         if not ruta.is_file():  # no generado
-            raise FileNotFoundError(f"No existe {ruta}; genéralo con {COMANDO}")  # cómo
+            raise FileNotFoundError(f"No existe {ruta}; genéralo con {COMANDO_UMBRAL}")  # cómo
         datos = load_json(ruta)  # resultado
     sens, costo = datos_sensibilidad(datos), datos_costo(datos)  # todo antes de dibujar
     return [figura_sensibilidad(sens, destino), figura_costo(costo, destino)]  # las dos

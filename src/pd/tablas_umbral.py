@@ -12,8 +12,11 @@
 # # Tablas de B11: de la PD a la decisión (B-pd §3.9; notebook 02 §5 y blog 06 §6.8)
 #
 # Funciones **puras** que convierten `umbral.json` (ya leído) en tablas de pandas: no leen archivos ni calculan nada
-# del modelo; cada celda es un valor del JSON. Lo que no aplica (umbral de val con cuota 0, una meta inalcanzable, un
-# resumen nulo) queda como texto vacío, nunca NaN. Un bloque que falta → `ValueError` que lo nombra.
+# del modelo; cada celda es un valor del JSON. Este módulo es además el **único lugar** del contrato de `umbral.json`
+# (`ARCHIVO_UMBRAL`, `MODELOS`, `COMANDO_UMBRAL` y `bloque`): lo importan la orquestación y las figuras (es liviano:
+# pandas y la paleta, sin torch ni matplotlib, así que no hay import circular). Lo que no aplica (umbral de val con
+# cuota 0, una meta inalcanzable, un resumen nulo) queda como texto vacío, nunca NaN. Un bloque que falta →
+# `ValueError` que lo nombra.
 
 # %%
 """Tablas de B11 desde umbral.json: trivial, matriz inicial, escenarios L/G, metas, semillas y control."""
@@ -25,10 +28,13 @@ from src.viz.paleta import NOMBRE_MODELO as _NOMBRES_PALETA  # nombres de los mo
 # %% [markdown]
 # ## Constantes
 #
-# Nombres de filas y columnas en español, el orden de los modelos y el texto de lo que no aplica.
+# El contrato de `umbral.json` (nombre del archivo, orden de los modelos y comando que lo genera), los nombres de
+# filas y columnas en español y el texto de lo que no aplica.
 
 # %%
-MODELOS = ("logistica", "mlp")  # orden fijo (núcleo §5.4)
+ARCHIVO_UMBRAL = "umbral.json"  # resultados de B11 (en salida)
+COMANDO_UMBRAL = "python scripts/umbral_pd.py --config configs/pd/umbral.yaml"  # genera umbral.json
+MODELOS = ("logistica", "mlp")  # orden fijo (= experimento.MODELO_LOGISTICA, MODELO_MLP; lo exige una prueba)
 NOMBRE_MODELO = {m: _NOMBRES_PALETA[m] for m in MODELOS}  # Regresión logística, Perceptrón multicapa
 VACIO = ""  # celda sin dato (no NaN)
 NO_APLICA = "no aplica: la semilla mediana no está entre las reentrenadas"  # control null (demo)
@@ -42,13 +48,14 @@ COLUMNAS_RESUMEN = ("media", "desv", "mejor", "peor", "n")  # de experimento.res
 
 
 # %% [markdown]
-# Un bloque obligatorio de `umbral.json`; si falta → `ValueError`.
+# Un bloque obligatorio de `umbral.json`; si falta → `ValueError` que dice cómo generarlo (la usan también las
+# figuras de `src/viz/umbral_pd.py`).
 
 # %%
-def _bloque(umbral: dict, clave: str):
-    """umbral[clave] o ValueError que nombra la clave."""
+def bloque(umbral: dict, clave: str):
+    """umbral[clave] o ValueError que nombra la clave y el comando."""
     if not isinstance(umbral, dict) or clave not in umbral:  # falta
-        raise ValueError(f"umbral.json no tiene el bloque {clave!r} (python scripts/umbral_pd.py)")  # cómo
+        raise ValueError(f"{ARCHIVO_UMBRAL} no tiene el bloque {clave!r}; genéralo con {COMANDO_UMBRAL}")  # cómo
     return umbral[clave]  # bloque
 
 
@@ -61,7 +68,7 @@ def _bloque(umbral: dict, clave: str):
 # %%
 def tabla_trivial(umbral: dict) -> pd.DataFrame:
     """Filas FILAS_TRIVIAL; columnas PD constante, Brier val, Brier test."""
-    t = _bloque(umbral, "trivial")  # bloque
+    t = bloque(umbral, "trivial")  # bloque
     filas = {}  # por fila
     for clave in ("principal", "piso_teorico"):  # los dos triviales
         filas[FILAS_TRIVIAL[clave]] = {"PD constante": t[clave]["q"], "Brier val": t[clave]["brier_val"],  # q
@@ -80,7 +87,7 @@ def tabla_trivial(umbral: dict) -> pd.DataFrame:
 # %%
 def tabla_matriz_inicial(umbral: dict) -> pd.DataFrame:
     """Índice (modelo, split); columnas COLUMNAS_MATRIZ."""
-    mi = _bloque(umbral, "matriz_inicial")  # bloque
+    mi = bloque(umbral, "matriz_inicial")  # bloque
     filas = [{"modelo": NOMBRE_MODELO[m], "split": s, **{v: d[k] for k, v in COLUMNAS_MATRIZ.items()}}  # celdas
              for m in MODELOS for s, d in mi["modelos"][m].items()]  # val y test
     return pd.DataFrame(filas).set_index(["modelo", "split"])  # conteos enteros
@@ -101,18 +108,18 @@ def _o_vacio(valor):
 def tabla_escenarios(umbral: dict) -> pd.DataFrame:
     """Índice (L/G, modelo); p*, cuota, umbral val y medidas de prueba."""
     filas = []  # una por (razón, modelo)
-    for e in _bloque(umbral, "escenarios"):  # cada razón
+    for e in bloque(umbral, "escenarios"):  # cada razón
         for m in MODELOS:  # cada modelo
             d = e["modelos"][m]  # política
-            tc, tu_ = d["test_cuota"], d["test_umbral"]  # prueba por cuota y por umbral
+            tc, t_umbral = d["test_cuota"], d["test_umbral"]  # prueba por cuota y con el umbral de val
             filas.append({"L/G": e["razon"], "modelo": NOMBRE_MODELO[m], "p*": e["p_estrella"],  # referencia
                           "cuota": d["cuota"], "umbral val": _o_vacio(d["umbral_val"]),  # política
                           "TPR prueba (cuota)": tc["tpr"], "TNR prueba (cuota)": tc["tnr"],  # cuota
                           "rechazo prueba (cuota)": tc["tasa_rechazo"],  # cuota
                           "costo/crédito prueba (cuota)": tc["costo_por_credito"],  # cuota
-                          "rechazo prueba (umbral val)": tu_["tasa_rechazo"],  # PD absoluta
-                          "TPR prueba (umbral val)": tu_["tpr"],  # PD absoluta
-                          "costo/crédito prueba (umbral val)": tu_["costo_por_credito"]})  # PD absoluta
+                          "rechazo prueba (umbral val)": t_umbral["tasa_rechazo"],  # PD absoluta
+                          "TPR prueba (umbral val)": t_umbral["tpr"],  # PD absoluta
+                          "costo/crédito prueba (umbral val)": t_umbral["costo_por_credito"]})  # PD absoluta
     return pd.DataFrame(filas).set_index(["L/G", "modelo"])  # tabla
 
 
@@ -127,7 +134,7 @@ def tabla_metas(umbral: dict) -> pd.DataFrame:
     """Índice (meta, modelo); cuota, umbral val, TPR val y medidas de prueba."""
     columnas = ("cuota", "umbral val", "TPR val", "TPR prueba", "TNR prueba", "rechazo prueba")  # orden
     filas = []  # una por (meta, modelo)
-    for meta in _bloque(umbral, "metas"):  # cada meta
+    for meta in bloque(umbral, "metas"):  # cada meta
         for m in MODELOS:  # cada modelo
             d = meta["modelos"][m]  # política o nulos
             valores = dict.fromkeys(columnas, VACIO) if d["cuota"] is None else {  # inalcanzable
@@ -147,7 +154,7 @@ def tabla_metas(umbral: dict) -> pd.DataFrame:
 # %%
 def tabla_semillas(umbral: dict) -> pd.DataFrame:
     """Índice (política, métrica); columnas COLUMNAS_RESUMEN."""
-    sem = _bloque(umbral, "semillas")  # bloque
+    sem = bloque(umbral, "semillas")  # bloque
     politicas = [(f"L/G = {e['razon']:g}", e["resumen"]) for e in sem["escenarios"]] + [  # escenarios
         (f"TPR val ≥ {m['meta']:g}", m["resumen"]) for m in sem["metas"]]  # metas
     filas = []  # una por (política, métrica)
@@ -167,5 +174,5 @@ def tabla_semillas(umbral: dict) -> pd.DataFrame:
 # %%
 def ficha_control(umbral: dict) -> dict:
     """Control de la semilla mediana o la ficha "no aplica"."""
-    control = _bloque(umbral, "control_semilla_mediana")  # bloque (puede ser None)
+    control = bloque(umbral, "control_semilla_mediana")  # bloque (puede ser None)
     return {"control": NO_APLICA} if control is None else dict(control)  # copia

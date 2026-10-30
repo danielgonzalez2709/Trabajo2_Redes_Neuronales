@@ -43,11 +43,13 @@ from src.pd import experimento as ex  # piezas de B5 (datos, evidencia, entrenar
 from src.pd import umbral as u  # lógica pura de B11
 from src.pd.logistica import LogisticaPD  # carga de pd_logistica.joblib
 from src.pd.mlp import MLPPD  # carga de pd_mlp.pt y reentrenamiento
+from src.pd.tablas_umbral import ARCHIVO_UMBRAL, MODELOS  # contrato de umbral.json (un solo lugar)
 
 __all__ = [  # interfaz pública (B-pd §3.9)
     "RAIZ_REPOSITORIO", "ARCHIVO_UMBRAL", "ARCHIVO_PRED", "BLOQUES_UMBRAL", "CLAVES_MEDIDA", "PREFIJO_ERROR",  # nombres
     "TOLERANCIA_SIGMAS", "Dependencias", "validar_rutas", "validar_cfg_umbral", "predicciones",  # config y datos
-    "predicciones_semillas", "dentro_de_tolerancia", "control_semilla_mediana", "analizar", "tabla_pred",  # análisis
+    "predicciones_semillas", "tolerancia", "dentro_de_tolerancia", "control_semilla_mediana",  # semillas y control
+    "analizar", "tabla_pred",  # análisis
     "correr_umbral", "manejador",  # corrida
 ]
 
@@ -60,7 +62,8 @@ __all__ = [  # interfaz pública (B-pd §3.9)
 #   `figuras` = `blog/docs/figures` o una carpeta dentro de `salida`.
 # - Claves exactas de la raíz (las de `base.yaml` heredadas + `figuras` y `umbral`), del bloque `umbral` y de las
 #   rejillas `{min, max, n}`.
-# - `TOLERANCIA_SIGMAS` $= 3\sqrt2$ (B-pd §8: 3 = tres sigmas; $\sqrt2$ porque se comparan dos medias).
+# - `TOLERANCIA_SIGMAS` $= 3$ (convención de tres sigmas de B-pd §8; la tolerancia completa está más abajo).
+# - `ARCHIVO_UMBRAL` y `MODELOS` vienen de `src/pd/tablas_umbral.py`, el único lugar del contrato de `umbral.json`.
 # - `SENTIDO_DECISION`: en TPR, TNR y tasa de aprobación, mayor es mejor (para `experimento.resumir`).
 
 # %%
@@ -68,7 +71,6 @@ RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]  # src/pd/ → raíz
 CARPETA_SALIDA = Path("results/data/pd_umbral")  # salida de B11 (y su hermana pd_umbral_<algo>)
 CARPETA_FIGURAS_BLOG = Path("blog/docs/figures")  # figuras versionadas del blog
 SEPARADOR_HERMANA = "_"  # results/data/pd_umbral_<algo>
-ARCHIVO_UMBRAL = "umbral.json"  # resultados de B11
 ARCHIVO_PRED = "pred_umbral.parquet"  # PD de val y test de los dos modelos
 CLAVES_RAIZ = ("base_seed", "datos", "logistica", "mlp", "busqueda", "semillas", "salida", "modelos",  # de base.yaml
                "figuras", "umbral")  # de umbral.yaml
@@ -81,8 +83,8 @@ CLAVES_MEDIDA = (*u.CLAVES_MATRIZ, "tpr", "tnr", "tasa_rechazo", "tasa_aprobacio
                  "costo_por_credito")  # costo
 CLAVES_TEST_SEMILLA = ("tpr_test", "tnr_test", "tasa_aprobacion_test")  # lo que se resume entre semillas
 SENTIDO_DECISION = {"tpr": "max", "tnr": "max", "tasa_aprobacion": "max"}  # mayor es mejor
-TOLERANCIA_SIGMAS = 3 * math.sqrt(2)  # B-pd §8
-MODELOS = (ex.MODELO_LOGISTICA, ex.MODELO_MLP)  # orden fijo de los dos modelos
+TOLERANCIA_SIGMAS = 3  # tres sigmas (B-pd §8 y §3.9)
+CLAVES_REFERENCIA = ("media", "desv", "n")  # campos de summary.json que usa el control
 SPLITS = ex.SPLITS_MEDIDOS  # val elige, test se mide
 PREFIJO_ERROR = "scripts/umbral_pd.py: error: "  # inicio de la línea de error en stderr
 
@@ -119,6 +121,8 @@ def _relativa_segura(clave: str, valor, raiz: Path) -> Path:
 # %%
 def _es_salida_permitida(relativa: Path) -> bool:
     """True si ``relativa`` es results/data/pd_umbral o results/data/pd_umbral_<algo>."""
+    # No reusa sensibilidad._en_lista_blanca a propósito: allí se admiten subcarpetas y rutas fuera del repositorio;
+    # B11 es más estricto (solo la carpeta o su hermana, siempre dentro de la raíz; B-pd §3.9).
     base = CARPETA_SALIDA.name  # pd_umbral
     nombre = relativa.name  # último componente
     hermana = nombre.startswith(base + SEPARADOR_HERMANA) and len(nombre) > len(base + SEPARADOR_HERMANA)  # sufijo
@@ -210,9 +214,10 @@ def _rejilla_log(bloque, nombre: str) -> np.ndarray:
 # %%
 def _validar_bloque_umbral(b) -> dict:
     """Bloque umbral validado (rejillas como arreglos)."""
-    if not isinstance(b, dict) or set(b) != set(CLAVES_UMBRAL):  # claves exactas
-        faltan, sobran = (set(CLAVES_UMBRAL) - set(b), set(b) - set(CLAVES_UMBRAL)) if isinstance(b, dict) else (
-            set(CLAVES_UMBRAL), set())  # diferencias
+    if not isinstance(b, dict):  # p. ej. umbral: 0.5
+        raise ValueError(f"El bloque umbral debe ser un mapeo; se recibió {b!r}")  # tipo
+    if set(b) != set(CLAVES_UMBRAL):  # claves exactas
+        faltan, sobran = set(CLAVES_UMBRAL) - set(b), set(b) - set(CLAVES_UMBRAL)  # diferencias
         raise ValueError(f"El bloque umbral es inválido: faltan {sorted(faltan)}, sobran {sorted(sobran)}")  # cuáles
     return {  # en el orden de CLAVES_UMBRAL
         "umbral_inicial": u.validar_real(b["umbral_inicial"], "umbral.umbral_inicial", 0.0, 1.0),  # 0,5
@@ -332,26 +337,46 @@ def predicciones_semillas(matrices: dict, cfg_mlp: dict, semillas: list[int], en
 
 
 # %% [markdown]
-# ## Tolerancia entre máquinas (B-pd §8)
+# ## Tolerancia entre máquinas (B-pd §3.9 y §8)
 #
-# Para cada métrica de prueba $m$, con $\bar x_m$ la media de las semillas reentrenadas y $(\bar x^{\text{ref}}_m,
+# Para cada métrica de prueba $m$, con $\bar x_m$ la media de las $k$ semillas reentrenadas y $(\bar x^{\text{ref}}_m,
 # s_m, n_m)$ la media, desviación y número de corridas de `summary.json`:
 #
-# $$|\bar x_m - \bar x^{\text{ref}}_m| < 3\sqrt2\, \frac{s_m}{\sqrt{n_m}}$$
+# $$|\bar x_m - \bar x^{\text{ref}}_m| \le 3\sqrt{\frac{s_m^2}{k} + \frac{s_m^2}{n_m}}$$
 #
-# (una diferencia exactamente nula también pasa, aunque $s_m = 0$).
+# (error estándar de la diferencia de dos medias independientes con la misma varianza). Con $k = n_m$ es el
+# $3\sqrt2\, s_m/\sqrt{n_m}$ de §8; con $k < n_m$ la tolerancia crece. Con $s_m = 0$ solo pasa $\Delta = 0$.
 
 # %%
-def dentro_de_tolerancia(medias: dict, referencia: dict) -> bool:
-    """True si cada media queda a menos de 3·√2·desv/√n de la de referencia."""
-    for clave, media in medias.items():  # cada métrica de prueba
-        ref = referencia.get(clave) if isinstance(referencia, dict) else None  # resumen de referencia
-        if not isinstance(ref, dict) or not {"media", "desv", "n"} <= set(ref):  # sin referencia
-            raise ValueError(f"summary.json no tiene mlp.metricas.{clave} con media, desv y n")  # falta
-        dif = abs(media - ref["media"])  # diferencia de medias
-        if dif != 0 and dif >= TOLERANCIA_SIGMAS * ref["desv"] / math.sqrt(ref["n"]):  # fuera
-            return False  # fuera de tolerancia
-    return True  # todas dentro
+def tolerancia(desv: float, n: int, k: int) -> float:
+    """3·√(desv²/k + desv²/n)."""
+    return TOLERANCIA_SIGMAS * math.sqrt(desv ** 2 / k + desv ** 2 / n)  # tres errores estándar de la diferencia
+
+
+# %% [markdown]
+# La entrada de referencia de cada métrica se valida antes de usarla: media y desv reales finitos (desv $\ge 0$) y
+# $n$ entero $\ge 1$. Un `summary.json` dañado (p. ej. $n = 0$ o media `null`) es un error **esperado**
+# (`ValueError`, código 2 en el script), no un `ZeroDivisionError` ni un `TypeError` con traza.
+
+# %%
+def _referencia(referencia, clave: str) -> dict:
+    """{media, desv, n} de summary.json para ``clave`` validados; si no, ValueError."""
+    ref = referencia.get(clave) if isinstance(referencia, dict) else None  # resumen de la métrica
+    if not isinstance(ref, dict) or not set(CLAVES_REFERENCIA) <= set(ref):  # sin referencia
+        raise ValueError(f"summary.json no tiene mlp.metricas.{clave} con {list(CLAVES_REFERENCIA)}")  # falta
+    nombre = f"summary.json mlp.metricas.{clave}"  # prefijo de los mensajes
+    media = u.validar_real(ref["media"], f"{nombre}.media", -math.inf, math.inf)  # real finito
+    desv = u.validar_real(ref["desv"], f"{nombre}.desv", 0.0, math.inf)  # real finito ≥ 0
+    n = _entero(ref["n"], f"{nombre}.n", minimo=1)  # entero ≥ 1
+    return {"media": media, "desv": desv, "n": n}  # validados
+
+
+def dentro_de_tolerancia(medias: dict, referencia: dict, k: int) -> bool:
+    """True si cada media de k semillas queda a ≤ 3·√(s²/k + s²/n) de la de referencia."""
+    k = _entero(k, "k (semillas reentrenadas)", minimo=1)  # al menos una semilla
+    refs = {clave: _referencia(referencia, clave) for clave in medias}  # todas validadas antes de comparar
+    return all(abs(media - refs[c]["media"]) <= tolerancia(refs[c]["desv"], refs[c]["n"], k)  # dentro
+               for c, media in medias.items())  # cada métrica de prueba
 
 
 # %% [markdown]
@@ -359,8 +384,9 @@ def dentro_de_tolerancia(medias: dict, referencia: dict) -> bool:
 #
 # Si la semilla mediana está entre las reentrenadas, sus PD (val y test) se comparan con las de `models/pd_mlp.pt`:
 # `identica_bit_a_bit`, `max_abs_dif` y `dentro_tolerancia` = idéntica, o bien medias de las métricas de prueba
-# (AUC, Gini, KS, Brier, log-loss) de las semillas reentrenadas dentro de la tolerancia de §8 frente a
-# `summary.json`. Fuera de tolerancia → `RuntimeError`. Si no está (demo con pocas semillas) → `None`.
+# (AUC, Gini, KS, Brier, log-loss) de las $k$ semillas reentrenadas dentro de la tolerancia de arriba frente a
+# `summary.json`. La referencia se valida siempre (también si es idéntica). Fuera de tolerancia → `RuntimeError`.
+# Si no está (demo con pocas semillas) → `None`.
 
 # %%
 def control_semilla_mediana(sem_preds: list[dict], seed_med: int, preds: dict, referencia: dict) -> dict | None:
@@ -373,10 +399,13 @@ def control_semilla_mediana(sem_preds: list[dict], seed_med: int, preds: dict, r
     y_te = preds["test"]["y"]  # objetivo de prueba
     por_semilla = [ex.evaluar(y_te, s["test"]) for s in sem_preds]  # métricas de prueba por semilla
     medias = {f"{k}_test": float(np.mean([m[k] for m in por_semilla])) for k in ex.METRICAS}  # medias
-    dentro = identica or dentro_de_tolerancia(medias, referencia)  # control
+    for clave in medias:  # summary.json dañado → error esperado aunque sea idéntica
+        _referencia(referencia, clave)  # valida media, desv y n
+    dentro = identica or dentro_de_tolerancia(medias, referencia, k=len(sem_preds))  # control
     if not dentro:  # no reproduce el modelo final
         raise RuntimeError(f"La semilla mediana {seed_med} reentrenada no reproduce pd_mlp.pt: medias de prueba "
-                           f"{medias} fuera de la tolerancia 3·√2·EE de summary.json (máx |Δp| = {dif:.3g})")  # error
+                           f"{medias} fuera de la tolerancia 3·√(s²/k + s²/n) de summary.json "  # tolerancia
+                           f"(máx |Δp| = {dif:.3g})")  # error
     return {"identica_bit_a_bit": bool(identica), "max_abs_dif": dif, "dentro_tolerancia": bool(dentro)}  # control
 
 
@@ -454,37 +483,61 @@ def _sensibilidad(preds: dict, umbrales: np.ndarray) -> dict:
 
 
 # %% [markdown]
+# ## Conteos de validación por modelo
+#
+# `umbral.conteos_por_cuota` sobre las PD de val de cada modelo, **una sola vez** (un ordenamiento por modelo): los
+# reutilizan todas las razones (escenarios y curva) y todas las metas con `cuota_optima_conteos` y
+# `cuota_para_meta_conteos`, que dan lo mismo que las versiones directas (lo exige una prueba).
+
+# %%
+def _conteos_val(preds: dict, cuotas: np.ndarray) -> dict:
+    """{modelo: conteos_por_cuota en val}."""
+    pv = preds["val"]  # validación
+    return {m: u.conteos_por_cuota(pv["y"], pv[m], cuotas) for m in MODELOS}  # uno por modelo
+
+
+# %% [markdown]
 # ## Bloques `escenarios` y `curva_costo`
 #
 # Para cada $L/G$: $p^\* = 1/(1 + L/G)$ y, por modelo, la cuota $r^\*$ que minimiza el costo observado en **val**
 # (empate → la menor) con su política (`_politica`). La curva repite lo mismo en la rejilla logarítmica y guarda
-# listas para la figura.
+# listas para la figura: cada columna de `COLUMNAS_CURVA` es una ruta dentro de la política (una clave o una clave y
+# una subclave).
 
 # %%
-def _escenario(preds: dict, razon: float, cuotas: np.ndarray) -> dict:
-    """{razon, p_estrella, modelos: {m: política con costo}}."""
+COLUMNAS_CURVA = {  # columna de curva_costo → ruta dentro de la política del escenario
+    "cuota": ("cuota",),  # r*
+    "umbral_val": ("umbral_val",),  # t_val
+    "tasa_rechazo_test_cuota": ("test_cuota", "tasa_rechazo"),  # rechazo en prueba por cuota
+    "tasa_rechazo_test_umbral": ("test_umbral", "tasa_rechazo"),  # rechazo en prueba con el umbral de val
+    "costo_por_credito_val": ("val", "costo_por_credito"),  # costo en val
+    "costo_por_credito_test_cuota": ("test_cuota", "costo_por_credito"),  # costo en prueba por cuota
+    "costo_por_credito_test_umbral": ("test_umbral", "costo_por_credito"),  # costo en prueba con el umbral de val
+}
+
+
+def _escenario(preds: dict, razon: float, cuotas: np.ndarray, conteos: dict) -> dict:
+    """{razon, p_estrella, modelos: {m: política con costo}} con los conteos de val ya calculados."""
     pv, pt = preds["val"], preds["test"]  # atajos
     return {"razon": razon, "p_estrella": u.umbral_teorico(razon),  # referencia teórica
-            "modelos": {m: _politica(pv, pt, m, u.cuota_optima(pv["y"], pv[m], razon, cuotas), razon)  # política
+            "modelos": {m: _politica(pv, pt, m, u.cuota_optima_conteos(conteos[m], cuotas, razon), razon)  # política
                         for m in MODELOS}}  # dos modelos
 
 
-def _curva_costo(preds: dict, razones: np.ndarray, cuotas: np.ndarray) -> dict:
+def _valor(politica: dict, ruta: tuple[str, ...]):
+    """El valor de ``politica`` en la ruta de claves ``ruta``."""
+    valor = politica  # empieza en la política
+    for clave in ruta:  # baja por la ruta
+        valor = valor[clave]  # siguiente nivel
+    return valor  # hoja
+
+
+def _curva_costo(preds: dict, razones: np.ndarray, cuotas: np.ndarray, conteos: dict) -> dict:
     """{razones, p_estrella, modelos: {m: listas}} para la figura de costo."""
-    escenarios = [_escenario(preds, float(r), cuotas) for r in razones]  # uno por razón
-    def lista(m: str, f) -> list:  # una columna por modelo
-        return [f(e["modelos"][m]) for e in escenarios]  # en el orden de las razones
+    escenarios = [_escenario(preds, float(r), cuotas, conteos) for r in razones]  # uno por razón
     return {"razones": [e["razon"] for e in escenarios], "p_estrella": [e["p_estrella"] for e in escenarios],  # eje
-            "modelos": {m: {"cuota": lista(m, lambda d: d["cuota"]),  # r*
-                            "umbral_val": lista(m, lambda d: d["umbral_val"]),  # t_val
-                            "tasa_rechazo_test_cuota": lista(m, lambda d: d["test_cuota"]["tasa_rechazo"]),  # cuota
-                            "tasa_rechazo_test_umbral": lista(m, lambda d: d["test_umbral"]["tasa_rechazo"]),  # PD
-                            "costo_por_credito_val": lista(m, lambda d: d["val"]["costo_por_credito"]),  # val
-                            "costo_por_credito_test_cuota":  # costo de prueba por cuota
-                                lista(m, lambda d: d["test_cuota"]["costo_por_credito"]),  # lista
-                            "costo_por_credito_test_umbral":  # costo de prueba con el umbral de val
-                                lista(m, lambda d: d["test_umbral"]["costo_por_credito"])}  # lista
-                        for m in MODELOS}}  # dos modelos
+            "modelos": {m: {col: [_valor(e["modelos"][m], ruta) for e in escenarios]  # una lista por columna
+                            for col, ruta in COLUMNAS_CURVA.items()} for m in MODELOS}}  # dos modelos
 
 
 # %% [markdown]
@@ -494,14 +547,14 @@ def _curva_costo(preds: dict, razones: np.ndarray, cuotas: np.ndarray) -> dict:
 # ninguna la alcanza, la política queda en `null`.
 
 # %%
-def _metas(preds: dict, metas: list[float], cuotas: np.ndarray) -> list[dict]:
+def _metas(preds: dict, metas: list[float], cuotas: np.ndarray, conteos: dict) -> list[dict]:
     """[{meta, modelos: {m: política sin costo o nulos}}]."""
     pv, pt = preds["val"], preds["test"]  # atajos
     resultado = []  # una por meta
     for meta in metas:  # 0,5 / 0,7 / 0,8 / 0,9
         modelos = {}  # por modelo
         for m in MODELOS:  # logística y MLP
-            r = u.cuota_para_meta(pv["y"], pv[m], meta, cuotas)  # menor cuota que alcanza la meta
+            r = u.cuota_para_meta_conteos(conteos[m], cuotas, meta)  # menor cuota que alcanza la meta
             modelos[m] = _politica(pv, pt, m, r) if r is not None else dict.fromkeys(  # política o nulos
                 ("cuota", "umbral_val", "val", "test_cuota", "test_umbral"))  # inalcanzable
         resultado.append({"meta": meta, "modelos": modelos})  # meta
@@ -538,11 +591,12 @@ def _semillas(preds: dict, sem_preds: list[dict], ucfg: dict) -> dict:
     yv, yt, cuotas = preds["val"]["y"], preds["test"]["y"], ucfg["rejilla_cuotas"]  # atajos
     por_semilla = []  # detalle
     for s in sem_preds:  # cada red
+        c = u.conteos_por_cuota(yv, s["val"], cuotas)  # una sola vez por semilla (val)
         esc = [{"razon": r, **_decision_semilla(yv, s["val"], yt, s["test"],  # escenario
-                                                u.cuota_optima(yv, s["val"], r, cuotas))}  # cuota de val
+                                                u.cuota_optima_conteos(c, cuotas, r))}  # cuota de val
                for r in ucfg["escenarios_razon"]]  # escenarios
         met = [{"meta": m, **_decision_semilla(yv, s["val"], yt, s["test"],  # meta
-                                               u.cuota_para_meta(yv, s["val"], m, cuotas))}  # cuota de val
+                                               u.cuota_para_meta_conteos(c, cuotas, m))}  # cuota de val
                for m in ucfg["metas_sensibilidad"]]  # metas
         por_semilla.append({"seed": s["seed"], "escenarios": esc, "metas": met})  # semilla
     return {"n": len(sem_preds), "semillas": [s["seed"] for s in sem_preds],  # semillas
@@ -563,13 +617,14 @@ def _semillas(preds: dict, sem_preds: list[dict], ucfg: dict) -> dict:
 def analizar(preds: dict, tasa_train: float, sem_preds: list[dict], ucfg: dict) -> dict:
     """{trivial, matriz_inicial, sensibilidad_umbral, escenarios, curva_costo, metas, semillas}."""
     cuotas = ucfg["rejilla_cuotas"]  # rejilla de cuotas
+    conteos = _conteos_val(preds, cuotas)  # un ordenamiento por modelo, para todas las razones y metas
     return {  # en el orden de BLOQUES_UMBRAL
         "trivial": _trivial(preds, tasa_train),  # PD constante
         "matriz_inicial": _matriz_inicial(preds, ucfg["umbral_inicial"]),  # umbral 0,5
         "sensibilidad_umbral": _sensibilidad(preds, ucfg["rejilla_umbrales"]),  # curva
-        "escenarios": [_escenario(preds, r, cuotas) for r in ucfg["escenarios_razon"]],  # L/G de la tabla
-        "curva_costo": _curva_costo(preds, ucfg["curva_razon"], cuotas),  # L/G de la figura
-        "metas": _metas(preds, ucfg["metas_sensibilidad"], cuotas),  # metas de sensibilidad
+        "escenarios": [_escenario(preds, r, cuotas, conteos) for r in ucfg["escenarios_razon"]],  # L/G de la tabla
+        "curva_costo": _curva_costo(preds, ucfg["curva_razon"], cuotas, conteos),  # L/G de la figura
+        "metas": _metas(preds, ucfg["metas_sensibilidad"], cuotas, conteos),  # metas de sensibilidad
         "semillas": _semillas(preds, sem_preds, ucfg),  # variación entre semillas
     }
 

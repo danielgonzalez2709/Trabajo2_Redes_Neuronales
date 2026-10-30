@@ -544,15 +544,97 @@ def test_control_fuera_de_tolerancia_es_error_sin_escribir(tmp_path):
 
 
 # %% [markdown]
-# La tolerancia es $3\sqrt2\,s/\sqrt n$ con $s$ y $n$ del summary de referencia (función pura).
+# La tolerancia (B-pd §3.9, Spec 65961e5) compara la media de $k$ semillas reentrenadas con la de las $n$ de
+# referencia: $|\Delta| \le 3\sqrt{s^2/k + s^2/n}$, con $s$ y $n$ del summary. Con $k = n$ es el $3\sqrt2\,s/\sqrt n$
+# de §8.
 
 # %%
-def test_tolerancia_formula():
-    """dentro si |media − ref| < 3·√2·desv/√n."""
-    ref = {"auc_test": {"media": 0.5, "desv": 0.3, "mejor": 0, "peor": 0, "n": 9}}  # 3√2·0,3/3 = 0,4243
-    assert ue.dentro_de_tolerancia({"auc_test": 0.5 + 0.42}, ref) is True  # dentro
-    assert ue.dentro_de_tolerancia({"auc_test": 0.5 - 0.43}, ref) is False  # fuera
-    assert ue.TOLERANCIA_SIGMAS == pytest.approx(3 * math.sqrt(2))  # 3·√2
+REF_TOL = {"auc_test": {"media": 0.5, "desv": 0.3, "mejor": 0, "peor": 0, "n": 9}}  # s = 0,3, n = 9
+
+
+def test_tolerancia_con_k_igual_a_n_es_la_de_b5():
+    """k = n = 9: 3·√(2·0,3²/9) = 3√2·0,3/3 ≈ 0,4243."""
+    assert ue.tolerancia(0.3, 9, 9) == pytest.approx(3 * math.sqrt(2) * 0.3 / 3)  # la de §8
+    assert ue.dentro_de_tolerancia({"auc_test": 0.5 + 0.42}, REF_TOL, k=9) is True  # dentro
+    assert ue.dentro_de_tolerancia({"auc_test": 0.5 - 0.43}, REF_TOL, k=9) is False  # fuera
+
+
+# %% [markdown]
+# Con $k < n$ la tolerancia crece: $k = 1$ da $3\sqrt{0{,}09 + 0{,}01} \approx 0{,}9487$, así que $\Delta = 0{,}5$ pasa
+# (con $3\sqrt2\,s/\sqrt n$ habría fallado).
+
+# %%
+def test_tolerancia_con_k_menor_que_n():
+    """k = 1: Δ = 0,5 dentro y Δ = 0,95 fuera."""
+    assert ue.tolerancia(0.3, 9, 1) == pytest.approx(3 * math.sqrt(0.09 + 0.01))  # fórmula
+    assert ue.dentro_de_tolerancia({"auc_test": 1.0}, REF_TOL, k=1) is True  # Δ = 0,5: dentro
+    assert ue.dentro_de_tolerancia({"auc_test": 1.45}, REF_TOL, k=1) is False  # Δ = 0,95: fuera
+
+
+# %% [markdown]
+# Con $s = 0$ y $\Delta = 0$ el control pasa (la desigualdad es $\le$); $k$ debe ser un entero $\ge 1$.
+
+# %%
+def test_tolerancia_borde_y_k_invalido():
+    """s = 0 con Δ = 0 → dentro; k = 0 o no entero → ValueError."""
+    ref = {"auc_test": {"media": 0.5, "desv": 0.0, "mejor": 0, "peor": 0, "n": 30}}  # s = 0
+    assert ue.dentro_de_tolerancia({"auc_test": 0.5}, ref, k=30) is True  # Δ = 0
+    for k in (0, 1.5, True):  # k inválidos
+        with pytest.raises(ValueError):  # error esperado
+            ue.dentro_de_tolerancia({"auc_test": 0.5}, ref, k=k)  # inválido
+
+
+# %% [markdown]
+# La entrada de `summary.json` del control se valida: media y desv reales finitos (desv $\ge 0$) y $n$ entero
+# $\ge 1$. Hoy $n = 0$ daba `ZeroDivisionError` y media `None`, `TypeError`, con traza.
+
+# %%
+@pytest.mark.parametrize("campo, valor", [("n", 0), ("n", True), ("n", 2.5), ("n", None), ("media", None),  # malos
+                                          ("media", float("nan")), ("media", "0.5"), ("desv", -0.1),  # media, desv
+                                          ("desv", float("inf")), ("desv", None)])  # desv
+def test_referencia_invalida_es_value_error(campo, valor):
+    """Entrada de summary inválida → ValueError."""
+    ref = {"auc_test": {**REF_TOL["auc_test"], campo: valor}}  # dañada
+    with pytest.raises(ValueError, match="summary.json"):  # error esperado
+        ue.dentro_de_tolerancia({"auc_test": 0.5}, ref, k=9)  # inválida
+
+
+# %% [markdown]
+# Por la vía del script: un summary con $n = 0$ o media `None` en una métrica de prueba sale con código 2 y una línea
+# en stderr, sin escribir nada (también cuando la semilla reentrenada es idéntica).
+
+# %%
+@pytest.mark.parametrize("campo, valor", [("n", 0), ("media", None)])  # los dos casos del revisor
+def test_referencia_invalida_codigo_2(tmp_path, capsys, campo, valor):
+    """manejador → 2 y nada escrito."""
+    summary = _summary(1)  # summary falso válido
+    summary["mlp"]["metricas"]["auc_test"][campo] = valor  # dañado
+    argv = ["--config", str(RUTA_CFG), "--set", "semillas.n=3", "--set", f"salida={SALIDA_REL}",  # demo
+            "--set", f"figuras={FIGURAS_REL}"]  # figuras dentro de salida
+    assert umbral_pd.main(argv, raiz=tmp_path, dep=_dependencias(seed_med=1, summary=summary)) == 2  # código
+    err = capsys.readouterr().err  # stderr
+    assert err.startswith(ue.PREFIJO_ERROR + "ValueError: ") and err.count("\n") == 1  # una línea
+    assert _archivos(tmp_path) == set()  # nada escrito
+
+
+# %% [markdown]
+# Eficiencia: los conteos por cuota se calculan **una vez** por modelo (en val) y por semilla, y sirven para todas las
+# razones (escenarios y curva) y metas. Con 2 modelos y 3 semillas: 5 llamadas a `conteos_por_cuota`.
+
+# %%
+def test_conteos_una_vez_por_modelo_y_semilla(tmp_path, monkeypatch):
+    """conteos_por_cuota se llama 2 + 3 veces; las cuotas no cambian."""
+    llamadas = []  # una entrada por llamada
+    original = u.conteos_por_cuota  # función real
+    monkeypatch.setattr(u, "conteos_por_cuota", lambda *a, **k: llamadas.append(1) or original(*a, **k))  # cuenta
+    res = ue.correr_umbral(_cfg(), raiz=tmp_path, dep=_dependencias())["umbral"]  # corrida
+    assert len(llamadas) == 2 + 3  # dos modelos + tres semillas
+    _, mats = _matrices()  # datos
+    p_val = _Modelo(W_MLP + 0.01).predict_proba(mats["val"][0])  # PD de val del MLP cargado
+    rejilla = np.round(np.linspace(0, 1, 101), 9)  # cuotas
+    esperadas = [u.cuota_optima(mats["val"][1], p_val, r, rejilla)  # versión directa (tras contar las llamadas)
+                 for r in res["curva_costo"]["razones"]]  # cada razón
+    assert res["curva_costo"]["modelos"]["mlp"]["cuota"] == esperadas  # mismas cuotas
 
 
 # %% [markdown]

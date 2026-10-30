@@ -36,6 +36,7 @@ __all__ = [  # interfaz pública (B-pd §3.9)
     "DECIMALES_K", "k_de_cuota", "rechazos_por_cuota", "rechazos_por_umbral", "umbral_de_cuota",  # rechazos
     "matriz_confusion", "tasas", "costo", "umbral_teorico", "conteos_por_cuota", "cuota_optima",  # medidas
     "cuota_para_meta", "curva_sensibilidad", "brier_trivial", "validar_rejilla", "validar_real",  # metas, curva…
+    "cuota_optima_conteos", "cuota_para_meta_conteos",  # cuotas desde conteos ya calculados (un solo orden)
 ]
 
 
@@ -311,20 +312,44 @@ def conteos_por_cuota(y, p, rejilla) -> dict:
 
 
 # %% [markdown]
+# ## Conteos de una rejilla
+#
+# Los conteos de `conteos_por_cuota` validados contra la rejilla: las claves que se usan y un valor por cuota. Así,
+# un mismo cálculo (un solo ordenamiento de $p$) sirve para todas las razones y metas.
+
+# %%
+def _conteos_validos(conteos, cuotas: np.ndarray, claves: tuple[str, ...]) -> dict:
+    """{clave: arreglo} con un valor por cuota; si no, ValueError."""
+    if not isinstance(conteos, dict) or not set(claves) <= set(conteos):  # claves necesarias
+        raise ValueError(f"conteos debe tener las claves {list(claves)}")  # forma
+    arreglos = {k: np.asarray(conteos[k]) for k in claves}  # como arreglos
+    if any(a.shape != cuotas.shape for a in arreglos.values()):  # un valor por cuota
+        raise ValueError(f"conteos debe tener {cuotas.shape[0]} valores por clave (uno por cuota)")  # largo
+    return arreglos  # válidos
+
+
+# %% [markdown]
 # ## Cuota óptima
 #
 # $$r^\* = \arg\min_{r \in \mathcal R}\ \Big(\frac{L}{G}\, FN(r) + FP(r)\Big)$$
 #
 # sobre la rejilla $\mathcal R$ (creciente), con las etiquetas del conjunto (validación en B11). Empate exacto → la
-# **menor** cuota (`argmin` devuelve el primer mínimo).
+# **menor** cuota (`argmin` devuelve el primer mínimo). `cuota_optima_conteos` recibe los conteos ya calculados;
+# `cuota_optima` los calcula y la llama.
 
 # %%
-def cuota_optima(y, p, razon, rejilla) -> float:
-    """Cuota de la rejilla que minimiza (L/G)·FN + FP; empate → la menor."""
+def cuota_optima_conteos(conteos: dict, rejilla, razon) -> float:
+    """Cuota de la rejilla que minimiza (L/G)·FN + FP desde conteos_por_cuota; empate → la menor."""
     r = _razon(razon)  # razón válida
     cuotas = validar_rejilla(rejilla, "rejilla_cuotas")  # rejilla creciente
-    c = conteos_por_cuota(y, p, cuotas)  # conteos por cuota
+    c = _conteos_validos(conteos, cuotas, ("fn", "fp"))  # FN y FP por cuota
     return float(cuotas[int(np.argmin(r * c["fn"] + c["fp"]))])  # primer mínimo = menor cuota
+
+
+def cuota_optima(y, p, razon, rejilla) -> float:
+    """Cuota de la rejilla que minimiza (L/G)·FN + FP; empate → la menor."""
+    _razon(razon)  # razón válida antes de ordenar
+    return cuota_optima_conteos(conteos_por_cuota(y, p, rejilla), rejilla, razon)  # un solo camino
 
 
 # %% [markdown]
@@ -332,17 +357,24 @@ def cuota_optima(y, p, razon, rejilla) -> float:
 #
 # $$r_m = \min\{r \in \mathcal R : \mathrm{TPR}(r) \ge m\}$$
 #
-# con $m \in [0, 1]$; `None` si ninguna cuota de la rejilla la alcanza.
+# con $m \in [0, 1]$; `None` si ninguna cuota de la rejilla la alcanza. Igual que arriba: versión desde conteos y
+# versión directa.
 
 # %%
-def cuota_para_meta(y, p, meta, rejilla) -> float | None:
-    """Menor cuota de la rejilla con TPR ≥ meta (None si ninguna)."""
+def cuota_para_meta_conteos(conteos: dict, rejilla, meta) -> float | None:
+    """Menor cuota de la rejilla con TPR ≥ meta desde conteos_por_cuota (None si ninguna)."""
     m = validar_real(meta, "meta", 0.0, 1.0)  # meta válida
     cuotas = validar_rejilla(rejilla, "rejilla_cuotas")  # rejilla creciente
-    c = conteos_por_cuota(y, p, cuotas)  # conteos por cuota
+    c = _conteos_validos(conteos, cuotas, ("vp", "fn"))  # VP y FN por cuota
     tpr = c["vp"] / (c["vp"] + c["fn"])  # TPR por cuota
     alcanzan = np.flatnonzero(tpr >= m)  # cuotas que alcanzan la meta
     return float(cuotas[alcanzan[0]]) if alcanzan.size else None  # la menor o None
+
+
+def cuota_para_meta(y, p, meta, rejilla) -> float | None:
+    """Menor cuota de la rejilla con TPR ≥ meta (None si ninguna)."""
+    validar_real(meta, "meta", 0.0, 1.0)  # meta válida antes de ordenar
+    return cuota_para_meta_conteos(conteos_por_cuota(y, p, rejilla), rejilla, meta)  # un solo camino
 
 
 # %% [markdown]
