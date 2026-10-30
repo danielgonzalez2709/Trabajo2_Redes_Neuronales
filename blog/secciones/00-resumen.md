@@ -37,5 +37,5 @@ una razón cercana a 1 que en parte sale de errores de la probabilidad y de la e
 | Reporte publicado (este blog) | https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/ (se actualiza con cada cambio en `blog/` que llega a `main`) |
 | Repositorio (código, datos procesados, modelos) | https://github.com/danielgonzalez2709/Trabajo2_Redes_Neuronales |
 | Aplicación web | https://trabajo2-redes-neuronales.vercel.app (los dos modelos de probabilidad, con selector; se vuelve a desplegar con cada cambio que llega a `main`) |
-| Video promocional | pendiente: se publica en YouTube (Parte E) |
+| Video promocional | https://youtu.be/mdBuyLCzUUw (YouTube) |
 | Notebooks (demostración y sustentación) | `notebooks/` en el repositorio |

@@ -8,6 +8,7 @@ app web y video. Curso Redes neuronales y algoritmos bioinspirados, UNAL 2026-02
 - Estado actual: [`docs/MEMORIA.md`](docs/MEMORIA.md)
 - Reporte (blog): https://danielgonzalez2709.github.io/Trabajo2_Redes_Neuronales/
 - Aplicación web: https://trabajo2-redes-neuronales.vercel.app (los dos modelos de PD, con selector)
+- Video promocional: https://youtu.be/mdBuyLCzUUw
 
 ## Instalación (Python 3.12)
 
