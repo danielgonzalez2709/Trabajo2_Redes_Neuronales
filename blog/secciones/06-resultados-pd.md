@@ -311,8 +311,8 @@ umbral (0,2781 en la logística y 0,2870 en el MLP) rechaza en prueba al 19,5 % 
 $L/G = 5$, al 71,0 % y 69,1 % en vez de 70 % y 68 %; con las metas de sensibilidad pasa lo mismo (por ejemplo, la cuota de
 0,33 se vuelve un rechazo de 0,3766 en la logística). Solo con $L/G = 10$, donde ya se rechaza más del 90 %, la tasa baja
 levemente (0,9284 y 0,9077 frente a 0,93 y 0,91). Es decir, una fracción mayor de las PD de 2014 supera esos umbrales y un umbral fijo en PD
-rechaza más: el corte en PD absoluta se mueve con la deriva entre años (la tasa de malos sube de 0,22950 en validación a
-0,26217 en prueba), mientras que la cuota mantiene fija la fracción rechazada. El costo por crédito de prueba de las dos
+rechaza más: la fracción que deja un corte en PD absoluta cambia con el nivel de la PD entre años (a la vez, la tasa de
+malos sube de 0,22950 en validación a 0,26217 en prueba; no probamos que una cosa cause la otra), mientras que la cuota mantiene fija la fracción rechazada. El costo por crédito de prueba de las dos
 reglas es casi el mismo (con $L/G = 2$, 0,4678 con la cuota y 0,4648 con el umbral en la logística).
 
 El panel derecho de la [[fig:pd-umbral-costo]] compara el umbral observado en validación con el teórico $p^* = 1/(1 + L/G)$
@@ -343,8 +343,9 @@ porque $L/G$ depende del negocio y del apetito de riesgo. La cuota es una polít
 fracción de una cohorte ya reunida), no la decisión individual en tiempo real que muestra la app, que solo calcula la PD de
 un solicitante. En estas cifras la logística y el MLP no se distinguen del ruido entre semillas.
 
-Próximos pasos: **recalibrar la PD** (para que $p^*$ sea un corte usable y el umbral en PD no se mueva con la deriva);
+Próximos pasos: **recalibrar la PD** (para que $p^*$ sea un corte usable; recalibrar no impide que la fracción rechazada por un umbral fijo cambie entre años);
 **inferencia de rechazados**, porque solo vemos créditos que Lending Club aprobó y el costo de rechazar se mide en esa
 población; **monitorear la deriva con el PSI** de la PD y de las variables, para saber cuándo revisar el corte; y **fijar
 $L/G$ con datos del negocio** (pérdida dado el incumplimiento y margen de un buen cliente). Por último, como el puntaje de la
-scorecard es lineal en el logaritmo de las odds, un corte en PD equivale a un corte en puntaje (sección 7).
+scorecard es una función decreciente y lineal del logaritmo de las odds, rechazar si PD ≥ $t$ equivale a rechazar si el
+puntaje calculado con esa misma PD es ≤ $s(t)$ (sección 7).
