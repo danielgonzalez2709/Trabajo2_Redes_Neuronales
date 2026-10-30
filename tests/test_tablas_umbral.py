@@ -237,9 +237,9 @@ def test_bloque_que_falta(f, bloque):
 
 # %%
 def test_contrato_en_un_solo_lugar():
-    """Mismos objetos en umbral_experimento y src/viz/umbral_pd; MODELOS = los de B5."""
+    """Mismos objetos en umbral_experimento y src/viz/figs_umbral_pd; MODELOS = los de B5."""
     from src.pd import experimento as ex  # nombres de los modelos de B5
-    from src.viz import umbral_pd as vu  # figuras de B11
+    from src.viz import figs_umbral_pd as vu  # figuras de B11
     assert tu.MODELOS == (ex.MODELO_LOGISTICA, ex.MODELO_MLP)  # orden y nombres
     assert ue.ARCHIVO_UMBRAL is tu.ARCHIVO_UMBRAL and vu.ARCHIVO_UMBRAL is tu.ARCHIVO_UMBRAL  # un solo nombre
     assert ue.MODELOS is tu.MODELOS and vu.MODELOS is tu.MODELOS  # un solo orden

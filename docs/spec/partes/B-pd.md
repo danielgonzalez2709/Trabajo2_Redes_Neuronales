@@ -4,7 +4,7 @@
 |---|---|
 | Responsables | **Andrés** (reparto de la pareja, 24-oct; Juan José hace la Parte C) |
 | Rama personal | `dev/andres` |
-| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `src/pd/sensibilidad.py`, `src/pd/umbral.py`, `src/pd/umbral_experimento.py`, `src/pd/tablas_umbral.py`, `src/viz/umbral_pd.py`, `scripts/umbral_pd.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
+| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `src/pd/sensibilidad.py`, `src/pd/umbral.py`, `src/pd/umbral_experimento.py`, `src/pd/tablas_umbral.py`, `src/viz/figs_umbral_pd.py`, `scripts/umbral_pd.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
 | Estado | **B1–B11 cerradas** (B11 es un complemento [EXTRA, opcional], §3.9) |
 | Lee del núcleo | §0, §3, §4.1, §5.1, §5.2, §5.3, §5.4, §6, §7.1 · **Anexo (enunciado):** Parte 1, tareas 3–5; Regla de comparación justa; Discusión; Entregables 1 (fundamentación matemática) y 3 |
 | Arranca sin esperar | Sí: métricas y MLP con datos sintéticos (núcleo §5.6) desde el jueves 22 |
@@ -271,15 +271,15 @@ corrida y se explica por qué su desviación entre semillas es 0.
   `escenarios`, `curva_costo`, `metas`, `semillas`, `control_semilla_mediana`, más `config`, `tiempo_s` y `evidencia` =
   la de `experimento.evidencia` + SHA-256 de los dos modelos leídos) y `pred_umbral.parquet` (`id`, `split` ∈ {val, test},
   `y`, `pred_logistica`, `pred_mlp`). Figuras `pd-umbral-sensibilidad.png` y `pd-umbral-costo.png`
-  (`src/viz/umbral_pd.py`, con `SALIDA` + `generar(raiz, destino, datos)`; **sin** el prefijo `figs_` a propósito: todo
-  `figs_*` debe estar conectado a `run.py figures` (`tests/test_no_network.py`) y eso tocaría `cli.py`, compartido).
+  (`src/viz/figs_umbral_pd.py`, con `SALIDA` + `generar(raiz, destino, datos)`; conectado a `run.py figures` desde la
+  v0.30, Daniel; antes `umbral_pd.py`, sin el prefijo `figs_`, para no tocar `cli.py`, que es compartido).
 - **Comando:** `python scripts/umbral_pd.py --config configs/pd/umbral.yaml [--set clave=valor …]` (como
   `scripts/diagnostico_nivel_pd.py`, para no tocar `cli.py` ni `run.py`, que son compartidos): escribe el JSON, el parquet
   y regenera las 2 figuras; código 2 y una línea en stderr ante un error esperado. Demo: `--set semillas.n=3 --set
-  salida=results/data/pd_umbral_demo --set figuras=results/data/pd_umbral_demo/figuras`. En el PR se le propone a Daniel
-  conectar `src/viz/umbral_pd.py` a `run.py figures` (renombrándolo `figs_umbral_pd.py`).
+  salida=results/data/pd_umbral_demo --set figuras=results/data/pd_umbral_demo/figuras`. `run.py figures` también las
+  regenera desde `umbral.json` (v0.30).
 - **Código:** formato percent (`# %%`), comentario explicativo por línea, responsabilidad única (`umbral.py` cálculo,
-  `umbral_experimento.py` orquestación con dependencias inyectadas, `tablas_umbral.py` tablas, `src/viz/umbral_pd.py`
+  `umbral_experimento.py` orquestación con dependencias inyectadas, `tablas_umbral.py` tablas, `src/viz/figs_umbral_pd.py`
   figuras, `scripts/umbral_pd.py` CLI) e inversión de dependencias (cargar, entrenar, predecir y escribir se inyectan).
 - **Blog:** 05 **§5.8** (convención, matriz, TPR/TNR, relación con el KS = máx(TPR + TNR − 1), costo, derivación de `p*`,
   Brier del trivial) y 06 **§6.8** después de Limitaciones, que sigue siendo §6.7 porque el blog 10 la cita (6.8.1 frente

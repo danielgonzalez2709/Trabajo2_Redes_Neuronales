@@ -26,6 +26,7 @@
 import copy  # copias de configs
 import math  # raíz cuadrada de la tolerancia
 import os  # enlaces simbólicos (guarda y prueba lenta)
+import shutil  # copia si no se pueden crear enlaces (prueba lenta en Windows)
 from pathlib import Path  # rutas
 
 import numpy as np  # datos sintéticos
@@ -329,7 +330,10 @@ def test_guarda_rechaza_enlace_que_sale_de_la_raiz(tmp_path):
     (raiz / "results" / "data").mkdir(parents=True)  # carpeta padre
     fuera = tmp_path / "fuera"  # destino del enlace
     fuera.mkdir()  # existe
-    os.symlink(fuera, raiz / "results" / "data" / "pd_umbral_link")  # enlace con nombre permitido
+    try:  # Windows sin modo de desarrollador no deja crear enlaces simbólicos (WinError 1314)
+        os.symlink(fuera, raiz / "results" / "data" / "pd_umbral_link")  # enlace con nombre permitido
+    except OSError as error:  # sin privilegio: la guarda no se puede probar en esta máquina
+        pytest.skip(f"no se pudo crear el enlace simbólico: {error}")  # en Linux (CI) sí corre
     with pytest.raises(ValueError, match="salida"):  # error esperado
         ue.validar_rutas(_cfg(salida="results/data/pd_umbral_link", figuras="blog/docs/figures"), raiz=raiz)  # sale
 
@@ -777,12 +781,20 @@ def test_lento_datos_reales(tmp_path):
     """Corrida real con la semilla mediana: control, pred_test y archivos."""
     resumen = load_json(ROOT / "results" / "data" / "pd" / "summary.json")  # semilla mediana real
     raiz = tmp_path / "repo"  # raíz temporal
+
+    def _enlazar(origen: Path, destino: Path) -> None:
+        """Enlace simbólico; si el sistema no lo permite (Windows sin modo de desarrollador), una copia."""
+        try:  # lo normal: enlace de solo lectura
+            os.symlink(origen, destino)  # enlace
+        except OSError:  # WinError 1314: sin privilegio para enlaces
+            (shutil.copytree if origen.is_dir() else shutil.copy2)(origen, destino)  # copia equivalente
+
     for rel in ("data/processed", "results/data/pd"):  # carpetas de entrada reales
         (raiz / rel).parent.mkdir(parents=True, exist_ok=True)  # carpeta padre
-        os.symlink(ROOT / rel, raiz / rel)  # enlace de solo lectura
+        _enlazar(ROOT / rel, raiz / rel)  # enlace de solo lectura (o copia)
     (raiz / "models").mkdir()  # carpeta real: la guarda exige que `modelos` quede dentro de la raíz
     for nombre in ("pd_logistica.joblib", "pd_mlp.pt", "preprocesador_pd.json"):  # archivos que se leen
-        os.symlink(ROOT / "models" / nombre, raiz / "models" / nombre)  # enlace de solo lectura
+        _enlazar(ROOT / "models" / nombre, raiz / "models" / nombre)  # enlace de solo lectura (o copia)
     cfg = load_config(RUTA_CFG)  # config real
     cfg.update(base_seed=resumen["mlp"]["semilla_mediana"], semillas={"n": 1},  # solo la mediana
                salida="results/data/pd_umbral_lento", figuras="results/data/pd_umbral_lento/figuras")  # carpeta propia
@@ -795,8 +807,10 @@ def test_lento_datos_reales(tmp_path):
     pred_test = pd.read_parquet(ROOT / "results" / "data" / "pd" / "pred_test.parquet").set_index("id")  # B5
     te = pred[pred["split"] == "test"].set_index("id")  # test
     assert set(te.index) == set(pred_test.index)  # mismos ids
-    assert np.array_equal(te.loc[pred_test.index, "pred_mlp"], pred_test["pred_mlp"])  # pd_mlp.pt = pred_mlp
-    assert np.array_equal(te.loc[pred_test.index, "pred_logistica"], pred_test["pred_logistica"])  # logística
+    # Bit a bit en la máquina que generó pred_test.parquet; en otra CPU el float32 del MLP cambia ~5e-8 (Windows,
+    # 30-oct) y la logística ~1e-16, así que se compara con una tolerancia muy por debajo de cualquier cifra del blog.
+    for col in ("pred_mlp", "pred_logistica"):  # pd_mlp.pt y la logística = pred_test de B5
+        assert np.allclose(te.loc[pred_test.index, col], pred_test[col], rtol=0, atol=1e-6), col  # tolerancia
     assert {r.name for r in (raiz / "results/data/pd_umbral_lento" / "figuras").iterdir()} == {  # figuras
         "pd-umbral-sensibilidad.png", "pd-umbral-costo.png"}  # las dos
     assert {r: r.stat().st_mtime_ns for r in _archivos(ROOT / "results" / "data" / "pd")} == antes  # B5 intacto

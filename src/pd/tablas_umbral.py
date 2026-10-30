@@ -51,7 +51,7 @@ COLUMNAS_PD_ABSOLUTA = ("p*", "umbral val", "p* − umbral val", "rechazo val", 
 
 # %% [markdown]
 # Un bloque obligatorio de `umbral.json`; si falta → `ValueError` que dice cómo generarlo (la usan también las
-# figuras de `src/viz/umbral_pd.py`).
+# figuras de `src/viz/figs_umbral_pd.py`).
 
 # %%
 def bloque(umbral: dict, clave: str):
