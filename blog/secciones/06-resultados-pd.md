@@ -347,5 +347,5 @@ Próximos pasos: **recalibrar la PD** (para que $p^*$ sea un corte usable; recal
 **inferencia de rechazados**, porque solo vemos créditos que Lending Club aprobó y el costo de rechazar se mide en esa
 población; **monitorear la deriva con el PSI** de la PD y de las variables, para saber cuándo revisar el corte; y **fijar
 $L/G$ con datos del negocio** (pérdida dado el incumplimiento y margen de un buen cliente). Por último, como el puntaje de la
-scorecard es una función decreciente y lineal del logaritmo de las odds, rechazar si PD ≥ $t$ equivale a rechazar si el
+scorecard es una función lineal y decreciente del logit de la PD, rechazar si PD ≥ $t$ equivale a rechazar si el
 puntaje calculado con esa misma PD es ≤ $s(t)$ (sección 7).
