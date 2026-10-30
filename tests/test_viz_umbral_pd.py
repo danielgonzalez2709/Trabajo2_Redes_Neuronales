@@ -12,8 +12,8 @@
 # # Pruebas de `src/viz/umbral_pd.py` (B11, B-pd §3.9)
 #
 # Las figuras se dibujan desde un `umbral.json` **sintético** (el análisis de `umbral_experimento.analizar` sobre PD
-# generadas aquí): `generar` escribe exactamente sus `ARCHIVOS` en `tmp_path`, lee `SALIDA` al llamarse (la convención de
-# los `figs_*`, para poder redirigirla) y las funciones puras validan su entrada. Nunca se escribe en `blog/`.
+# generadas aquí): `generar` escribe exactamente sus `ARCHIVOS` en `tmp_path`, lee `SALIDA` al llamarse (la convención
+# de los `figs_*`, para poder redirigirla) y las funciones puras validan su entrada. Nunca se escribe en `blog/`.
 
 # %% [markdown]
 # ## Importaciones
