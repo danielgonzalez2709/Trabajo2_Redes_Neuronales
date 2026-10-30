@@ -261,12 +261,12 @@ def validar_cfg_umbral(cfg: dict, raiz=None) -> dict:
 # Por defecto, las reales: `experimento.cargar_datos` (partición y preprocesador de A, sin reajustar),
 # `LogisticaPD.cargar`, `MLPPD.cargar`, `experimento.entrenar_semilla` con `MLPPD`, `load_json`,
 # `experimento.evidencia`, `experimento.huella_archivo`, `save_json`, `experimento.escribir_parquet_atomico`, las
-# figuras de `src/viz/umbral_pd.py` y `time.perf_counter`. Las pruebas pasan versiones falsas.
+# figuras de `src/viz/figs_umbral_pd.py` y `time.perf_counter`. Las pruebas pasan versiones falsas.
 
 # %%
 def _generar_figuras(destino: Path, datos: dict) -> list[Path]:
-    """umbral_pd.generar(destino=…, datos=…) (import diferido: matplotlib solo al dibujar)."""
-    from src.viz import umbral_pd as figs_umbral  # figuras de B11
+    """figs_umbral_pd.generar(destino=…, datos=…) (import diferido: matplotlib solo al dibujar)."""
+    from src.viz import figs_umbral_pd as figs_umbral  # figuras de B11
     return figs_umbral.generar(destino=destino, datos=datos)  # las dos figuras
 
 

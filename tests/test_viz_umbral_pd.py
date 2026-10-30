@@ -9,7 +9,7 @@
 # ---
 
 # %% [markdown]
-# # Pruebas de `src/viz/umbral_pd.py` (B11, B-pd §3.9)
+# # Pruebas de `src/viz/figs_umbral_pd.py` (B11, B-pd §3.9)
 #
 # Las figuras se dibujan desde un `umbral.json` **sintético** (el análisis de `umbral_experimento.analizar` sobre PD
 # generadas aquí): `generar` escribe exactamente sus `ARCHIVOS` en `tmp_path`, lee `SALIDA` al llamarse (la convención
@@ -28,7 +28,7 @@ from scipy.special import expit  # σ
 from src.common.config import load_config  # config versionada (solo lectura)
 from src.common.results import save_json  # umbral.json sintético en disco
 from src.pd import umbral_experimento as ue  # analizar y validación del bloque umbral
-from src.viz import umbral_pd as fu  # módulo bajo prueba
+from src.viz import figs_umbral_pd as fu  # módulo bajo prueba
 
 # %% [markdown]
 # ## Datos sintéticos

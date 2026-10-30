@@ -19,9 +19,8 @@
 # | `pd-umbral-costo.png` | cuota óptima de val y rechazo de prueba con el umbral de val contra $L/G$; $t$ vs $p^\*$ |
 #
 # Organización como `figs_pd.py`: funciones **puras** de datos, una de **dibujo** por figura y `generar(raiz,
-# destino, datos)` con `SALIDA` leído al llamarse (redirigible). Va **sin** el prefijo `figs_` a propósito (B-pd §3.9):
-# `tests/test_no_network.py` exige que todo `figs_*` esté conectado a `run.py figures`, y conectarlo es tocar `cli.py`
-# (compartido); si Daniel lo conecta, se renombra `figs_umbral_pd.py`.
+# destino, datos)` con `SALIDA` leído al llamarse (redirigible). Conectado a `run.py figures` (Spec v0.30, Daniel):
+# antes se llamaba `umbral_pd.py`, sin el prefijo `figs_`, para no tocar `cli.py`, que es compartido.
 
 # %%
 """Figuras de B11 (blog 06 §6.8) desde results/data/pd_umbral/umbral.json: sensibilidad al umbral y costo L/G."""

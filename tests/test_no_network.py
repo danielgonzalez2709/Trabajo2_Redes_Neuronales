@@ -140,6 +140,11 @@ def test_comandos_de_run_py_corren_sin_red(sin_red, monkeypatch, tmp_path, argv)
 
         escritos_pd = sorted(r.name for r in destinos["figs_pd"].rglob("*") if r.is_file())  # lo escrito por B
         assert escritos_pd == sorted(figs_pd.ARCHIVOS), escritos_pd  # ni de más ni de menos
+    if argv[0] == "figures":  # B11: la Parte B escribe exactamente sus 2 figuras de umbral y costo
+        from src.viz import figs_umbral_pd  # import local: si falta el módulo, solo falla el caso figures
+
+        escritos_umbral = sorted(r.name for r in destinos["figs_umbral_pd"].rglob("*") if r.is_file())  # B11
+        assert escritos_umbral == sorted(figs_umbral_pd.ARCHIVOS), escritos_umbral  # ni de más ni de menos
     if argv[0] == "figures":  # C7: la Parte C escribe exactamente sus 5 figuras
         from src.viz import figs_scorecard  # import local: si falta el módulo, solo falla el caso figures
 
