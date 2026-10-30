@@ -254,7 +254,8 @@ corrida y se explica por qué su desviación entre semillas es 0.
   `experimento.resumir` (media, desv. muestral, mejor, peor, n). **No se guardan las redes** (solo sus PD).
 - **Control de la semilla mediana:** si está entre las reentrenadas, sus PD (val y test) se comparan con las de
   `models/pd_mlp.pt`: `{identica_bit_a_bit, max_abs_dif, dentro_tolerancia}`. En otra máquina basta la tolerancia de §8
-  (3·√2·EE sobre las medias de las métricas de prueba); fuera de tolerancia → error. Si no está (demo con pocas
+  sobre las medias de las métricas de prueba: |Δ| ≤ 3·√(s²/k + s²/n), con `s` y `n` del `summary.json` de referencia y
+  `k` las semillas reentrenadas (con k = n es el 3·√2·s/√n de §8); fuera de tolerancia → error. Si no está (demo con pocas
   semillas), `null`.
 - **Configuración** `configs/pd/umbral.yaml`: `hereda: base.yaml` (mismo `mlp`, `base_seed` y `semillas`) más
   `salida: results/data/pd_umbral`, `figuras: blog/docs/figures` y el bloque `umbral`: `umbral_inicial: 0.5`,
