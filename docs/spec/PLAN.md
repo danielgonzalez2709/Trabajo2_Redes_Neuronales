@@ -17,7 +17,7 @@
 | **Dom 25** | ✅ A7 blog 01–03 (vie, borrador) · ✅ A8 bibliografía verificada (14; nuevas a pedido) · ✅ A9 notebook 01 (vie) | ✅ B8 blog 04–06 · ✅ B9 notebook 02 (lun 26) · ✅ B10 sensibilidad `grade`/`int_rate` | ✅ C6 hipótesis · ✅ C7 blog 07 · ✅ C8 notebook 03 | ✅ D7 blog 08 (Camila) · ✅ D8 notebook 04 (Camila) | ✅ E3 "¿y si…?" + enlaces (José, PR #17) · ✅ E4 paridad en CI (Daniel, 28-oct: la app entra al check `pruebas`) · ✅ E5 E[L] (PR #9; rehecha con la LGD de D4b, PR #15) · ✅ E6 video: Remotion con las 9 escenas y la curva de B (PR #16); publicado en YouTube el 30-oct (https://youtu.be/mdBuyLCzUUw) |
 | **Lun 26** | Clon limpio · video individual | Video individual | Video individual | Video individual | 🟨 E7 blog publicado (00–13); faltan H-22…H-28 en el 12 y las marcas `revisar: autor` · ✅ E8 `run.py figures` integra todas las partes y el clon limpio pasa (Linux, 28-oct; `auditoria.yml`) · ✅ E9 desplegada (27-oct; sin prueba de usabilidad, Daniel 28-oct) · ✅ E11 notebooks 00 (demo pd) y 05 |
 | **Mar 27–Jue 29** | Video individual · ✅ clon limpio (28-oct) | Video individual · ✅ B6 en otra máquina | Video individual | Video individual | ✅ Clips y edición del video · ✅ blog 12 · ✅ marcas del blog · ✅ URL del video en la app (30-oct) |
-| **Vie 30** | — | — | — | — | **Entrega (23:59)** |
+| **Vie 30** | — | ✅ B11 [EXTRA] umbral, matriz de confusión y costo L/G (Andrés; Spec v0.29) | — | — | **Entrega (23:59)** |
 
 **Hasta el domingo 25 a las 8 p. m., todas las partes:** ≥ 1 hallazgo (o verificación documentada) en `alucinaciones/registro.md`.
 

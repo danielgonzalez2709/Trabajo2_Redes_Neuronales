@@ -19,8 +19,10 @@
 # - **Secciones 2–4 (repaso de la Parte B):** solo leen lo versionado: `data/processed/resumen_datos.json`,
 #   `results/data/eda/post_preprocesamiento.json`, `configs/features.yaml`, `results/data/pd/` y las figuras de
 #   `blog/docs/figures/`.
+# - **Sección 5 (de la PD a la decisión):** solo lee `results/data/pd_umbral/` (`umbral.json`) y dos figuras del blog.
 #
-# El notebook **nunca escribe** en `data/processed/`, `models/`, `results/`, `configs/pd/mlp_final.yaml` ni `blog/`.
+# El notebook **nunca escribe** en `data/processed/`, `models/`, `results/` (incluida `results/data/pd_umbral/`),
+# `configs/pd/mlp_final.yaml` ni `blog/`.
 #
 # **Cómo usar los moldes:** copia al `SET` de la sección 1.0 las claves que quieras cambiar (con su nuevo valor) y corre
 # todo (*Run All*). Una clave mal escrita es un error, igual que en `--set`.
@@ -115,6 +117,7 @@ from src.common.config import load_config  # cargador de YAML (features.yaml)
 from src.common.notebooks import config_notebook  # config del notebook = config del CLI
 from src.common.results import load_json  # lectura de los JSON versionados
 from src.pd import tablas  # tablas y textos de este notebook (B9)
+from src.pd import tablas_umbral  # tablas de la sección 5 (B11)
 from src.pd.experimento import correr_pd  # run.py pd: logística + MLP (B5)
 from src.viz.figs_pd import ENTRADA, generar, insumos_de_corrida  # figuras de la PD (B7)
 from src.viz.figs_pd import SALIDA as FIGURAS_BLOG  # blog/docs/figures (solo lectura)
@@ -122,6 +125,7 @@ from src.viz.figs_pd import SALIDA as FIGURAS_BLOG  # blog/docs/figures (solo le
 RESUMEN_DATOS = "data/processed/resumen_datos.json"  # resumen de la Parte A
 POST_PREPROCESAMIENTO = "results/data/eda/post_preprocesamiento.json"  # descriptivo después del preprocesamiento
 FEATURES = "configs/features.yaml"  # las 15 variables de originación
+UMBRAL = "results/data/pd_umbral/umbral.json"  # resultados de B11 (sección 5)
 FIGURAS_DEMO = ("pd-roc.png", "pd-ks.png", "pd-calibracion.png", "pd-aprendizaje.png", "pd-semillas.png",
                 "pd-busqueda-logistica.png")  # la demo no tiene hpo_ensayos.json: no hay pd-busqueda-mlp
 pd.set_option("display.width", 160)  # tablas anchas
@@ -168,7 +172,8 @@ for nombre in FIGURAS_DEMO:  # en orden
 #
 # La partición es por fecha de originación (train, val y test en ese orden), para medir como se usaría el modelo:
 # con créditos posteriores a los de entrenamiento. Tasa de malos por partición y por año; los años posteriores a test
-# quedan fuera.
+# quedan fuera. La tasa de malos sube de train a test: esa deriva reaparece en la sección 5.5, cuando un corte de PD
+# elegido en val se aplica tal cual en test.
 
 # %%
 resumen_datos = load_json(RESUMEN_DATOS)  # resumen de la Parte A
@@ -319,7 +324,7 @@ display(Image(filename=str(FIGURAS_BLOG / "pd-ks.png")))  # KS
 # Lectura (B-pd §3.6): los dos modelos ordenan el riesgo pero lo **subestiman**: cuando la tasa observada supera a la
 # PD media en un bin, el punto queda **por encima** de la diagonal (la tabla cuenta en cuántos bins pasa). En la
 # sección 2.1 la tasa de malos sube de train a test; eso es consistente con la subestimación, pero aquí no se prueba
-# que sea su causa.
+# que sea su causa. La sección 5 muestra qué implica esta calibración al elegir un corte para aprobar o rechazar.
 
 # %%
 display(tablas.resumen_calibracion(load_json(FIGURAS_BLOG / "pd-calibracion.json")))  # PD media frente a tasa
@@ -334,3 +339,73 @@ display(Image(filename=str(FIGURAS_BLOG / "pd-calibracion.png")))  # curva de ca
 # %%
 print(tablas.ficha_aprendizaje(oficial["semillas"], resumen))  # épocas, mejor época y paciencia
 display(Image(filename=str(FIGURAS_BLOG / "pd-aprendizaje.png")))  # curva de aprendizaje
+
+
+# %% [markdown]
+# ## 5. De la PD a la decisión: el umbral
+#
+# La PD se vuelve una decisión al fijar un corte: se rechaza a quien queda por encima. Positivo = malo; FN = malo
+# aprobado (el error caro), FP = bueno rechazado. La sección **ilustra** cómo cambia la decisión con el corte y con el
+# costo relativo `L/G`; **no fija una política**, que depende del apetito de riesgo del banco. Solo lee
+# `umbral.json` (generado con `python scripts/umbral_pd.py --config configs/pd/umbral.yaml`). Definiciones en el
+# [blog 05](../blog/secciones/05-metricas.md) (§5.8) y resultados en el [blog 06](../blog/secciones/06-resultados-pd.md)
+# (§6.8).
+#
+# ### 5.1 Frente al modelo trivial
+#
+# El modelo trivial asigna a todos la misma PD: la tasa de malos de train (y, como piso teórico que usa etiquetas de
+# prueba, la de test). No ordena (su AUC es la del azar) y su matriz es degenerada: aprueba o rechaza a todos. El
+# Brier dice cuánto mejoran los modelos sobre esa PD constante.
+
+# %%
+umbral = load_json(UMBRAL)  # resultados de B11 (solo lectura)
+print("Tasa de malos por partición:", umbral["trivial"]["tasas"])  # train, val y test
+tablas_umbral.tabla_trivial(umbral)  # Brier del trivial y de los modelos
+
+# %% [markdown]
+# ### 5.2 Matriz de confusión con el umbral inicial
+#
+# Con el umbral inicial de la config (impreso abajo), VP, FN, FP y VN en val y test, la sensibilidad (TPR, malos
+# rechazados entre los malos), la especificidad (TNR, buenos aprobados entre los buenos) y la tasa de rechazo, que
+# muestra a cuántos rechaza ese corte.
+
+# %%
+print("Umbral inicial:", umbral["matriz_inicial"]["umbral"])  # de configs/pd/umbral.yaml
+tablas_umbral.tabla_matriz_inicial(umbral)  # una fila por (modelo, partición)
+
+# %% [markdown]
+# ### 5.3 Sensibilidad al umbral
+#
+# TPR, TNR y tasa de rechazo en toda la rejilla de umbrales, en val y test: bajar el corte rechaza a más malos pero
+# también a más buenos. Ningún umbral es "el correcto" sin decir cuánto cuesta cada error.
+
+# %%
+display(Image(filename=str(FIGURAS_BLOG / "pd-umbral-sensibilidad.png")))  # TPR, TNR y rechazo contra el umbral
+
+# %% [markdown]
+# ### 5.4 Cuota por costo y metas de sensibilidad
+#
+# Para cada razón `L/G` se elige en val la cuota (fracción de créditos de mayor PD que se rechaza) de menor costo
+# `(L/G)·FN + FP`, y se aplica en test sobre la cohorte: es una política **por lotes o de cuota**, no la decisión
+# individual en tiempo real de la app. Las metas fijan la menor cuota con TPR de val por encima de la meta. Al final,
+# la variación entre las semillas del MLP (reentrenadas con la config final) y el control de la semilla mediana.
+
+# %%
+display(Image(filename=str(FIGURAS_BLOG / "pd-umbral-costo.png")))  # cuota y costo contra L/G
+display(tablas_umbral.tabla_escenarios(umbral))  # escenarios L/G: cuota de val y medidas de prueba
+display(tablas_umbral.tabla_metas(umbral))  # metas de sensibilidad
+print("Semillas reentrenadas:", umbral["semillas"]["n"])  # n del resumen
+display(tablas_umbral.tabla_semillas(umbral))  # media, desv., mejor y peor por política
+tablas_umbral.ficha_control(umbral)  # semilla mediana reentrenada = models/pd_mlp.pt
+
+# %% [markdown]
+# ### 5.5 PD absoluta frente a cuota
+#
+# Si la PD estuviera calibrada, el corte de menor costo esperado sería $p^* = 1/(1 + L/G)$. La tabla lo pone junto al
+# umbral de val de la cuota elegida (el corte observado) y su brecha, que mide la descalibración; y compara la tasa de
+# rechazo en test por cuota con la de aplicar ese umbral tal cual: el mismo corte de PD rechaza en test otra fracción
+# de créditos. Eso es consistente con la deriva de la sección 2.1, pero aquí no se prueba que sea su causa.
+
+# %%
+print("Tasa de malos por partición:", umbral["trivial"]["tasas"])  # deriva (sección 2.1)
+tablas_umbral.tabla_pd_absoluta(umbral)  # p*, corte observado y tasas de rechazo

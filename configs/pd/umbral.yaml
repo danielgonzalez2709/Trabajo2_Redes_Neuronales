@@ -1,0 +1,17 @@
+# B11 [EXTRA] (Parte B §3.9, Spec v0.29): de la PD a la decisión (umbral, matriz de confusión y costo L/G).
+# python scripts/umbral_pd.py --config configs/pd/umbral.yaml [--set clave=valor …]
+# Hereda base.yaml: el mismo bloque mlp (mlp_final.yaml), base_seed y semillas (30) del modelo final de B5.
+# Demo (< 2 min): --set semillas.n=3 --set salida=results/data/pd_umbral_demo
+#                 --set figuras=results/data/pd_umbral_demo/figuras
+# Las rutas son relativas a la raíz del repositorio. Guarda (lección H-26): salida = results/data/pd_umbral o su
+# hermana results/data/pd_umbral_<algo>; figuras = blog/docs/figures o una carpeta dentro de salida.
+hereda: base.yaml
+salida: results/data/pd_umbral  # umbral.json y pred_umbral.parquet (nunca results/data/pd ni models/)
+figuras: blog/docs/figures  # pd-umbral-sensibilidad.png y pd-umbral-costo.png
+umbral:
+  umbral_inicial: 0.5  # matriz de confusión inicial (umbral ingenuo)
+  escenarios_razon: [2, 5, 10]  # L/G de la tabla de escenarios (costo de un FN en unidades de un FP)
+  curva_razon: {min: 1, max: 20, n: 25}  # L/G de la figura de costo: rejilla logarítmica de n puntos
+  rejilla_cuotas: {min: 0.0, max: 1.0, n: 101}  # cuotas de rechazo de 0 a 1 en pasos de 0,01 (lineal)
+  rejilla_umbrales: {min: 0.0, max: 1.0, n: 101}  # umbrales de PD de 0 a 1 en pasos de 0,01 (lineal)
+  metas_sensibilidad: [0.5, 0.7, 0.8, 0.9]  # TPR mínima en validación ("% de malos atrapados")

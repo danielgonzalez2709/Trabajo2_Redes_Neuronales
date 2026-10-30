@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | Última actualización | 2026-10-30 |
-| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.26 |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B6–B10 ✅; marcar ✅ B1 en `B-pd.md`; arreglar las 2 pruebas de permisos de `test_hpo.py` que fallan en Windows. C (Juan José): C1–C8 ✅. D: fila V-09. App en producción (https://trabajo2-redes-neuronales.vercel.app); E4 ✅ (CI) y E9 ✅; video publicado (https://youtu.be/mdBuyLCzUUw) y enlazado en app, blog 00 y README. Pendiente: videos individuales (T5.3) |
+| Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.28 (en `dev/andres`: v0.29, B11) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B11 ✅; PR de B11 a `main` abierto (proponer a Daniel conectar `src/viz/umbral_pd.py` a `run.py figures`). C (Juan José): C1–C8 ✅. D: fila V-09. App en producción (https://trabajo2-redes-neuronales.vercel.app); E4 ✅ (CI) y E9 ✅; video publicado (https://youtu.be/mdBuyLCzUUw) y enlazado en app, blog 00 y README. Pendiente: videos individuales (T5.3) |
 | Entrega | **vie 30-oct-2026, 23:59** (extendida desde el mar 27; meta interna por definir) |
 | Sustentación | Posterior a la entrega, por confirmar |
 
@@ -32,6 +32,7 @@ Integrantes: Edinson Andrés Ariza Mendoza, Maria Camila Agudelo Espinosa, Danie
 Juan José González Morales.
 
 ## ✅ Decisiones vigentes
+- B11 [EXTRA] (Andrés, 30-oct; Spec v0.29, B-pd §3.9): de la PD a la decisión. Positivo = malo (FN = prestarle a un malo); costo = (L/G)·FN + FP sin dólares; cuota de rechazo elegida en val (2013) y aplicada en test como política por lotes; contraste con la PD absoluta; p* = 1/(1+L/G) solo como referencia; trivial con tasa de train; 30 semillas reentrenadas sin guardar modelos; `scripts/umbral_pd.py` (no toca `cli.py`); módulo `src/viz/umbral_pd.py` sin prefijo `figs_`; blog §5.8 y §6.8 (6.7 no se renumera); notebook 02 §5. Ilustra; no fija la política.
 - App (Daniel, 28-oct; Spec v0.27): E4 la hace Daniel (la app entra al check `pruebas` del CI); se quita la prueba de usabilidad con 2 personas (R-APP-5, E9).
 - App: arquitectura y UX (José, 26-oct): `app/lib/` es dominio puro (`contrato`, `preprocesar`, `modelo`, `escenarios`), hooks como
   adaptadores, componentes presentacionales y una sola página contenedora; los casos de paridad solo en pruebas. Un solo panel:
@@ -84,13 +85,13 @@ sáb 24 6 p. m. LGD final · sáb 24 noche JSON real · dom 25 8 p. m. blog de c
 
 ## ⏳ Pendientes (decisiones)
 6. B (tras PR #10): refactor `TODO(refactor-post-B5)` (incluye rechazar `datos.muestra` en `pd-hpo`). (Blog 06: `mejor_epoca` = 1 ya va en §6.7, B8.)
-7. ✅ B6 medida en otra máquina (5,0 s); `demo: pd` aceptada; README con torch CPU en Linux (28-oct).
 8. `run.py figures` cambia bytes entre máquinas (sin las fuentes de `paleta.FUENTES` usa DejaVu Sans): avisar a A, D y E (E8).
 
 ## 🎯 Cacería (resumen)
 Confirmados: 29 de 29 (Daniel; H-22…H-29 el 28-oct): Código 17, Matemáticas 5 (H-08, H-10, H-14, H-15, H-28), Datos del mundo real 4 (H-02, H-13, H-23, H-29), Conceptos 3 (H-16, H-21, H-22), Bibliografía 0; por parte A 2, B 14, C 7, D 1, E 5 · H-30 descartado (sin prompt) · V-01…V-11 verificadas · Meta del enunciado (≥ 5 en ≥ 3 categorías) y nuestra (≥ 1 por parte): **cumplidas**. Blog 12 al día (29 hallazgos).
 
 ## 📓 Bitácora
+- **2026-10-30** — B11 ✅ (Andrés, Spec v0.29): umbral, matriz de confusión y costo L/G; 30 semillas en 880 s, control de la semilla mediana bit a bit. Con 0,5 el MLP no rechaza a nadie; L/G = 2/5/10 → cuota 0,16–0,17 / 0,68–0,70 / 0,91–0,93; corte observado < p* (descalibración); logística y MLP no se distinguen. 2 041 pruebas; spec, calidad, matemático, analista y cazador APROBADO. Sin candidatos (3 pruebas propias mal planteadas se corrigieron antes del commit, sin evidencia literal). También: B1 ✅ y marcas de B-pd a [DECIDIDO].
 - **2026-10-30** — E6 ✅: video promocional en YouTube (https://youtu.be/mdBuyLCzUUw); enlace en la app (`app/lib/enlaces.ts`), blog 00, README y PLAN.
 - **2026-10-29** — PR #28 fusionado: `.vscode/settings.json` con `jupyter.notebookFileRoot` (en VS Code fallaba `import src`); los 6 notebooks corren desde la raíz sin `PYTHONPATH`.
 - **2026-10-28** — Daniel confirma H-29 (límite de Vercel, Datos) y descarta H-30: 29 hallazgos; registro y blogs 11 y 12 al día.
@@ -108,8 +109,7 @@ Confirmados: 29 de 29 (Daniel; H-22…H-29 el 28-oct): Código 17, Matemáticas 
 - **2026-10-27** — PR #17 fusionado (app E1–E3c de José, Spec v0.24): CI verde; 104 pruebas y build en Windows; revisada en el navegador.
 - **2026-10-27** — PR #18 (C4) y #19 (B8–B10) fusionados; en el #19, Daniel resolvió los conflictos y el H-24 de B10 pasó a H-26.
 - **2026-10-27** — C6 y C7 (Juan José): `hipotesis.json` (10 de 11 confirmadas; H9 `pub_rec` no concluyente, PSI 0,27; candidato H-27, antes H-26) y blog 07 con 5 figuras `sc-*` y 4 referencias (Štrumbelj descartada). Spec, calidad, analista, matemático (log10, H-28) y cazador APROBADO.
-- **2026-10-27** — B8 ✅ (Andrés): blog 04 (fundamentos) y 05 (métricas) escritos y 06 completo (tabla `pd-comparacion`, §6.7); verificador-matematico y cazador APROBADO; quedan 2 marcas (H-22 y época 1).
-- **2026-10-27** — B10 ✅ (Andrés, Spec v0.23): con `grade` e `int_rate`, ΔAUC test logística +0,0167, MLP +0,0159 (misma arquitectura) / +0,0170 (buscada; no se distingue del ruido); PD media 0,199–0,218 vs 0,262; 2 041 s; analista y cazador OK; H-26 (guarda de rutas); blog 6.6.
+- **2026-10-27** — B10 ✅ (Andrés, Spec v0.23): con `grade` e `int_rate`, ΔAUC test logística +0,0167, MLP +0,0159 (misma arquitectura) / +0,0170 (buscada; no se distingue del ruido); PD media 0,199–0,218 vs 0,262; 2 041 s; analista y cazador OK; H-26 (guarda de rutas); blog 6.6. · B8 ✅: blog 04 (fundamentos) y 05 (métricas) escritos y 06 completo (tabla `pd-comparacion`, §6.7); verificador-matematico y cazador APROBADO; quedan 2 marcas (H-22 y época 1).
 - **2026-10-26** — B9 ✅ (Andrés, Spec v0.22): notebook 02 (moldes + comando, demo 15 s, datos, búsquedas, modelo final), `src/pd/tablas.py` y `espacio.py`; 1 525 pruebas; spec OK, calidad OK en la 2.ª.
 - **2026-10-26** — B6 y B7 (Andrés, PR #16; Spec v0.20–v0.21): demo de PD 13,8–16,0 s en CPU sin red; 7 figuras `pd-*` + JSON de la escena 7 del video; 1 426 pruebas; revisores OK; H-22, H-23; falta medir la demo en otra máquina.
 - **2026-10-26** — App E1–E3c (José, `dev/jose`, sin PR): Next 16 estático; paridad 1000/1000 por modelo (|ΔPD| 2,2e-16); panel
