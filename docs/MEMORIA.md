@@ -13,7 +13,7 @@
 |---|---|
 | Última actualización | 2026-10-30 |
 | Fase | En `main`: Parte A (PR #1), reparto B+C (PR #2), Parte E parcial con `montos.parquet` y contratos v0.10 (PR #3), diccionario y etiquetas en español (PR #4–#5), Parte B: B1–B3 (PR #6) y B4–B5 MLP de PD con 30 semillas (PR #10), Parte D: D1–D8 (PR #7), Parte C: C1–C2 (PR #8) y C3 scorecard de la logística + C5 los dos modelos de PD en la app (PR #12, 26-oct 2:46 p. m.), Parte C: C4 SHAP del MLP (PR #18) y C6–C7 hipótesis y blog 07 (PR #20), Parte E: E5 E[L] por banda de puntaje, notebook 05 y blog 09 (PR #9), E[L] con la LGD de D4b (PR #15), Parte D: D9, D10, D4b y D7b (PR #14, José). Parte B: B6–B7 (PR #16) y B8–B10 (PR #19), Parte E: app E1–E3c (PR #17, José). Parte C: C8 y Spec de la C (PR #24). Spec v0.28 (en `dev/andres`: v0.29, B11) |
-| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B11 ✅; PR de B11 a `main` cuando Andrés lo indique (proponer a Daniel conectar `src/viz/umbral_pd.py` a `run.py figures`). C (Juan José): C1–C8 ✅. D: fila V-09. App en producción (https://trabajo2-redes-neuronales.vercel.app); E4 ✅ (CI) y E9 ✅; falta el enlace del video (Daniel). Daniel: video; fichas de la sustentación (T5.4) |
+| Próxima tarea | Todos: `git pull origin main` en su rama. B (Andrés): B1–B11 ✅; PR de B11 a `main` abierto (proponer a Daniel conectar `src/viz/umbral_pd.py` a `run.py figures`). C (Juan José): C1–C8 ✅. D: fila V-09. App en producción (https://trabajo2-redes-neuronales.vercel.app); E4 ✅ (CI) y E9 ✅; video publicado (https://youtu.be/mdBuyLCzUUw) y enlazado en app, blog 00 y README. Pendiente: videos individuales (T5.3) |
 | Entrega | **vie 30-oct-2026, 23:59** (extendida desde el mar 27; meta interna por definir) |
 | Sustentación | Posterior a la entrega, por confirmar |
 
@@ -92,6 +92,8 @@ Confirmados: 29 de 29 (Daniel; H-22…H-29 el 28-oct): Código 17, Matemáticas 
 
 ## 📓 Bitácora
 - **2026-10-30** — B11 ✅ (Andrés, Spec v0.29): umbral, matriz de confusión y costo L/G; 30 semillas en 880 s, control de la semilla mediana bit a bit. Con 0,5 el MLP no rechaza a nadie; L/G = 2/5/10 → cuota 0,16–0,17 / 0,68–0,70 / 0,91–0,93; corte observado < p* (descalibración); logística y MLP no se distinguen. 2 041 pruebas; spec, calidad, matemático, analista y cazador APROBADO. Sin candidatos (3 pruebas propias mal planteadas se corrigieron antes del commit, sin evidencia literal). También: B1 ✅ y marcas de B-pd a [DECIDIDO].
+- **2026-10-30** — E6 ✅: video promocional en YouTube (https://youtu.be/mdBuyLCzUUw); enlace en la app (`app/lib/enlaces.ts`), blog 00, README y PLAN.
+- **2026-10-29** — PR #28 fusionado: `.vscode/settings.json` con `jupyter.notebookFileRoot` (en VS Code fallaba `import src`); los 6 notebooks corren desde la raíz sin `PYTHONPATH`.
 - **2026-10-28** — Daniel confirma H-29 (límite de Vercel, Datos) y descarta H-30: 29 hallazgos; registro y blogs 11 y 12 al día.
 - **2026-10-28** — Blog 11 completo (B, C, D y E; redactor + cazador, corregido); V-02, V-03, V-04 y V-07 ✅, V-01 y V-10 en parte (candidatos H-29 y H-30, sin confirmar); citas del código verificadas (Murphy, Prechelt).
 - **2026-10-28** — Spec v0.28: pila técnica y notebooks [DECIDIDO]; §13 pendientes 1–4 resueltos. `test_hpo.py` pasa en Windows (permisos portables).
@@ -119,11 +121,9 @@ Confirmados: 29 de 29 (Daniel; H-22…H-29 el 28-oct): Código 17, Matemáticas 
 - **2026-10-26** — Blog 10 (discusión): 2 rondas; verificador-matematico y cazador APROBADO. Corregidas la 2.4 y la 09; H-21. Blog 12 (cacería): 21 hallazgos, todos confirmados por Daniel (H-15 pasa a Matemáticas). Blog 00 y 13 al día; Pages activado y publicado.
 - **2026-10-26** — Spec v0.18: §5.4 de la E[L] y `blog.yml` (Pages). Antes, PR #11 (1:12 p. m.): Spec v0.17, dos modelos en la app.
 - **2026-10-26** — C3, C5 y C4 (Juan José): aditividad 1,1e-13 (H-20); app |ΔPD| ≤ 4,5e-8; SHAP eficiencia 6,2e-15, estabilidad ρ 0,986; top SHAP: term, revol_util, annual_inc; H-24 y H-25. Todo aprobado. PR #12 (C3 y C5) fusionado a las 2:46 p. m.
-- **2026-10-26** — PR #10 fusionado (12:38 p. m., CI en verde; revisado por Daniel): B4 y B5 en `main`. MLP de PD: AUC 0,6716 ±
-  0,0031 frente a 0,6697 de la logística; Brier y log-loss mejores en 30/30 semillas. 2 pruebas de permisos fallan en Windows.
+- **2026-10-26** — PR #10 fusionado (12:38 p. m., CI en verde; revisado por Daniel): B4 y B5 en `main`. MLP de PD: AUC 0,6716 ± 0,0031 frente a 0,6697 de la logística; Brier y log-loss mejores en 30/30 semillas. 2 pruebas de permisos fallan en Windows.
 - **2026-10-26** — PR #9 fusionado (10:26 a. m.): E5, E11 y blog 09 en `main`. Daniel confirma los 15 hallazgos (meta cumplida).
-- **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460
-  en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179. H-13–H-15.
+- **2026-10-26** — E5, E11 y blog 09 (Daniel, en `dev/daniel`): E[L] por bandas de puntaje (scorecard de C) con la logística y la MLP de LGD: 196,7 M USD en test; contraste solo con los resueltos: 177,9 M frente a 168,2 M realizados (razón 1,057); 5 460 en mora con 61,3 M provisionales (LGD = 1 supuesta). La razón ≈ 1 resulta de tres efectos: PD 0,925 · LGD 0,970 · EAD 1,179. H-13–H-15.
 - **2026-10-26** — PR #8 fusionado (7:46 a. m., CI en verde; revisado por Daniel): Parte C C1–C2 en `main`. JSON de la app verificado aparte: contrato §5.5, 600 puntos en 50:1, paridad |ΔPD| ≤ 1,3e-8 en los 1 000 casos e igual al joblib de B en todo el test.
 - **2026-10-26** — B5 (Andrés): `run.py pd`; 812 pruebas; 3 revisores + analista OK. Test: MLP AUC 0,67163 ± 0,00309 (logística 0,66965; 24/30), Brier 0,18324 ± 0,00108 (0,18652; 30/30); mediana = semilla 20; semilla 0 = ensayo #11 bit a bit. H-18, H-19.
 - **2026-10-25** — PR #7 fusionado (1:26 p. m.; revisado por Daniel): Parte D D1–D8 en `main`. Primera E[L] real (logística de B + MLP de D) en todo el test: 196,7 M USD. Detalles para Camila en el PR; figuras de A y notebooks 00/01 restaurados.
