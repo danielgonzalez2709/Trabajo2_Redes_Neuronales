@@ -126,6 +126,41 @@ def test_tabla_escenarios_umbral_nulo_vacio():
 
 
 # %% [markdown]
+# ## 3b. PD absoluta frente a cuota
+#
+# Una fila por ($L/G$, modelo): $p^\*$, el umbral de val de la cuota elegida, su brecha y la tasa de rechazo en val,
+# en prueba por cuota y en prueba con el umbral de val (notebook 02 §5.5).
+
+# %%
+def test_tabla_pd_absoluta():
+    """Celdas de p*, umbral de val, brecha y tasas de rechazo."""
+    u = _umbral()  # resultado
+    t = tu.tabla_pd_absoluta(u)  # tabla
+    assert t.shape[0] == 3 * 2 and list(t.columns) == list(tu.COLUMNAS_PD_ABSOLUTA)  # 3 razones × 2 modelos
+    e = u["escenarios"][2]  # L/G = 10
+    d = e["modelos"]["mlp"]  # JSON
+    fila = t.loc[(e["razon"], tu.NOMBRE_MODELO["mlp"])]  # fila
+    assert fila["p*"] == e["p_estrella"] and fila["umbral val"] == d["umbral_val"]  # referencia y corte observado
+    assert fila["p* − umbral val"] == e["p_estrella"] - d["umbral_val"]  # brecha
+    assert fila["rechazo val"] == d["val"]["tasa_rechazo"]  # val
+    assert fila["rechazo prueba (cuota)"] == d["test_cuota"]["tasa_rechazo"]  # cuota
+    assert fila["rechazo prueba (umbral val)"] == d["test_umbral"]["tasa_rechazo"]  # PD absoluta
+
+
+# %% [markdown]
+# Un umbral de val nulo (cuota 0) deja vacíos el umbral y la brecha, nunca NaN.
+
+# %%
+def test_tabla_pd_absoluta_umbral_nulo_vacio():
+    """umbral_val None → umbral y brecha VACIO."""
+    u = _umbral()  # resultado
+    u["escenarios"][0]["modelos"]["logistica"]["umbral_val"] = None  # cuota 0
+    fila = tu.tabla_pd_absoluta(u).loc[(u["escenarios"][0]["razon"], tu.NOMBRE_MODELO["logistica"])]  # fila
+    assert fila["umbral val"] == tu.VACIO and fila["p* − umbral val"] == tu.VACIO  # vacíos
+    assert not tu.tabla_pd_absoluta(u).isna().any().any()  # sin NaN
+
+
+# %% [markdown]
 # ## 4. Metas
 #
 # Una fila por (meta, modelo); una meta inalcanzable deja la fila vacía.
@@ -183,6 +218,7 @@ def test_ficha_control():
 # %%
 @pytest.mark.parametrize("f, bloque", [(tu.tabla_trivial, "trivial"), (tu.tabla_matriz_inicial, "matriz_inicial"),
                                        (tu.tabla_escenarios, "escenarios"), (tu.tabla_metas, "metas"),  # bloques
+                                       (tu.tabla_pd_absoluta, "escenarios"),  # PD absoluta
                                        (tu.tabla_semillas, "semillas"),  # semillas
                                        (tu.ficha_control, "control_semilla_mediana")])  # control
 def test_bloque_que_falta(f, bloque):

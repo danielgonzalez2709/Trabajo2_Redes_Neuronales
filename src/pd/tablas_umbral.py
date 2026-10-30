@@ -19,7 +19,7 @@
 # `ValueError` que lo nombra.
 
 # %%
-"""Tablas de B11 desde umbral.json: trivial, matriz inicial, escenarios L/G, metas, semillas y control."""
+"""Tablas de B11 desde umbral.json: trivial, matriz inicial, escenarios L/G, PD absoluta, metas, semillas y control."""
 
 import pandas as pd  # tablas
 
@@ -45,6 +45,8 @@ COLUMNAS_MATRIZ = {"vp": "VP", "fn": "FN", "fp": "FP", "vn": "VN", "tpr": "TPR",
 ETIQUETA_TEST_SEMILLA = {"tpr_test": "TPR prueba", "tnr_test": "TNR prueba",  # métricas de las semillas
                          "tasa_aprobacion_test": "aprobación prueba"}  # aprobación
 COLUMNAS_RESUMEN = ("media", "desv", "mejor", "peor", "n")  # de experimento.resumir
+COLUMNAS_PD_ABSOLUTA = ("p*", "umbral val", "p* − umbral val", "rechazo val", "rechazo prueba (cuota)",  # orden
+                        "rechazo prueba (umbral val)")  # tabla de la PD absoluta frente a la cuota
 
 
 # %% [markdown]
@@ -120,6 +122,29 @@ def tabla_escenarios(umbral: dict) -> pd.DataFrame:
                           "rechazo prueba (umbral val)": t_umbral["tasa_rechazo"],  # PD absoluta
                           "TPR prueba (umbral val)": t_umbral["tpr"],  # PD absoluta
                           "costo/crédito prueba (umbral val)": t_umbral["costo_por_credito"]})  # PD absoluta
+    return pd.DataFrame(filas).set_index(["L/G", "modelo"])  # tabla
+
+
+# %% [markdown]
+# ## PD absoluta frente a cuota
+#
+# Una fila por ($L/G$, modelo): $p^\*$ (el corte si la PD estuviera calibrada), el umbral de val de la cuota elegida
+# (el corte observado), su brecha $p^\* - t_{\text{val}}$ (mide la descalibración, B-pd §3.9) y la tasa de rechazo en
+# val, en prueba por cuota y en prueba con el umbral de val (efecto de la deriva). Umbral nulo → umbral y brecha vacíos.
+
+# %%
+def tabla_pd_absoluta(umbral: dict) -> pd.DataFrame:
+    """Índice (L/G, modelo); columnas COLUMNAS_PD_ABSOLUTA."""
+    filas = []  # una por (razón, modelo)
+    for e in bloque(umbral, "escenarios"):  # cada razón
+        for m in MODELOS:  # cada modelo
+            d = e["modelos"][m]  # política
+            t_val = d["umbral_val"]  # corte observado en val (None con cuota 0)
+            brecha = VACIO if t_val is None else e["p_estrella"] - t_val  # p* − t_val
+            valores = (e["p_estrella"], _o_vacio(t_val), brecha, d["val"]["tasa_rechazo"],  # val
+                       d["test_cuota"]["tasa_rechazo"], d["test_umbral"]["tasa_rechazo"])  # prueba
+            filas.append({"L/G": e["razon"], "modelo": NOMBRE_MODELO[m],  # índice
+                          **dict(zip(COLUMNAS_PD_ABSOLUTA, valores, strict=True))})  # celdas
     return pd.DataFrame(filas).set_index(["L/G", "modelo"])  # tabla
 
 
