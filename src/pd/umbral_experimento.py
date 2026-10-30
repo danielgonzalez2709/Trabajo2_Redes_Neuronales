@@ -154,7 +154,8 @@ def _lista_reales(valor, nombre: str, minimo: float, maximo: float, abierto_abaj
     """Lista no vacía de reales validados; si no, ValueError."""
     if not isinstance(valor, list) or not valor:  # lista no vacía
         raise ValueError(f"umbral.{nombre} debe ser una lista no vacía; se recibió {valor!r}")  # forma
-    return [u.validar_real(v, f"umbral.{nombre}[{i}]", minimo, maximo, abierto_abajo) for i, v in enumerate(valor)]
+    return [u.validar_real(v, f"umbral.{nombre}[{i}]", minimo, maximo, abierto_abajo)  # cada valor
+            for i, v in enumerate(valor)]  # en orden
 
 
 def _entero(valor, nombre: str, minimo: int) -> int:
@@ -425,7 +426,8 @@ def _trivial(preds: dict, tasa_train: float) -> dict:
     def con_q(q: float) -> dict:  # Brier del trivial con PD q
         return {"q": q, **{f"brier_{s}": u.brier_trivial(preds[s]["y"], q) for s in SPLITS}}  # val y test
     return {"tasas": tasas, "principal": con_q(tasa_train), "piso_teorico": con_q(tasas["test"]),  # triviales
-            "modelos": {m: {f"brier_{s}": brier(preds[s]["y"], preds[s][m]) for s in SPLITS} for m in MODELOS}}
+            "modelos": {m: {f"brier_{s}": brier(preds[s]["y"], preds[s][m]) for s in SPLITS}  # Brier del modelo
+                        for m in MODELOS}}  # los dos modelos
 
 
 # %% [markdown]
@@ -478,8 +480,10 @@ def _curva_costo(preds: dict, razones: np.ndarray, cuotas: np.ndarray) -> dict:
                             "tasa_rechazo_test_cuota": lista(m, lambda d: d["test_cuota"]["tasa_rechazo"]),  # cuota
                             "tasa_rechazo_test_umbral": lista(m, lambda d: d["test_umbral"]["tasa_rechazo"]),  # PD
                             "costo_por_credito_val": lista(m, lambda d: d["val"]["costo_por_credito"]),  # val
-                            "costo_por_credito_test_cuota": lista(m, lambda d: d["test_cuota"]["costo_por_credito"]),
-                            "costo_por_credito_test_umbral": lista(m, lambda d: d["test_umbral"]["costo_por_credito"])}
+                            "costo_por_credito_test_cuota":  # costo de prueba por cuota
+                                lista(m, lambda d: d["test_cuota"]["costo_por_credito"]),  # lista
+                            "costo_por_credito_test_umbral":  # costo de prueba con el umbral de val
+                                lista(m, lambda d: d["test_umbral"]["costo_por_credito"])}  # lista
                         for m in MODELOS}}  # dos modelos
 
 
@@ -517,14 +521,16 @@ def _decision_semilla(yv, pv, yt, pt, cuota) -> dict:
     if cuota is None:  # meta inalcanzable
         return {"cuota": None, **dict.fromkeys(CLAVES_TEST_SEMILLA)}  # nulos
     t = u.tasas(u.matriz_confusion(yt, u.rechazos_por_cuota(pt, cuota)))  # tasas de test
-    return {"cuota": cuota, "tpr_test": t["tpr"], "tnr_test": t["tnr"], "tasa_aprobacion_test": t["tasa_aprobacion"]}
+    return {"cuota": cuota, "tpr_test": t["tpr"], "tnr_test": t["tnr"],  # cuota, TPR y TNR
+            "tasa_aprobacion_test": t["tasa_aprobacion"]}  # aprobación
 
 
 def _resumen(decisiones: list[dict]) -> dict | None:
     """experimento.resumir de CLAVES_TEST_SEMILLA o None si falta alguna."""
     if any(d["cuota"] is None for d in decisiones):  # alguna semilla no alcanzó
         return None  # sin resumen
-    return ex.resumir([{k: d[k] for k in CLAVES_TEST_SEMILLA} for d in decisiones], sentido=SENTIDO_DECISION)
+    return ex.resumir([{k: d[k] for k in CLAVES_TEST_SEMILLA} for d in decisiones],  # una corrida por semilla
+                      sentido=SENTIDO_DECISION)  # mayor es mejor
 
 
 def _semillas(preds: dict, sem_preds: list[dict], ucfg: dict) -> dict:

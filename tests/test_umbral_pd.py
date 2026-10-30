@@ -487,7 +487,8 @@ def test_entradas_con_y_invalidas(y, p):
 # %%
 def test_n_minimo():
     """n = 2 con las dos clases: cuota 0,5 rechaza al de mayor PD."""
-    assert u.matriz_confusion([1, 0], u.rechazos_por_cuota([0.6, 0.4], 0.5)) == {"vp": 1, "fn": 0, "fp": 0, "vn": 1}
+    m = u.matriz_confusion([1, 0], u.rechazos_por_cuota([0.6, 0.4], 0.5))  # rechaza al de 0,6 (malo)
+    assert m == {"vp": 1, "fn": 0, "fp": 0, "vn": 1}  # matriz perfecta
     with pytest.raises(ValueError):  # una sola fila: una sola clase
         u.matriz_confusion([1], np.array([True]))  # inválida
 

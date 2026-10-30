@@ -438,11 +438,13 @@ def test_cuota_cero_umbral_null(tmp_path):
     cfg = _cfg()  # config
     cfg["umbral"]["escenarios_razon"] = [1e-9]  # FN casi gratis
     al_reves = _Modelo(-3 * W_VERDAD)  # ordena al revés: los de mayor PD son buenos → rechazar cuesta
-    res = ue.correr_umbral(cfg, raiz=tmp_path, dep=_dependencias(seed_med=20, mlp_cargado=al_reves))["umbral"]
+    dep = _dependencias(seed_med=20, mlp_cargado=al_reves)  # sin control (semilla 20 ausente)
+    res = ue.correr_umbral(cfg, raiz=tmp_path, dep=dep)["umbral"]  # corrida
     d = res["escenarios"][0]["modelos"]["mlp"]  # MLP
     assert d["cuota"] == 0.0 and d["umbral_val"] is None  # +inf → null
     assert d["test_umbral"]["tasa_rechazo"] == 0.0  # no rechaza a nadie
-    assert load_json(tmp_path / SALIDA_REL / ue.ARCHIVO_UMBRAL)["escenarios"][0]["modelos"]["mlp"]["umbral_val"] is None
+    escrito = load_json(tmp_path / SALIDA_REL / ue.ARCHIVO_UMBRAL)  # JSON en disco
+    assert escrito["escenarios"][0]["modelos"]["mlp"]["umbral_val"] is None  # null en el JSON
 
 
 # %% [markdown]

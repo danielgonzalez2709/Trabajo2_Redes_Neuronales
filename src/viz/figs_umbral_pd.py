@@ -94,7 +94,8 @@ def datos_sensibilidad(umbral: dict) -> dict:
     eje = list(s["umbrales"])  # umbrales
     modelos = {m: {sp: {c: _mismo_largo(eje, s["modelos"][m][sp][c], f"{m}.{sp}.{c}") for c in CURVAS}  # curvas
                    for sp in SPLITS} for m in MODELOS}  # por modelo y split
-    return {"umbrales": eje, "umbral_inicial": _bloque(umbral, "matriz_inicial")["umbral"], "modelos": modelos}
+    return {"umbrales": eje, "umbral_inicial": _bloque(umbral, "matriz_inicial")["umbral"],  # eje y 0,5
+            "modelos": modelos}  # curvas
 
 
 # %% [markdown]
@@ -113,10 +114,12 @@ def datos_costo(umbral: dict) -> dict:
         d = c["modelos"][m]  # listas del modelo
         modelos[m] = {"cuota": _mismo_largo(eje, d["cuota"], f"{m}.cuota"),  # r*
                       "rechazo_cuota": _mismo_largo(eje, d["tasa_rechazo_test_cuota"], f"{m}.rechazo_cuota"),  # test
-                      "rechazo_umbral": _mismo_largo(eje, d["tasa_rechazo_test_umbral"], f"{m}.rechazo_umbral"),
+                      "rechazo_umbral": _mismo_largo(eje, d["tasa_rechazo_test_umbral"],  # PD absoluta en test
+                                                     f"{m}.rechazo_umbral"),  # nombre
                       "umbral_val": [math.nan if t is None else t  # null → NaN (hueco en la curva)
                                      for t in _mismo_largo(eje, d["umbral_val"], f"{m}.umbral_val")]}  # t_val
-    return {"razones": eje, "p_estrella": _mismo_largo(eje, c["p_estrella"], "p_estrella"), "modelos": modelos}
+    return {"razones": eje, "p_estrella": _mismo_largo(eje, c["p_estrella"], "p_estrella"),  # eje y p*
+            "modelos": modelos}  # curvas
 
 
 # %% [markdown]
