@@ -35,7 +35,7 @@ from src.common.metricas import brier, validar_entradas  # validación y Brier c
 __all__ = [  # interfaz pública (B-pd §3.9)
     "DECIMALES_K", "k_de_cuota", "rechazos_por_cuota", "rechazos_por_umbral", "umbral_de_cuota",  # rechazos
     "matriz_confusion", "tasas", "costo", "umbral_teorico", "conteos_por_cuota", "cuota_optima",  # medidas
-    "cuota_para_meta", "curva_sensibilidad", "brier_trivial", "validar_rejilla", "validar_real",  # metas, curva, trivial
+    "cuota_para_meta", "curva_sensibilidad", "brier_trivial", "validar_rejilla", "validar_real",  # metas, curva…
 ]
 
 

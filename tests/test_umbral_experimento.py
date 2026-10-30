@@ -234,7 +234,7 @@ def test_datos_muestra_no_null_es_error(tmp_path):
     ("escenarios_razon", [float("nan")]), ("escenarios_razon", [float("inf")]),  # no finitas
     ("curva_razon", {"min": 20, "max": 1, "n": 25}), ("curva_razon", {"min": 0, "max": 20, "n": 25}),  # curva
     ("curva_razon", {"min": 1, "max": 20, "n": 1}), ("curva_razon", {"min": 1, "max": 20, "n": 2.5}),  # n
-    ("rejilla_cuotas", {"min": 0, "max": 1.5, "n": 101}), ("rejilla_cuotas", {"min": 0.5, "max": 0.5, "n": 3}),  # cuotas
+    ("rejilla_cuotas", {"min": 0, "max": 1.5, "n": 101}), ("rejilla_cuotas", {"min": 0.5, "max": 0.5, "n": 3}),  # cuo.
     ("rejilla_umbrales", {"min": -0.1, "max": 1, "n": 101}), ("rejilla_umbrales", [0, 0.5]),  # umbrales
     ("metas_sensibilidad", []), ("metas_sensibilidad", [1.2]), ("metas_sensibilidad", [True]),  # metas
 ])
@@ -599,7 +599,10 @@ def test_valida_antes_de_leer(tmp_path):
 def test_figuras_reciben_destino_y_datos(tmp_path):
     """generar_figuras(destino, datos) con destino = figuras absoluta."""
     llamadas = []  # argumentos recibidos
-    dep = _dependencias(figuras=lambda destino, datos: llamadas.append((destino, datos)) or [destino / "x.png"])  # falsa
+    def figuras(destino, datos):  # generador falso que anota sus argumentos
+        llamadas.append((destino, datos))  # argumentos
+        return [destino / "x.png"]  # una ruta
+    dep = _dependencias(figuras=figuras)  # inyecta
     res = ue.correr_umbral(_cfg(), raiz=tmp_path, dep=dep)  # corrida
     assert llamadas[0][0] == (tmp_path / FIGURAS_REL).resolve()  # destino
     assert llamadas[0][1] is res["umbral"]  # mismo resultado
