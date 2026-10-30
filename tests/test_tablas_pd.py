@@ -797,9 +797,9 @@ ARCHIVOS_PERCENT = ("src/pd/tablas.py", "src/pd/espacio.py", "tests/test_tablas_
                     "tests/test_notebook_02_pd.py", "tests/test_espacio.py",  # de B9
                     "src/pd/sensibilidad.py", "tests/test_sensibilidad_pd.py",  # de B10
                     "src/pd/umbral.py", "src/pd/umbral_experimento.py", "src/pd/tablas_umbral.py",  # de B11
-                    "src/viz/figs_umbral_pd.py", "scripts/umbral_pd.py", "tests/test_umbral_pd.py",  # de B11
+                    "src/viz/umbral_pd.py", "scripts/umbral_pd.py", "tests/test_umbral_pd.py",  # de B11
                     "tests/test_umbral_experimento.py", "tests/test_tablas_umbral.py",  # de B11
-                    "tests/test_figs_umbral_pd.py")  # de B11
+                    "tests/test_viz_umbral_pd.py")  # de B11
 
 
 # %% [markdown]
