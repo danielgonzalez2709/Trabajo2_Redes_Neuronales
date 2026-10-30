@@ -35,7 +35,7 @@ from src.common.metricas import brier, validar_entradas  # validación y Brier c
 __all__ = [  # interfaz pública (B-pd §3.9)
     "DECIMALES_K", "k_de_cuota", "rechazos_por_cuota", "rechazos_por_umbral", "umbral_de_cuota",  # rechazos
     "matriz_confusion", "tasas", "costo", "umbral_teorico", "conteos_por_cuota", "cuota_optima",  # medidas
-    "cuota_para_meta", "curva_sensibilidad", "brier_trivial", "validar_rejilla",  # metas, curva y trivial
+    "cuota_para_meta", "curva_sensibilidad", "brier_trivial", "validar_rejilla", "validar_real",  # metas, curva, trivial
 ]
 
 
@@ -57,7 +57,7 @@ CLAVES_MATRIZ = ("vp", "fn", "fp", "vn")  # conteos de la matriz de confusión
 # excluye el mínimo (p. ej. la razón $L/G > 0$). Devuelve el `float`.
 
 # %%
-def _real(valor, nombre: str, minimo: float, maximo: float, abierto_abajo: bool = False) -> float:
+def validar_real(valor, nombre: str, minimo: float, maximo: float, abierto_abajo: bool = False) -> float:
     """``valor`` como float finito en [minimo, maximo] (o (minimo, maximo]); si no, ValueError."""
     if isinstance(valor, bool) or not isinstance(valor, (int, float, np.integer, np.floating)):  # True o "0.5"
         raise ValueError(f"{nombre} debe ser un número real; se recibió {valor!r}")  # tipo
@@ -110,7 +110,7 @@ def _validar_yp(y, p) -> tuple[np.ndarray, np.ndarray]:
 # %%
 def k_de_cuota(cuota, n: int) -> int:
     """k = ⌈round(cuota·n, 9)⌉ con cuota ∈ [0, 1]."""
-    r = _real(cuota, "cuota", 0.0, 1.0)  # cuota válida
+    r = validar_real(cuota, "cuota", 0.0, 1.0)  # cuota válida
     return int(math.ceil(round(r * n, DECIMALES_K)))  # techo tras redondear a 9 decimales
 
 
@@ -152,7 +152,7 @@ def _umbral_valido(t) -> float:
     """t ∈ [0, 1] o +inf; si no, ValueError."""
     if isinstance(t, (int, float, np.integer, np.floating)) and not isinstance(t, bool) and t == math.inf:  # +inf
         return math.inf  # no rechaza a nadie
-    return _real(t, "umbral", 0.0, 1.0)  # umbral finito en [0, 1]
+    return validar_real(t, "umbral", 0.0, 1.0)  # umbral finito en [0, 1]
 
 
 def rechazos_por_umbral(p, t) -> np.ndarray:
@@ -247,7 +247,7 @@ def tasas(m: dict) -> dict:
 # %%
 def _razon(razon) -> float:
     """L/G real, finita y > 0; si no, ValueError."""
-    return _real(razon, "razón L/G", 0.0, math.inf, abierto_abajo=True)  # (0, ∞) (isfinite excluye +inf)
+    return validar_real(razon, "razón L/G", 0.0, math.inf, abierto_abajo=True)  # (0, ∞) (isfinite excluye +inf)
 
 
 def costo(m: dict, razon) -> dict:
@@ -281,7 +281,7 @@ def umbral_teorico(razon) -> float:
 # %%
 def validar_rejilla(rejilla, nombre: str = "rejilla") -> np.ndarray:
     """rejilla como float64 1-D, no vacía, estrictamente creciente y en [0, 1]; si no, ValueError."""
-    valores = [_real(v, f"{nombre}[{i}]", 0.0, 1.0) for i, v in enumerate(rejilla)]  # cada valor
+    valores = [validar_real(v, f"{nombre}[{i}]", 0.0, 1.0) for i, v in enumerate(rejilla)]  # cada valor
     arr = np.asarray(valores, dtype=float)  # vector
     if arr.shape[0] == 0:  # vacía
         raise ValueError(f"{nombre} no puede estar vacía")  # vacía
@@ -337,7 +337,7 @@ def cuota_optima(y, p, razon, rejilla) -> float:
 # %%
 def cuota_para_meta(y, p, meta, rejilla) -> float | None:
     """Menor cuota de la rejilla con TPR ≥ meta (None si ninguna)."""
-    m = _real(meta, "meta", 0.0, 1.0)  # meta válida
+    m = validar_real(meta, "meta", 0.0, 1.0)  # meta válida
     cuotas = validar_rejilla(rejilla, "rejilla_cuotas")  # rejilla creciente
     c = conteos_por_cuota(y, p, cuotas)  # conteos por cuota
     tpr = c["vp"] / (c["vp"] + c["fn"])  # TPR por cuota
