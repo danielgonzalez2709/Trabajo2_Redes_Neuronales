@@ -4,7 +4,8 @@
 |---|---|
 | Responsables | **Andrés** (reparto de la pareja, 24-oct; Juan José hace la Parte C) |
 | Rama personal | `dev/andres` |
-| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `src/pd/sensibilidad.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
+| Carpetas propias | `src/pd/`, `src/common/metricas.py`, `src/common/torch_utils.py`, `configs/pd/`, `src/viz/figs_pd.py`, `src/pd/tablas.py`, `src/pd/espacio.py`, `src/pd/sensibilidad.py`, `src/pd/umbral.py`, `src/pd/umbral_experimento.py`, `src/pd/tablas_umbral.py`, `src/viz/figs_umbral_pd.py`, `scripts/umbral_pd.py`, `notebooks/02_pd.py`, `blog/secciones/04–06` |
+| Estado | **B1–B10 cerradas; B11 es un complemento [EXTRA, opcional]** (§3.9) |
 | Lee del núcleo | §0, §3, §4.1, §5.1, §5.2, §5.3, §5.4, §6, §7.1 · **Anexo (enunciado):** Parte 1, tareas 3–5; Regla de comparación justa; Discusión; Entregables 1 (fundamentación matemática) y 3 |
 | Arranca sin esperar | Sí: métricas y MLP con datos sintéticos (núcleo §5.6) desde el jueves 22 |
 
@@ -46,9 +47,11 @@ corrida y se explica por qué su desviación entre semillas es 0.
   **(λ/2)‖W‖²** en la pérdida (gradiente λW) o, de forma equivalente, `weight_decay = λ` de `Adam`/`SGD`, que suma λW al
   gradiente; los sesgos van sin L2 [DECIDIDO, Andrés, 24-oct; `mlp.l2` = λ]. Ojo: λ‖W‖² (sin el ½) tiene gradiente 2λW y
   **no** equivale a `weight_decay = λ` (corrección v0.13, hallazgo H-08 del verificador-matematico). Loshchilov & Hutter
-  (2019), arXiv:1711.05101: L2 y weight decay coinciden en SGD pero no en Adam [VERIFICAR: TODO(cita) en el blog].
-- Desbalance [PROPUESTO]: `pos_weight = 1` por defecto para no descalibrar la PD (la PD alimenta la scorecard y la E[L]). Otro
-  valor solo como sensibilidad, reportando su efecto en Brier y calibración.
+  (2019), arXiv:1711.05101: L2 y weight decay coinciden en SGD pero no en Adam [DECIDIDO; cita verificada (V-11), en
+  `blog/references.bib` y citada en el blog 04].
+- Desbalance [DECIDIDO, Andrés, B2]: `pos_weight = 1` en todas las corridas reportadas, para no descalibrar la PD (la PD
+  alimenta la scorecard y la E[L]). Otro valor solo como sensibilidad, reportando su efecto en Brier y calibración (no se
+  corrió).
 - `entrenar.py` es genérico (recibe pérdida y modelo): D lo reutiliza para la LGD.
 - Decisiones de B2 [DECIDIDO, Andrés, 24/25-oct]: `pos_weight` va dentro del bloque `mlp` (`mlp.pos_weight`, obligatorio,
   1 por defecto); parada temprana con `min_delta = 0` (mejora = pérdida de validación estrictamente menor); pérdida no finita
@@ -81,7 +84,7 @@ corrida y se explica por qué su desviación entre semillas es 0.
 - `en_borde` = {lr, l2, dropout: "min" | "max" | null}: el valor elegido está en el borde si queda a ≤ 5 % del ancho del
   rango respecto de un extremo (en log10 para lr y l2, lineal para dropout); con mín = máx → null.
 - Justificación citada: TPE (Bergstra et al., 2011) y Optuna (Akiba et al., 2019), verificadas en `blog/references.bib`;
-  TPE multivariado: TODO(cita) Falkner et al. (2018) [VERIFICAR].
+  TPE multivariado: Falkner et al. (2018) [DECIDIDO; verificada, en `blog/references.bib` y citada en el blog 04].
 - `datos.muestra` (v0.20): `pd-hpo` lo ignora (`hpo.validar_cfg` no lee `datos`; la búsqueda usa siempre todos los datos). Se rechazará en el refactor posterior a B5 [DECIDIDO, Andrés, 26-oct].
 
 ### 3.4 Métricas (`src/common/metricas.py`)
@@ -164,6 +167,12 @@ corrida y se explica por qué su desviación entre semillas es 0.
      en cuántas semillas el MLP es mejor que la logística (desde `semillas/mlp_seed*.json`) · 4.4 ROC y KS oficiales de
      prueba (`pd-roc.png`, `pd-ks.png`) · 4.5 calibración (`pd-calibracion.png`) y su lectura de §3.6, ligada a la tasa
      por año de 2.1 · 4.6 curva de aprendizaje de la semilla mediana y parada temprana (`pd-aprendizaje.png`).
+  5. **De la PD a la decisión: el umbral (B11, §3.9; v0.29).** Solo lee `results/data/pd_umbral/umbral.json` y las dos
+     figuras `pd-umbral-*`: 5.1 frente al modelo trivial · 5.2 matriz de confusión con el umbral 0,5 · 5.3 sensibilidad al
+     umbral (`pd-umbral-sensibilidad.png`) · 5.4 cuota por costo y metas de sensibilidad, con la variación de las 30
+     semillas (`pd-umbral-costo.png`) · 5.5 PD absoluta frente a cuota y p* frente al corte observado. Hilo narrativo:
+     una línea en 2.1 (la tasa de malos sube → deriva de 5.5) y en 4.5 (calibración → qué implica al elegir un corte).
+     Las tablas salen de `src/pd/tablas_umbral.py`.
 - **`src/pd/tablas.py`** (con `tests/test_tablas_pd.py`): las funciones que arman las tablas y textos de arriba a partir
   de los JSON ya cargados (puras: no leen archivos ni entrenan), más la que redirige `salida` y `modelos` de la config a
   la carpeta temporal y la que devuelve los moldes desde `demo.yaml`. El notebook solo las llama y muestra el resultado.
@@ -205,10 +214,81 @@ corrida y se explica por qué su desviación entre semillas es 0.
   datos); si no, también puede deberse al sesgo de selección del blog 02 §2.4. No se afirma una causa ni qué
   información usa Lending Club.
 
+### 3.9 De la PD a la decisión: umbral, matriz de confusión y costo (B11) [DECIDIDO, Andrés, 30-oct; Spec v0.29] [EXTRA, opcional]
+- **Pregunta:** cómo se convierte la PD en una decisión de aprobar o rechazar y cuánto cambia la matriz de confusión con
+  el corte, si prestarle a un malo (FN) cuesta más que rechazar a un bueno (FP). **Complemento que solo agrega:** no
+  cambia ninguna cifra de B1–B10, no toca archivos de otras partes, no va a la app y **no fija una política de corte**
+  (ilustra cómo cambia la decisión según el costo relativo, que depende del apetito de riesgo del banco; coherente con el
+  blog 07, que no fija puntos de corte).
+- **Convención:** positivo = malo (`y = 1`). Una política **rechaza** un subconjunto de créditos. VP = malos rechazados,
+  FN = malos aprobados (el error caro), FP = buenos rechazados, VN = buenos aprobados. TPR (sensibilidad) = VP/(VP+FN),
+  TNR (especificidad) = VN/(VN+FP), tasa de rechazo = (VP+FP)/n, tasa de aprobación = 1 − tasa de rechazo.
+- **Dos formas de rechazar** (`src/pd/umbral.py`, lógica pura, sin E/S; entradas validadas con
+  `metricas.validar_entradas`):
+  - **Por umbral** `t`: rechaza si `p ≥ t`.
+  - **Por cuota** `r ∈ [0, 1]`: rechaza los `k = ⌈r·n⌉` créditos de mayor PD, con `k` calculado sobre `r·n` redondeado a
+    9 decimales (para que 0,07·100 dé 7 y no 8); empates de PD en el borde: orden **estable** descendente (a igual PD,
+    primero la fila que aparece antes). `umbral_de_cuota(p, r)` = la menor PD rechazada (`+inf` si `k = 0`).
+- **Costo** en unidades de G (lo que se pierde al rechazar a un bueno): `costo = (L/G)·FN + FP`, y por crédito `/n`. Solo
+  la razón `L/G`; **sin dólares ni margen inventado** (`int_rate` está excluida del modelo, núcleo §5.7). Referencia
+  teórica `p* = 1/(1 + L/G)`: el corte que minimiza el costo esperado **si la PD está calibrada** (rechazar si
+  `p·L > (1 − p)·G`).
+- **Elección del corte (principal, cuota):** para cada `L/G`, `r*` = la cuota de la rejilla que minimiza el costo
+  **observado en validación** (2013) con sus etiquetas; empate → la **menor** cuota. Se aplica en prueba (2014) como cuota
+  sobre la cohorte (`rechazos_por_cuota(p_test, r*)`): es una política **por lotes o de cuota**, no la decisión individual
+  en tiempo real de la app, y así se dice en el texto. **Contraste (PD absoluta):** `t_val = umbral_de_cuota(p_val, r*)`
+  aplicado tal cual en prueba (`p_test ≥ t_val`); muestra qué tasa de rechazo produce en 2014 por la deriva. La brecha
+  entre `p*` y `t_val` mide la descalibración (coherente con §6.4 y Limitaciones del blog 06).
+- **Metas de sensibilidad:** para cada meta `m`, la menor cuota de la rejilla con TPR de validación ≥ `m`, y su efecto en
+  prueba (matriz y tasas).
+- **Modelo trivial:** PD constante `q`. Principal `q` = tasa de malos de **train**; piso teórico `q` = tasa de **prueba**
+  (usa etiquetas de prueba). Brier en val y test con `metricas.brier`; prueba: igual a la forma cerrada π(1−π) + (q−π)²
+  (π = tasa del conjunto). AUC = 0,5 y matriz degenerada (aprueba o rechaza a todos): se dice en el texto, no va como fila.
+- **Matriz inicial:** umbral `0,5` en val y test.
+- **Curva de sensibilidad al umbral:** TPR, TNR y tasa de rechazo en una rejilla de umbrales, en val y test.
+- **Modelos:** logística (`models/pd_logistica.joblib`) y MLP lado a lado. El análisis principal del MLP usa
+  `models/pd_mlp.pt` (semilla mediana de `summary.json`, la de la app); sus PD de prueba deben coincidir con `pred_mlp` de
+  `results/data/pd/pred_test.parquet`. **Variación entre semillas:** las `semillas.n` redes de la configuración final
+  (`configs/pd/mlp_final.yaml`, semilla efectiva `base_seed + k`, `src/common/seeds.py`) se reentrenan con
+  `experimento.entrenar_semilla` y, para cada escenario y meta, se resumen TPR, TNR y tasa de aprobación de prueba con
+  `experimento.resumir` (media, desv. muestral, mejor, peor, n). **No se guardan las redes** (solo sus PD).
+- **Control de la semilla mediana:** si está entre las reentrenadas, sus PD (val y test) se comparan con las de
+  `models/pd_mlp.pt`: `{identica_bit_a_bit, max_abs_dif, dentro_tolerancia}`. En otra máquina basta la tolerancia de §8
+  (3·√2·EE sobre las medias de las métricas de prueba); fuera de tolerancia → error. Si no está (demo con pocas
+  semillas), `null`.
+- **Configuración** `configs/pd/umbral.yaml`: `hereda: base.yaml` (mismo `mlp`, `base_seed` y `semillas`) más
+  `salida: results/data/pd_umbral`, `figuras: blog/docs/figures` y el bloque `umbral`: `umbral_inicial: 0.5`,
+  `escenarios_razon: [2, 5, 10]`, `curva_razon: {min: 1, max: 20, n: 25}` (rejilla logarítmica), `rejilla_cuotas`
+  (0 a 1 en pasos de 0,01), `rejilla_umbrales` (0 a 1 en pasos de 0,01) y `metas_sensibilidad: [0.5, 0.7, 0.8, 0.9]`.
+  `datos.muestra` debe ser `null` (B11 usa todos los datos). Claves exactas; una clave desconocida es error.
+- **Guarda de rutas** (lección H-26): `salida` resuelta debe ser `results/data/pd_umbral/` o una hermana
+  `results/data/pd_umbral_<algo>/` (p. ej. la demo, ignorada por git); `figuras` debe ser `blog/docs/figures/` o una
+  carpeta dentro de `salida`. Nunca `results/data/pd/`, `models/` ni rutas fuera del repositorio (`..`, absolutas). La
+  raíz es inyectable para las pruebas.
+- **Salidas:** `results/data/pd_umbral/umbral.json` (bloques `trivial`, `matriz_inicial`, `sensibilidad_umbral`,
+  `escenarios`, `curva_costo`, `metas`, `semillas`, `control_semilla_mediana`, más `config`, `tiempo_s` y `evidencia` =
+  la de `experimento.evidencia` + SHA-256 de los dos modelos leídos) y `pred_umbral.parquet` (`id`, `split` ∈ {val, test},
+  `y`, `pred_logistica`, `pred_mlp`). Figuras `pd-umbral-sensibilidad.png` y `pd-umbral-costo.png`
+  (`src/viz/figs_umbral_pd.py`, con `SALIDA` + `generar(raiz, destino, datos)` como todo `figs_*`).
+- **Comando:** `python scripts/umbral_pd.py --config configs/pd/umbral.yaml [--set clave=valor …]` (como
+  `scripts/diagnostico_nivel_pd.py`, para no tocar `cli.py` ni `run.py`, que son compartidos): escribe el JSON, el parquet
+  y regenera las 2 figuras; código 2 y una línea en stderr ante un error esperado. Demo: `--set semillas.n=3 --set
+  salida=results/data/pd_umbral_demo --set figuras=results/data/pd_umbral_demo/figuras`. En el PR se le propone a Daniel
+  conectar `figs_umbral_pd` a `run.py figures`.
+- **Código:** formato percent (`# %%`), comentario explicativo por línea, responsabilidad única (`umbral.py` cálculo,
+  `umbral_experimento.py` orquestación con dependencias inyectadas, `tablas_umbral.py` tablas, `figs_umbral_pd.py`
+  figuras, `scripts/umbral_pd.py` CLI) e inversión de dependencias (cargar, entrenar, predecir y escribir se inyectan).
+- **Blog:** 05 **§5.8** (convención, matriz, TPR/TNR, relación con el KS = máx(TPR + TNR − 1), costo, derivación de `p*`,
+  Brier del trivial) y 06 **§6.8** después de Limitaciones, que sigue siendo §6.7 porque el blog 10 la cita (6.8.1 frente
+  al trivial · 6.8.2 matriz con 0,5 · 6.8.3 sensibilidad al umbral · 6.8.4 cuota por costo y metas, con la variación de
+  las semillas · 6.8.5 PD absoluta frente a cuota y `p*` · 6.8.6 conclusión y próximos pasos: recalibrar, inferencia de
+  rechazados, monitoreo con PSI y fijar `L/G` con datos del negocio; una frase remite a la sección 7: un corte en PD
+  equivale a un corte en puntaje). Sin puntos de la scorecard. Blog 07–13 no se editan.
+
 ## 4. Tareas
 | ID | Tarea | Depende | Aceptación | + Verificador | Fecha | Quién |
 |---|---|---|---|---|---|---|
-| B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | Andrés |
+| ✅ B1 | `metricas.py` con datos sintéticos | E0 | `test_metricas.py` coincide con sklearn/scipy | **verificador-matematico** | vie 23 | Andrés |
 | ✅ B2 | MLP + `entrenar.py` (parada temprana, dropout, L2, Adam/SGD, `n_parametros`) | E0 | `test_mlp.py`: determinista en CPU, restaura los mejores pesos | verificador-matematico | vie 23, mediodía | Andrés |
 | ✅ B3 | Logística con búsqueda de `C` | B1 | Presupuesto registrado; resultados en `results/data/pd/` | revisor-spec | vie 23 | Andrés |
 | ✅ B4 | Optuna del MLP (con datos reales) | A5, B2 | `hpo_ensayos.json` con 40 ensayos y tiempo | analista-experimentos | vie 23, noche | Andrés |
@@ -218,11 +298,12 @@ corrida y se explica por qué su desviación entre semillas es 0.
 | ✅ B9 | Notebook `02_pd` (núcleo §5.8) con la estructura de §3.7 (v0.22): moldes y comando de terminal, demo en la sección 1, datos, búsqueda y modelo final; `src/pd/tablas.py` | B5, B7 | Corre en < 2 min; la celda de parámetros cambia la arquitectura sin tocar código; los moldes coinciden con `demo.yaml` (prueba); no escribe en `results/`, `models/` ni `blog/` (`test_notebooks.py`) | revisor-spec | dom 25 (hecha 26-oct) | Andrés |
 | ✅ B10 | Sensibilidad con `grade` e `int_rate` (Daniel, 23-oct; detalle en §3.8, v0.23): la logística y el MLP con la configuración final, sobre las 15 variables + `configs/features_sensibilidad.yaml` (unir `data/processed/sensibilidad_lc.parquet` por `id`; preprocesador propio ajustado solo con train). Misma partición; 30 semillas del MLP si alcanza el tiempo, si no 5 y se dice. **No va a la app ni reemplaza al modelo principal** | B5 | Tabla en el blog 06: AUC/Gini/KS/Brier del modelo principal vs. con las variables de Lending Club, y la lectura (cuánto de la discriminación ya está en la nota de LC) | analista-experimentos | dom 25 (hecha 27-oct) | Andrés |
 | ✅ B8 | Blog 04–06 | B5, B7 | Derivaciones revisadas; cifras desde `summary.json` | redactor-tecnico + verificador-matematico | dom 25 (hecha 27-oct) | Andrés |
+| B11 | **[EXTRA, opcional]** De la PD a la decisión (§3.9, v0.29): umbral, matriz de confusión, costo `L/G` y variación en las 30 semillas; script, figuras, notebook 02 §5 y blog §5.8 y §6.8 | B5, B7, B9 | Pruebas en verde; `umbral.json` reproducible con un comando; control de la semilla mediana; no escribe en `results/data/pd/` ni `models/`; blog sin figuras huérfanas | verificador-matematico + analista-experimentos | vie 30 | Andrés |
 
 (E0 = esqueleto del puente, jue 22.)
 
 ## 5. Pruebas de la parte
-`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta), `test_tablas_pd.py` (B9: tablas del notebook 02 y moldes = `demo.yaml`), `test_notebook_02_pd.py` (B9; las que ejecutan el notebook, lentas), `test_espacio.py` (B9: `espacio.py` sin Optuna, mismo objeto en `hpo` y `tablas`), `test_sensibilidad_pd.py` (B10).
+`test_metricas.py`, `test_mlp.py`, `test_logistica.py`, `test_hpo.py`, `test_experimento_pd.py` (B5: semillas, summary, pred_test, `pd_mlp.pt` y `run.py pd`), `test_demo_pd.py` (marcada lenta), `test_tablas_pd.py` (B9: tablas del notebook 02 y moldes = `demo.yaml`), `test_notebook_02_pd.py` (B9; las que ejecutan el notebook, lentas), `test_espacio.py` (B9: `espacio.py` sin Optuna, mismo objeto en `hpo` y `tablas`), `test_sensibilidad_pd.py` (B10), `test_umbral_pd.py`, `test_umbral_experimento.py`, `test_tablas_umbral.py` y `test_figs_umbral_pd.py` (B11).
 
 ## 6. Puntos calientes de alucinación
 - L2 vs. `AdamW`; "dropout se aplica también al predecir"; `BCELoss` sobre logits sin sigmoide.
@@ -234,7 +315,8 @@ corrida y se explica por qué su desviación entre semillas es 0.
 ## 7. Blog y fundamentos
 04: neurona, MLP, activaciones, BCE por máxima verosimilitud, retropropagación, Adam/SGD, L2, dropout, parada temprana.
 05: definición de AUC, Gini, KS, Brier y curva de calibración. 06: resultados de PD y comparación justa (tabla con parámetros,
-configuraciones probadas, tiempo y métricas con su variabilidad).
+configuraciones probadas, tiempo y métricas con su variabilidad). B11 (§3.9): 05 §5.8 (matriz de confusión, TPR/TNR,
+costo y `p*`) y 06 §6.8 (de la PD a la decisión).
 
 ## 8. Definición de terminado
 `python run.py pd --config configs/pd/base.yaml` reproduce `summary.json`; la demo corre en < 2 min en CPU; C y E usan el modelo
