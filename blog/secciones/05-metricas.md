@@ -3,7 +3,9 @@
 src/pd/logistica.py); lectura de la calibración según B-pd §3.6. Sin cifras de resultados: están en la sección 6. -->
 ## 5. Métricas de evaluación
 
-Esta sección define cada métrica tal como la calcula `src/common/metricas.py`. Los valores obtenidos están en la sección 6.
+Esta sección define cada métrica tal como la calcula `src/common/metricas.py`; la sección 5.8 agrega la matriz de
+confusión, la sensibilidad, la especificidad y la elección del umbral, que calcula `src/pd/umbral.py`. Los valores
+obtenidos están en la sección 6.
 
 ### 5.1 Convención
 
@@ -193,3 +195,102 @@ Fuente: Elaboración propia a partir de las definiciones de src/common/metricas.
 | Log-loss | Calibración y discriminación | Log-verosimilitud negativa media (criterio de selección) | [0, ∞) | Menor |
 | Curva de calibración | Calibración | PD media frente a tasa observada en 10 bins por cuantiles | Diagonal = calibrado | Cerca de la diagonal |
 :::
+
+### 5.8 Matriz de confusión, sensibilidad, especificidad y umbral
+
+<!-- B11 (30-oct): definiciones de src/pd/umbral.py (B-pd §3.9). Sin cifras de resultados: están en la sección 6.8. -->
+
+Las métricas anteriores evalúan la PD como número. Para usarla hay que tomar una **decisión**: aprobar o rechazar cada
+solicitud. Se mantiene la convención de la sección 5.1: el **positivo es el malo** ($y = 1$) y **rechazar** un crédito es
+predecir que será malo. Hay dos formas de rechazar:
+
+- **Por umbral** $t$: se rechaza el crédito $i$ si $p_i \ge t$.
+- **Por cuota** $r \in [0, 1]$: se rechazan los $k = \lceil r \cdot n \rceil$ créditos de mayor PD (en el código, $r \cdot n$
+  se redondea antes a 9 decimales para que $0{,}07 \cdot 100$ dé 7 y no 8; a igual PD en el borde, entra primero la fila
+  que aparece antes). La menor PD rechazada es el umbral que esa cuota implica en ese conjunto.
+
+**Matriz de confusión.** Cada crédito cae en una de cuatro celdas:
+
+::: tabla matriz-confusion
+Título: Matriz de confusión de una política de crédito (positivo = malo; rechazar = predecir malo)
+Fuente: Elaboración propia a partir de la convención de src/pd/umbral.py (B-pd §3.9).
+| | Se rechaza (predicho malo) | Se aprueba (predicho bueno) |
+|---|---|---|
+| **Malo** ($y = 1$) | VP: malo rechazado (acierto) | FN: se le presta a un malo (**el error caro**) |
+| **Bueno** ($y = 0$) | FP: se rechaza a un bueno (se pierde el negocio) | VN: bueno aprobado (acierto) |
+:::
+
+La [[tab:matriz-confusion]] muestra que los dos errores no son simétricos: un FN es un crédito que se presta y no se
+recupera completo, mientras que un FP es un buen cliente que se va. Con $P = \mathrm{VP} + \mathrm{FN}$ malos,
+$N = \mathrm{FP} + \mathrm{VN}$ buenos y $n = P + N$:
+
+$$
+\mathrm{TPR} = \frac{\mathrm{VP}}{\mathrm{VP} + \mathrm{FN}}, \qquad
+\mathrm{TNR} = \frac{\mathrm{VN}}{\mathrm{VN} + \mathrm{FP}}, \qquad
+\text{tasa de rechazo} = \frac{\mathrm{VP} + \mathrm{FP}}{n}, \qquad
+\text{tasa de aprobación} = 1 - \text{tasa de rechazo}.
+$$
+
+En palabras: la **sensibilidad** (TPR) es la fracción de los malos que la política atrapa; la **especificidad** (TNR), la
+fracción de los buenos que aprueba; la tasa de rechazo, la fracción de todas las solicitudes que se niegan. La TPR es la
+misma de la sección 5.2 y $\mathrm{TNR} = 1 - \mathrm{FPR}$. Subir el umbral aprueba a más gente: la TNR sube y la TPR baja.
+
+**Relación con el KS.** Con la regla "rechazar si $p_i \ge t$", la TPR es la fracción de malos con PD de al menos $t$ y la
+TNR la de buenos con PD menor que $t$. Si $F_1(t^-)$ y $F_0(t^-)$ son las acumuladas de la sección 5.4 justo antes de $t$
+(fracción con PD estrictamente menor que $t$):
+
+$$
+\mathrm{TPR}(t) = 1 - F_1(t^-), \qquad \mathrm{TNR}(t) = F_0(t^-)
+\quad\Longrightarrow\quad
+\mathrm{TPR}(t) + \mathrm{TNR}(t) - 1 = F_0(t^-) - F_1(t^-) .
+$$
+
+Como las acumuladas solo cambian en los valores observados de $p$, recorrer todos los umbrales recorre todos los valores
+de $F_0 - F_1$, y
+
+$$
+\mathrm{KS} = \max_t \bigl|\, \mathrm{TPR}(t) + \mathrm{TNR}(t) - 1 \,\bigr| .
+$$
+
+En palabras: el KS es la mayor ganancia, sobre el azar, de sumar lo que el umbral acierta en malos y en buenos. El valor
+absoluto importa: sin él, el máximo de $\mathrm{TPR} + \mathrm{TNR} - 1$ coincide con el KS solo si el modelo ordena en el
+sentido correcto ($F_0 \ge F_1$, los buenos con PD más bajas). Y si $t$ recorre solo una **rejilla** de umbrales (por
+ejemplo, pasos de 0,01), el máximo sobre la rejilla es una **cota inferior** del KS, porque puede saltarse el umbral exacto
+donde ocurre la máxima separación.
+
+**Costo de una política.** Sea $L$ lo que se pierde al prestarle a un malo y $G$ lo que se deja de ganar al rechazar a un
+bueno. Medido en unidades de $G$, el costo de una política es
+
+$$
+\text{costo} = \frac{L}{G}\,\mathrm{FN} + \mathrm{FP}, \qquad \text{costo por crédito} = \frac{\text{costo}}{n} .
+$$
+
+Solo importa la razón $L/G$; no se usan montos en dólares ni márgenes (la tasa de interés está fuera del modelo). Con
+$L/G = 1$ los dos errores pesan igual; con $L/G = 10$, un malo aprobado cuesta lo que diez buenos rechazados.
+
+**El umbral teórico $p^*$.** Si la PD está **calibrada** ($p$ es la probabilidad real de ser malo), aprobar a un crédito
+cuesta en esperanza $p \cdot L$ (con probabilidad $p$ es malo y se pierde $L$) y rechazarlo cuesta $(1 - p) \cdot G$ (con
+probabilidad $1 - p$ era bueno y se pierde $G$). Conviene rechazar cuando lo primero es mayor:
+
+$$
+p\,L > (1 - p)\,G
+\iff p\,(L + G) > G
+\iff p > \frac{G}{L + G} = \frac{1}{1 + L/G} \equiv p^* .
+$$
+
+En palabras: cuanto más caro es el malo frente al bueno, más bajo es el corte y más se rechaza ($p^* = 1/3$ con
+$L/G = 2$; $p^* = 1/11$ con $L/G = 10$). La deducción supone una PD calibrada; si el modelo subestima el riesgo, el corte
+que de verdad minimiza el costo queda por debajo de $p^*$. Por eso, además de $p^*$, en la sección 6.8 el corte se elige
+con datos: la cuota que minimiza el costo **observado** en validación.
+
+**Brier de una PD constante.** Un modelo trivial que le da a todos la misma PD $q$ sirve de piso de comparación. Con
+$\pi = P/n$ la tasa de malos del conjunto, y como $y_i^2 = y_i$:
+
+$$
+\mathrm{Brier}(q) = \frac{1}{n}\sum_{i=1}^{n}(q - y_i)^2 = q^2 - 2q\pi + \pi
+= \pi(1 - \pi) + (q - \pi)^2 .
+$$
+
+En palabras: es el término de ruido $\pi(1-\pi)$ más el castigo por no acertar la tasa. Su mínimo, $\pi(1 - \pi)$, se
+alcanza con $q = \pi$, la tasa del mismo conjunto, que en la práctica no se conoce de antemano. Su AUC es 0,5 (todos
+empatan) y como decisión aprueba a todos o rechaza a todos, según si $q$ queda por debajo o por encima del umbral.
